@@ -1,0 +1,2653 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="TRECE">
+<meta name="theme-color" content="#060d10">
+<meta name="description" content="TRECE — Game kartu 13 multiplayer real-time. Main bersama teman dari browser, tanpa install!">
+<meta property="og:title" content="TRECE — Kartu 13">
+<meta property="og:description" content="Game kartu 13 multiplayer real-time. Main bersama teman dari browser!">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='18' fill='%230e2820'/><text y='.9em' font-size='72' x='50%' text-anchor='middle' dominant-baseline='hanging'>🃏</text></svg>">
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='18' fill='%230e2820'/><text y='.9em' font-size='72' x='50%' text-anchor='middle' dominant-baseline='hanging'>🃏</text></svg>">
+<title>TRECE — Kartu 13</title>
+<script>
+// Polyfill for older iOS WebKit
+if(typeof globalThis==='undefined'){window.globalThis=window;}
+</script>
+<script src="https://cdn.ably.com/lib/ably.min-2.js"></script>
+<script>
+// ══ SOUND ENGINE (Web Audio API) ══
+const SFX=(()=>{
+  let ctx=null;
+  function getCtx(){
+    if(!ctx)ctx=new(window.AudioContext||window.webkitAudioContext)();
+    if(ctx.state==='suspended')ctx.resume();
+    return ctx;
+  }
+  function play(fn){try{fn(getCtx());}catch(e){}}
+  function master(ac,vol=0.55){const g=ac.createGain();g.gain.value=vol;g.connect(ac.destination);return g;}
+  function osc(ac,freq,type,dur,vol,dest,t=0){
+    const o=ac.createOscillator(),g=ac.createGain();
+    o.type=type;o.frequency.value=freq;
+    g.gain.setValueAtTime(vol,ac.currentTime+t);
+    g.gain.exponentialRampToValueAtTime(0.0001,ac.currentTime+t+dur);
+    o.connect(g);g.connect(dest);o.start(ac.currentTime+t);o.stop(ac.currentTime+t+dur);
+  }
+  function noise(ac,dur,vol,dest,t=0){
+    const buf=ac.createBuffer(1,ac.sampleRate*dur,ac.sampleRate);
+    const d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
+    const src=ac.createBufferSource(),g=ac.createGain();
+    src.buffer=buf;g.gain.setValueAtTime(vol,ac.currentTime+t);
+    g.gain.exponentialRampToValueAtTime(0.0001,ac.currentTime+t+dur);
+    src.connect(g);g.connect(dest);src.start(ac.currentTime+t);
+  }
+  return{
+    cardSelect(){play(ac=>{const m=master(ac,0.3);osc(ac,900,'sine',0.06,0.4,m);osc(ac,1200,'sine',0.04,0.15,m,0.03);});},
+    cardDeselect(){play(ac=>{const m=master(ac,0.2);osc(ac,700,'sine',0.05,0.3,m);});},
+    cardPlay(){play(ac=>{const m=master(ac,0.5);noise(ac,0.04,0.6,m);osc(ac,320,'triangle',0.12,0.5,m,0.01);osc(ac,180,'sine',0.18,0.4,m,0.02);});},
+    skip(){play(ac=>{const m=master(ac,0.25);const o=ac.createOscillator(),g=ac.createGain();o.type='sine';o.frequency.setValueAtTime(500,ac.currentTime);o.frequency.exponentialRampToValueAtTime(150,ac.currentTime+0.18);g.gain.setValueAtTime(0.4,ac.currentTime);g.gain.exponentialRampToValueAtTime(0.0001,ac.currentTime+0.18);o.connect(g);g.connect(m);o.start();o.stop(ac.currentTime+0.18);});},
+    bomb(){play(ac=>{const m=master(ac,0.65);osc(ac,60,'sine',0.5,0.9,m);osc(ac,90,'sawtooth',0.3,0.5,m,0.01);noise(ac,0.12,0.8,m);osc(ac,800,'square',0.08,0.4,m);osc(ac,1600,'square',0.05,0.2,m,0.01);});},
+    yourTurn(){play(ac=>{const m=master(ac,0.4);[523,659,784].forEach((f,i)=>osc(ac,f,'sine',0.25,0.35,m,i*0.07));});},
+    playerFinish(){play(ac=>{const m=master(ac,0.45);[523,659,784,1047].forEach((f,i)=>osc(ac,f,'sine',0.22,0.4,m,i*0.06));});},
+    win(){play(ac=>{const m=master(ac,0.55);[523,659,784,1047,784,1047,1319].forEach((f,i)=>osc(ac,f,'sine',0.28,0.5,m,i*0.1));[330,415,523,659,523,659,880].forEach((f,i)=>osc(ac,f,'triangle',0.18,0.35,m,i*0.1+0.02));});},
+    lose(){play(ac=>{const m=master(ac,0.4);[440,392,349,294].forEach((f,i)=>osc(ac,f,'sine',0.3,0.4,m,i*0.12));});},
+    pokerBombed(){play(ac=>{const m=master(ac,0.7);noise(ac,0.18,1.0,m);osc(ac,55,'sine',0.6,0.9,m);osc(ac,110,'sawtooth',0.4,0.5,m,0.05);[800,600,400,200].forEach((f,i)=>osc(ac,f,'square',0.12,0.3,m,i*0.06));});},
+    newRound(){play(ac=>{const m=master(ac,0.3);const o=ac.createOscillator(),g=ac.createGain();o.type='sine';o.frequency.setValueAtTime(200,ac.currentTime);o.frequency.exponentialRampToValueAtTime(500,ac.currentTime+0.22);g.gain.setValueAtTime(0.0001,ac.currentTime);g.gain.linearRampToValueAtTime(0.5,ac.currentTime+0.05);g.gain.exponentialRampToValueAtTime(0.0001,ac.currentTime+0.22);o.connect(g);g.connect(m);o.start();o.stop(ac.currentTime+0.22);});},
+    gameStart(){play(ac=>{const m=master(ac,0.45);[0,0.18,0.36].forEach(t=>osc(ac,880,'sine',0.1,0.5,m,t));osc(ac,1320,'sine',0.25,0.7,m,0.54);});},
+    ready(){play(ac=>{const m=master(ac,0.35);osc(ac,660,'sine',0.12,0.4,m);osc(ac,880,'sine',0.1,0.35,m,0.08);});},
+    timerWarn(){play(ac=>{const m=master(ac,0.3);osc(ac,440,'square',0.06,0.3,m);});},
+    timerTick(){play(ac=>{const m=master(ac,0.25);osc(ac,600,'square',0.04,0.4,m);});}
+  };
+})();
+</script>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Crimson+Pro:ital,wght@0,400;0,600&family=JetBrains+Mono:wght@400;700&display=swap');
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;background:#060d10;
+  -webkit-tap-highlight-color:transparent;
+  -webkit-touch-callout:none;
+  touch-action:manipulation;
+  /* iOS safe area support */
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+/* Prevent iOS auto-zoom on input focus (font-size must be >= 16px) */
+.fi{font-size:16px!important;}
+/* Smooth font rendering on mobile */
+*{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;}
+/* Fix iOS button tap delay */
+button,input{touch-action:manipulation;cursor:pointer;}
+
+:root{
+  --gold:#d4a843;--gold2:#f0c85a;--gold3:#fce8a0;
+  --neon:#00ff88;--neon2:#00e8ff;--neonp:#cc44ff;
+  --red:#e03040;--card-bg:#fdf6e8;
+}
+
+/* ══ LOBBY ══ */
+#lobby{
+  position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:30;
+  background:radial-gradient(ellipse at 50% 40%,#0e2820 0%,#060d10 70%);
+  transition:opacity 0.5s;
+}
+#lobby.fade-out{opacity:0;pointer-events:none;}
+#lobby.gone{display:none;}
+#lobby::before{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(circle at 20% 30%,rgba(0,255,136,0.04) 0%,transparent 40%),
+             radial-gradient(circle at 80% 70%,rgba(204,68,255,0.04) 0%,transparent 40%);
+  animation:bgP 6s ease-in-out infinite alternate;
+}
+@keyframes bgP{from{opacity:0.5}to{opacity:1}}
+
+.lbox{
+  position:relative;z-index:1;
+  background:linear-gradient(150deg,rgba(14,45,30,0.97),rgba(6,13,16,0.99));
+  border:1px solid rgba(212,168,67,0.35);border-radius:20px;
+  padding:32px 40px;width:min(460px,95vw);max-height:95vh;overflow-y:auto;
+  box-shadow:
+    0 0 0 1px rgba(212,168,67,0.08),
+    0 0 80px rgba(0,255,136,0.04),
+    0 24px 64px rgba(0,0,0,0.95);
+}
+/* Corner ornaments */
+.lbox::before,.lbox::after{
+  content:'✦';position:absolute;font-size:10px;color:rgba(212,168,67,0.25);
+}
+.lbox::before{top:10px;left:14px;}
+.lbox::after{bottom:10px;right:14px;}
+.lbox::-webkit-scrollbar{width:3px;}
+.lbox::-webkit-scrollbar-thumb{background:rgba(212,168,67,0.15);border-radius:2px;}
+
+.logo-title{
+  font-family:'Cinzel Decorative',serif;font-size:52px;font-weight:900;
+  background:linear-gradient(135deg,#8b6010 0%,#d4a843 30%,#f0c85a 50%,#fce8a0 60%,#f0c85a 70%,#d4a843 85%,#8b6010 100%);
+  background-size:200% auto;
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  letter-spacing:12px;text-align:center;line-height:1;margin-bottom:4px;
+  animation:logoShimmer 4s linear infinite,logoG 3s ease-in-out infinite alternate;
+}
+@keyframes logoShimmer{0%{background-position:0%}100%{background-position:200%}}
+@keyframes logoG{from{filter:drop-shadow(0 0 20px rgba(212,168,67,0.5))}to{filter:drop-shadow(0 0 50px rgba(212,168,67,0.85))}}
+.logo-sub{font-style:italic;font-size:12px;color:rgba(212,168,67,0.4);letter-spacing:4px;text-align:center;font-family:'Crimson Pro',serif;margin-bottom:8px;}
+.logo-suits{display:flex;justify-content:center;gap:12px;font-size:20px;margin-bottom:24px;}
+.s-r{color:var(--red);animation:floatS 3s ease-in-out infinite;}
+.s-b{color:#99aacc;animation:floatS 3s ease-in-out infinite reverse;}
+@keyframes floatS{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+
+.fl{margin-bottom:12px;}
+.fl label{display:block;font-size:9px;letter-spacing:3px;color:rgba(212,168,67,0.5);text-transform:uppercase;margin-bottom:5px;font-family:'JetBrains Mono',monospace;}
+.fi{width:100%;background:rgba(0,0,0,0.45);border:1px solid rgba(212,168,67,0.2);border-radius:8px;padding:10px 14px;color:var(--gold3);font-size:16px;font-family:'Crimson Pro',serif;outline:none;transition:border-color 0.2s,box-shadow 0.2s;}
+.fi:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(212,168,67,0.1);}
+.fi::placeholder{color:rgba(212,168,67,0.2);}
+
+.key-note{background:rgba(0,255,136,0.04);border:1px solid rgba(0,255,136,0.15);border-radius:8px;padding:10px 13px;font-size:10px;color:rgba(0,255,136,0.65);margin-bottom:14px;line-height:1.8;font-family:'JetBrains Mono',monospace;}
+.key-note a{color:var(--neon);text-decoration:none;}
+
+.divider{display:flex;align-items:center;gap:10px;margin:14px 0;color:rgba(212,168,67,0.22);font-size:9px;letter-spacing:3px;font-family:'JetBrains Mono',monospace;}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:rgba(212,168,67,0.15);}
+
+.btn{display:block;width:100%;padding:12px;border:none;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;transition:all 0.2s;font-family:'Cinzel Decorative',serif;letter-spacing:1px;margin-bottom:8px;-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
+.btn-gold{background:linear-gradient(135deg,#c49030,#f0c85a,#c49030);color:#0a1a08;box-shadow:0 4px 20px rgba(212,168,67,0.3);}
+.btn-gold:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(212,168,67,0.4);}
+.btn-out{background:transparent;color:var(--gold);border:1px solid rgba(212,168,67,0.3);}
+.btn-out:hover{border-color:var(--gold2);background:rgba(212,168,67,0.07);}
+.btn-red{background:transparent;color:#e74c3c;border:1px solid rgba(231,76,60,0.3);font-family:'Crimson Pro',serif;font-size:13px;letter-spacing:0;}
+.btn-ready{background:transparent;color:var(--neon);border:1px solid rgba(0,255,136,0.35);font-family:'Cinzel Decorative',serif;font-size:12px;letter-spacing:1px;}
+.btn-ready:hover{border-color:var(--neon);background:rgba(0,255,136,0.08);}
+.btn-ready.active{background:linear-gradient(135deg,rgba(0,200,100,0.2),rgba(0,255,136,0.15));border-color:var(--neon);color:var(--neon);box-shadow:0 0 14px rgba(0,255,136,0.25);}
+.btn-ready.active:hover{transform:none;cursor:default;}
+.btn:disabled{opacity:0.3;cursor:not-allowed;transform:none!important;}
+
+.lstat{text-align:center;font-size:11px;min-height:16px;margin:8px 0;font-family:'JetBrains Mono',monospace;color:rgba(0,255,136,0.65);}
+.lstat.err{color:rgba(231,76,60,0.8);}
+
+.room-box{background:rgba(0,0,0,0.4);border:1px solid rgba(212,168,67,0.25);border-radius:10px;padding:14px;text-align:center;margin-bottom:12px;}
+.room-code{font-family:'JetBrains Mono',monospace;font-size:34px;color:var(--gold2);letter-spacing:14px;animation:codeP 2s ease-in-out infinite alternate;}
+@keyframes codeP{from{text-shadow:0 0 10px rgba(212,168,67,0.3)}to{text-shadow:0 0 30px rgba(212,168,67,0.6)}}
+.room-hint{font-size:11px;color:rgba(212,168,67,0.35);margin-top:5px;}
+
+/* 4-slot grid */
+.pslots{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:12px 0;}
+.pslot{background:rgba(0,0,0,0.25);border:1px solid rgba(212,168,67,0.15);border-radius:8px;padding:9px 11px;display:flex;align-items:center;gap:8px;min-height:52px;}
+.pslot.filled{border-color:rgba(0,255,136,0.35);background:rgba(0,255,136,0.04);}
+.pslot.ready{border-color:var(--neon);background:rgba(0,255,136,0.08);box-shadow:0 0 10px rgba(0,255,136,0.15);}
+.slot-ready-badge{font-size:8px;color:var(--neon);font-family:'JetBrains Mono',monospace;letter-spacing:1px;}
+.slot-av{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;background:rgba(212,168,67,0.1);color:var(--gold);border:1px solid rgba(212,168,67,0.22);flex-shrink:0;font-family:'JetBrains Mono',monospace;}
+.slot-nm{font-size:12px;color:var(--gold3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.slot-you{font-size:9px;color:var(--neon);font-family:'JetBrains Mono',monospace;}
+.slot-bot{color:rgba(212,168,67,0.3);font-style:italic;}
+
+/* ══ GAME ══ */
+#game{position:fixed;inset:0;display:none;flex-direction:column;overflow:hidden;}
+#game.show{display:flex;}
+#bgCanvas{position:absolute;inset:0;pointer-events:none;z-index:0;}
+.game-layer{position:relative;z-index:1;display:flex;flex-direction:column;height:100%;overflow-x:hidden;overflow-y:hidden;}
+
+/* Opponents — 3 shown, fixed height */
+#oppBar{flex:0 0 96px;display:flex;gap:5px;padding:6px 6px 3px;background:rgba(0,0,0,0.2);border-bottom:1px solid rgba(212,168,67,0.07);}
+.opp{flex:1;min-width:0;background:rgba(0,0,0,0.3);border:1px solid rgba(212,168,67,0.1);border-radius:9px;padding:5px 7px;display:flex;flex-direction:column;align-items:center;gap:3px;transition:border-color 0.3s,box-shadow 0.3s;overflow:hidden;}
+.opp.my-go{border-color:var(--neon);box-shadow:0 0 14px rgba(0,255,136,0.2);}
+.opp.done{opacity:0.45;}
+.opp-nm{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--gold2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;text-align:center;}
+.opp-backs{display:flex;flex-wrap:wrap;gap:2px;justify-content:center;overflow:hidden;max-height:44px;}
+.cback{
+  width:15px;height:23px;
+  background:
+    linear-gradient(135deg,#2a6e44,#1a4a2e),
+    repeating-linear-gradient(45deg,transparent,transparent 3px,rgba(255,255,255,0.04) 3px,rgba(255,255,255,0.04) 4px);
+  border:1px solid rgba(212,168,67,0.55);border-radius:3px;flex-shrink:0;
+  box-shadow:0 1px 4px rgba(0,0,0,0.6),inset 0 0 4px rgba(0,255,136,0.05);
+}
+.cback::after{content:'✦';display:flex;align-items:center;justify-content:center;font-size:6px;color:rgba(212,168,67,0.3);height:100%;}
+
+/* Center */
+#center{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:4px 8px;overflow:hidden;}
+
+/* Turn dots */
+#tdots{display:flex;gap:14px;flex-shrink:0;}
+.tdot{display:flex;align-items:center;gap:4px;font-size:10px;font-family:'JetBrains Mono',monospace;color:rgba(212,168,67,0.3);transition:color 0.3s;}
+.tdot.on{color:var(--neon);}.tdot.dn{color:var(--gold);}
+.tdot-pip{width:8px;height:8px;border-radius:50%;background:rgba(212,168,67,0.15);border:1px solid rgba(212,168,67,0.25);transition:all 0.3s;}
+.tdot.on .tdot-pip{background:var(--neon);border-color:var(--neon);box-shadow:0 0 8px var(--neon);}
+.tdot.dn .tdot-pip{background:var(--gold);border-color:var(--gold);}
+
+/* Felt — wider & taller */
+#felt{
+  position:relative;width:min(820px,99vw);min-height:200px;max-height:240px;
+  background:
+    radial-gradient(ellipse at 30% 50%,rgba(0,255,136,0.04) 0%,transparent 50%),
+    radial-gradient(ellipse at 70% 50%,rgba(204,68,255,0.03) 0%,transparent 50%),
+    radial-gradient(ellipse at 50% 40%,#245c38 0%,#0e3020 50%,#071610 100%);
+  border:2px solid rgba(212,168,67,0.22);border-radius:20px;
+  box-shadow:
+    inset 0 4px 40px rgba(0,0,0,0.8),
+    inset 0 0 80px rgba(0,0,0,0.4),
+    0 0 0 1px rgba(212,168,67,0.08),
+    0 8px 40px rgba(0,0,0,0.6);
+  overflow:hidden;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+#felt::before{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background:
+    repeating-linear-gradient(45deg,transparent,transparent 18px,rgba(255,255,255,0.006) 18px,rgba(255,255,255,0.006) 19px),
+    repeating-linear-gradient(-45deg,transparent,transparent 18px,rgba(255,255,255,0.004) 18px,rgba(255,255,255,0.004) 19px);
+}
+/* felt corner ornaments */
+#felt::after{
+  content:'✦';position:absolute;bottom:8px;right:12px;
+  font-size:14px;color:rgba(212,168,67,0.12);pointer-events:none;
+}
+#feltLbl{display:none;}
+.empty-msg{color:rgba(212,168,67,0.15);font-style:italic;font-size:14px;font-family:'Crimson Pro',serif;}
+#feltCards{position:relative;width:100%;height:200px;display:flex;align-items:center;justify-content:center;overflow-x:auto;overflow-y:visible;}
+
+/* ══ TIMER BAR ══ */
+#timerWrap{
+  width:min(820px,99vw);height:4px;border-radius:2px;
+  background:rgba(0,0,0,0.35);overflow:hidden;flex-shrink:0;
+}
+#timerBar{
+  height:100%;width:100%;
+  background:linear-gradient(90deg,var(--neon),#00e8ff);
+  border-radius:2px;
+  transition:width 1s linear,background 0.5s;
+}
+#timerBar.warn{background:linear-gradient(90deg,#ff8800,#ffcc00);}
+#timerBar.danger{background:linear-gradient(90deg,#ff2244,#ff6600);}
+#timerText{display:none;}
+
+/* Ghost */
+#ghostRow{display:flex;align-items:center;gap:3px;opacity:0;transition:opacity 0.3s;flex-shrink:0;max-height:54px;overflow:hidden;}
+#ghostRow.vis{opacity:0.3;}
+.ghost-lbl{font-size:9px;font-family:'JetBrains Mono',monospace;color:rgba(212,168,67,0.5);margin-right:4px;white-space:nowrap;}
+
+#gstat{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--neon);text-align:center;min-height:15px;text-shadow:0 0 10px rgba(0,255,136,0.4);flex-shrink:0;}
+
+/* Player area */
+#playerArea{
+  flex:0 0 auto;
+  display:flex;flex-direction:column;align-items:center;gap:5px;
+  padding:4px 0 8px;
+  background:linear-gradient(to top,rgba(0,0,0,0.25),transparent);
+  border-top:1px solid rgba(212,168,67,0.08);
+  /* must NOT clip overflow — cards hover upward */
+  overflow:visible;
+}
+#comboHint{font-size:10px;font-family:'JetBrains Mono',monospace;color:rgba(212,168,67,0.35);min-height:14px;text-align:center;transition:color 0.2s;}
+#handWrap{
+  width:100%;
+  overflow-x:auto;
+  overflow-y:visible;
+  /* top padding must be >= card hover lift (22px) + scale buffer */
+  padding:28px 16px 8px;
+  cursor:default;
+  scrollbar-width:thin;
+  scrollbar-color:rgba(212,168,67,0.1) transparent;
+  /* allow overflow-y to actually show — clip only x */
+  clip-path:none;
+}
+#handWrap::-webkit-scrollbar{height:3px;}
+#handWrap::-webkit-scrollbar-thumb{background:rgba(212,168,67,0.12);border-radius:2px;}
+#handInner{
+  display:flex;
+  flex-wrap:nowrap;
+  gap:5px;
+  /* min-width ensures centering when cards fit, max-content for scroll when too many */
+  min-width:100%;
+  width:max-content;
+  justify-content:center;
+  /* no padding-top here — handWrap padding handles the hover space */
+}
+
+#actRow{display:flex;gap:9px;}
+.abtn{padding:8px 28px;border-radius:8px;border:none;font-size:12px;font-weight:700;cursor:pointer;transition:all 0.18s;font-family:'Cinzel Decorative',serif;letter-spacing:1px;}
+.abtn-play{background:linear-gradient(135deg,#00dd70,#00ff88,#00cc60);color:#051208;box-shadow:0 4px 16px rgba(0,255,136,0.3);}
+.abtn-play:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,255,136,0.45);}
+.abtn-play:disabled{background:rgba(0,255,136,0.1);color:rgba(0,255,136,0.25);cursor:not-allowed;transform:none;box-shadow:none;}
+.abtn-skip{background:transparent;color:var(--gold);border:1px solid rgba(212,168,67,0.3);}
+.abtn-skip:hover{border-color:var(--gold2);background:rgba(212,168,67,0.07);}
+.abtn-skip:disabled{opacity:0.22;cursor:not-allowed;}
+
+#myplate{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--gold);background:rgba(0,0,0,0.3);border:1px solid rgba(212,168,67,0.18);padding:3px 13px;border-radius:20px;letter-spacing:1px;transition:all 0.3s;}
+#myplate.on{border-color:var(--neon);color:var(--neon);box-shadow:0 0 10px rgba(0,255,136,0.18);}
+
+/* ══ CARDS ══ */
+.card{
+  width:60px;height:88px;
+  background:linear-gradient(160deg,#fffdf5 0%,#fdf8e8 60%,#faf0d0 100%);
+  border:1.5px solid #c8b890;border-radius:8px;position:relative;cursor:pointer;
+  display:flex;flex-direction:column;justify-content:space-between;padding:3px;
+  flex-shrink:0;font-family:'Crimson Pro',serif;
+  box-shadow:0 5px 14px rgba(0,0,0,0.75),0 1px 3px rgba(0,0,0,0.5),inset 0 1px 0 rgba(255,255,255,0.9);
+  transition:transform 0.18s cubic-bezier(0.34,1.56,0.64,1),box-shadow 0.15s,border-color 0.15s;
+}
+/* Card shine */
+.card::before{
+  content:'';position:absolute;inset:0;border-radius:7px;
+  background:linear-gradient(155deg,rgba(255,255,255,0.85) 0%,rgba(255,255,255,0.2) 40%,transparent 70%);
+  pointer-events:none;z-index:1;
+}
+/* Card inner frame decoration */
+.card::after{
+  content:'';position:absolute;inset:4px;border-radius:5px;
+  border:0.5px solid rgba(180,150,80,0.25);pointer-events:none;z-index:1;
+}
+.card:hover:not(.nh){transform:translateY(-14px) rotate(-1deg);box-shadow:0 18px 36px rgba(0,0,0,0.8),0 0 0 1px rgba(212,168,67,0.15);}
+.card.sel{
+  transform:translateY(-22px) scale(1.06) rotate(0deg)!important;
+  border-color:var(--neon)!important;
+  box-shadow:0 0 0 2.5px var(--neon),0 0 24px rgba(0,255,136,0.6),0 20px 40px rgba(0,0,0,0.7)!important;
+}
+.card.nh{cursor:default;}.card.nh:hover{transform:none!important;}
+.card.fc{
+  border-color:#f0c010!important;
+  animation:fcP 1.4s ease-in-out infinite;
+}
+@keyframes fcP{
+  0%,100%{box-shadow:0 0 0 2px #f0c010,0 0 14px rgba(240,192,16,0.55),0 5px 14px rgba(0,0,0,0.75)}
+  50%{box-shadow:0 0 0 2.5px #f0c010,0 0 32px rgba(240,192,16,0.9),0 5px 14px rgba(0,0,0,0.75)}
+}
+.card .cv{font-size:13px;font-weight:700;line-height:1;position:relative;z-index:2;}
+.card .cs{font-size:11px;line-height:1;position:relative;z-index:2;}
+.card .cc{font-size:26px;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);line-height:1;z-index:2;}
+.card .ct{display:flex;flex-direction:column;align-items:flex-start;}
+.card .cb2{display:flex;flex-direction:column;align-items:flex-end;transform:rotate(180deg);}
+.card.r{color:#c41830;}.card.b{color:#1a1a2e;}
+
+/* Felt card (stacked) */
+.felt-card{position:absolute;width:58px;height:88px;transform-origin:center center;pointer-events:none;animation:dealC 0.32s cubic-bezier(0.22,1,0.36,1) both;}
+@keyframes dealC{from{opacity:0;transform:var(--df) scale(0.6);}to{opacity:1;transform:var(--dt);}}
+
+/* Ghost card */
+.ghost-card{width:34px;height:52px;background:var(--card-bg);border:1.5px solid #cdc0a0;border-radius:5px;position:relative;display:flex;flex-direction:column;justify-content:space-between;padding:2px;flex-shrink:0;font-family:'Crimson Pro',serif;box-shadow:0 2px 6px rgba(0,0,0,0.5);}
+.ghost-card .cv{font-size:9px;font-weight:600;line-height:1;}
+.ghost-card .cs{font-size:8px;line-height:1;}
+.ghost-card .cc{font-size:16px;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);line-height:1;}
+.ghost-card .ct{display:flex;flex-direction:column;align-items:flex-start;}
+.ghost-card .cb2{display:flex;flex-direction:column;align-items:flex-end;transform:rotate(180deg);}
+.ghost-card.r{color:#cc2233;}.ghost-card.b{color:#1a1a2e;}
+
+/* Combo badge */
+#comboBadge{position:absolute;bottom:8px;right:10px;font-family:'JetBrains Mono',monospace;font-size:9px;background:rgba(0,0,0,0.7);border:1px solid rgba(212,168,67,0.3);color:var(--gold2);padding:3px 9px;border-radius:20px;pointer-events:none;z-index:10;white-space:nowrap;}
+#comboBadge.bomb{border-color:var(--neonp);color:var(--neonp);box-shadow:0 0 10px rgba(204,68,255,0.3);}
+
+@keyframes cardDeal{from{opacity:0;transform:translateY(28px) scale(0.8);}to{opacity:1;transform:none;}}
+.deal{animation:cardDeal 0.28s cubic-bezier(0.22,1,0.36,1) both;}
+
+/* ══ MODAL ══ */
+.overlay{
+  position:fixed;inset:0;background:rgba(3,8,10,0.94);
+  display:flex;align-items:center;justify-content:center;z-index:50;
+  animation:fadeIn 0.8s ease;
+}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.modal{
+  background:
+    radial-gradient(ellipse at 50% 0%,rgba(0,255,136,0.08) 0%,transparent 60%),
+    linear-gradient(150deg,rgba(16,50,32,0.98),rgba(6,13,16,0.99));
+  border:1px solid rgba(212,168,67,0.4);border-radius:20px;
+  padding:36px 44px;text-align:center;max-width:400px;width:93vw;
+  box-shadow:
+    0 0 0 1px rgba(212,168,67,0.1),
+    0 0 60px rgba(0,255,136,0.06),
+    0 24px 80px rgba(0,0,0,0.95);
+  animation:modalIn 1s cubic-bezier(0.22,1,0.36,1);
+}
+@keyframes modalIn{from{transform:scale(0.8) translateY(40px);opacity:0}to{transform:none;opacity:1}}
+.modal-t{
+  font-family:'Cinzel Decorative',serif;font-size:26px;
+  background:linear-gradient(135deg,var(--gold),var(--gold2),#ffe066,var(--gold));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  margin-bottom:22px;line-height:1.2;
+  animation:titleShimmer 3s ease infinite;
+  background-size:200% auto;
+}
+@keyframes titleShimmer{0%{background-position:0%}50%{background-position:100%}100%{background-position:0%}}
+.rlist{list-style:none;margin:0 0 22px;text-align:left;}
+.ritem{
+  display:flex;align-items:center;gap:9px;padding:9px 0;
+  border-bottom:1px solid rgba(212,168,67,0.08);font-size:14px;
+  animation:rIn 0.7s cubic-bezier(0.22,1,0.36,1) both;
+}
+@keyframes rIn{from{opacity:0;transform:translateX(-24px)}to{opacity:1;transform:none}}
+.rcircle{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;font-family:'JetBrains Mono',monospace;}
+
+/* ══ POSITION ANNOUNCE ══ */
+#posAnnounce{position:fixed;inset:0;pointer-events:none;z-index:45;display:flex;align-items:center;justify-content:center;}
+.pos-banner{
+  font-family:'Cinzel Decorative',serif;font-size:clamp(28px,6vw,56px);font-weight:900;
+  text-align:center;padding:24px 48px;border-radius:20px;letter-spacing:4px;
+  /* slower: in 0.7s, hold, out 0.8s starting at 2.4s */
+  animation:posBannerIn 0.7s cubic-bezier(0.22,1,0.36,1) both,posBannerOut 0.9s 3.2s ease both;
+  white-space:nowrap;backdrop-filter:blur(8px);
+}
+.pos-banner.pos-1{
+  background:linear-gradient(135deg,rgba(10,28,8,0.97),rgba(18,48,22,0.97));
+  border:2px solid #d4a843;color:#f0c85a;
+  box-shadow:0 0 80px rgba(212,168,67,0.5),0 0 160px rgba(212,168,67,0.2),0 20px 60px rgba(0,0,0,0.95);
+  text-shadow:0 0 40px rgba(212,168,67,0.9),0 0 80px rgba(212,168,67,0.4);
+}
+.pos-banner.pos-2{background:linear-gradient(135deg,rgba(10,18,26,0.97),rgba(14,24,40,0.97));border:2px solid #aaaaaa;color:#dddddd;box-shadow:0 0 40px rgba(170,170,170,0.3),0 20px 60px rgba(0,0,0,0.9);}
+.pos-banner.pos-3{background:linear-gradient(135deg,rgba(16,12,8,0.97),rgba(26,16,8,0.97));border:2px solid #cd7f32;color:#e8a060;box-shadow:0 0 40px rgba(205,127,50,0.3),0 20px 60px rgba(0,0,0,0.9);}
+.pos-banner.pos-4{background:linear-gradient(135deg,rgba(22,4,4,0.97),rgba(14,4,4,0.97));border:2px solid #8b1a1a;color:#cc5555;box-shadow:0 0 40px rgba(139,26,26,0.3),0 20px 60px rgba(0,0,0,0.9);}
+@keyframes posBannerIn{from{opacity:0;transform:scale(0.4) translateY(-50px);}to{opacity:1;transform:scale(1) translateY(0);}}
+@keyframes posBannerOut{from{opacity:1;transform:scale(1);}to{opacity:0;transform:scale(1.08) translateY(-40px);}}
+
+/* ══ WIN CELEBRATION ══ */
+#winCelebration{position:fixed;inset:0;pointer-events:none;z-index:46;display:none;align-items:center;justify-content:center;}
+#winCelebration.active{display:flex;}
+.win-text{
+  font-family:'Cinzel Decorative',serif;font-size:clamp(42px,10vw,96px);font-weight:900;
+  text-align:center;letter-spacing:6px;
+  background:linear-gradient(135deg,#d4a843,#f0c85a,#fce8a0,#f0c85a,#d4a843);
+  background-size:200% auto;
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  /* slower: in 0.8s, out 0.8s at 3.5s */
+  animation:winTextIn 0.8s cubic-bezier(0.22,1,0.36,1) both,
+            winTextOut 0.8s 3.5s ease both,
+            shimmerWin 2s 0.8s linear infinite;
+  filter:drop-shadow(0 0 50px rgba(212,168,67,0.95));
+}
+@keyframes shimmerWin{0%{background-position:0%}100%{background-position:200%}}
+.win-sub{
+  font-family:'Cinzel Decorative',serif;font-size:clamp(14px,3vw,22px);
+  color:rgba(240,200,90,0.8);letter-spacing:8px;text-align:center;margin-top:12px;
+  animation:winTextIn 0.8s 0.3s cubic-bezier(0.22,1,0.36,1) both,winTextOut 0.8s 3.5s ease both;
+}
+.win-wrap{display:flex;flex-direction:column;align-items:center;gap:8px;}
+@keyframes winTextIn{from{opacity:0;transform:scale(0.3) translateY(60px);}to{opacity:1;transform:scale(1) translateY(0);}}
+@keyframes winTextOut{0%{opacity:1;transform:scale(1);}100%{opacity:0;transform:scale(1.12) translateY(-50px);}}
+
+/* ══ DRAG REORDER ══ */
+.card.dragging{opacity:0.4;transform:scale(0.95)!important;cursor:grabbing!important;}
+.card.drag-over{transform:translateY(-14px) scale(1.02)!important;border-color:var(--gold2)!important;box-shadow:0 0 0 2px var(--gold2),0 12px 24px rgba(0,0,0,0.6)!important;}
+#handInner.drag-active .card:not(.dragging){transition:transform 0.15s ease,margin 0.15s ease;}
+
+/* ══ FELT STACKING ══ */
+.felt-stack-card{
+  position:absolute;
+  width:60px;height:88px;
+  transform-origin:center center;
+  pointer-events:none;
+  opacity:1 !important;
+  filter:drop-shadow(0 4px 10px rgba(0,0,0,0.7));
+}
+@keyframes stackDeal{
+  from{opacity:0;transform:var(--sf) scale(0.6);}
+  to{opacity:1;transform:var(--st);}
+}
+.felt-stack-card.animate{animation:stackDeal 0.38s cubic-bezier(0.22,1,0.36,1) both;}
+#notif{position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:40;display:flex;flex-direction:column;align-items:center;gap:5px;pointer-events:none;}
+.npill{background:rgba(0,0,0,0.88);border:1px solid rgba(212,168,67,0.3);border-radius:20px;padding:5px 16px;font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--gold2);white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,0.6);animation:pIn 0.3s cubic-bezier(0.22,1,0.36,1),pOut 0.3s 1.9s ease both;}
+.npill.bomb{border-color:var(--neonp);color:var(--neonp);box-shadow:0 0 18px rgba(204,68,255,0.3);}
+@keyframes pIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
+@keyframes pOut{from{opacity:1}to{opacity:0;transform:translateY(-8px)}}
+
+/* ══════════════════════════════════════════
+   MOBILE UI OVERHAUL — kartu fan/overlap,
+   layout lebih compact, tidak perlu scroll
+   ══════════════════════════════════════════ */
+@media (max-width: 600px) {
+
+  /* ── Opponent bar: lebih tipis ── */
+  #oppBar{
+    flex:0 0 72px;
+    padding:4px 4px 2px;
+    gap:3px;
+  }
+  .opp{padding:3px 4px;border-radius:7px;gap:2px;}
+  .opp-nm{font-size:8px;}
+  .opp-backs{max-height:34px;gap:1px;}
+  .cback{width:10px;height:16px;border-radius:2px;}
+
+  /* ── Center area: lebih kecil ── */
+  #center{gap:3px;padding:2px 4px;}
+  #tdots{gap:8px;}
+  .tdot{font-size:9px;gap:3px;}
+  .tdot-pip{width:6px;height:6px;}
+
+  /* ── Felt: lebih pendek di mobile ── */
+  #felt{
+    min-height:130px;
+    max-height:150px;
+    border-radius:14px;
+    width:99vw;
+  }
+  #feltCards{height:130px;}
+  .felt-stack-card .card,
+  #feltCards .card{
+    width:44px!important;
+    height:65px!important;
+  }
+  #feltCards .card .cv{font-size:10px;}
+  #feltCards .card .cs{font-size:9px;}
+  #feltCards .card .cc{font-size:18px;}
+  .empty-msg{font-size:12px;}
+  #comboBadge{font-size:8px;padding:2px 7px;bottom:5px;right:6px;}
+
+  /* ── Timer ── */
+  #timerWrap{height:3px;width:99vw;}
+
+  /* ── Ghost row: lebih compact ── */
+  #ghostRow{max-height:40px;}
+  .ghost-card{width:24px;height:37px;border-radius:4px;padding:1px;}
+  .ghost-card .cv{font-size:7px;}
+  .ghost-card .cs{font-size:6px;}
+  .ghost-card .cc{font-size:11px;}
+  .ghost-lbl{font-size:8px;}
+
+  /* ── Status text ── */
+  #gstat{font-size:9px;min-height:12px;}
+
+  /* ── Player area: compact ── */
+  #playerArea{gap:3px;padding:3px 0 6px;}
+  #comboHint{font-size:9px;min-height:12px;}
+
+  /* ── ACTION BUTTONS ── */
+  #actRow{gap:6px;}
+  .abtn{padding:9px 0;font-size:11px;border-radius:8px;flex:1;}
+
+  /* ── Nameplate ── */
+  #myplate{font-size:8px;padding:2px 10px;}
+
+  /* ══ HAND: fan overlap layout ══
+     Kartu ditumpuk dengan overlap — tidak perlu scroll,
+     semua 13 kartu muat di layar HP
+  */
+  #handWrap{
+    overflow:visible!important;
+    overflow-x:visible!important;
+    padding:32px 0 6px;
+    width:100%;
+  }
+  #handInner{
+    position:relative;
+    display:flex!important;
+    flex-wrap:nowrap!important;
+    justify-content:center!important;
+    width:100%!important;
+    min-width:unset!important;
+    /* overlap cards using negative margin */
+    gap:0!important;
+  }
+  /* Each card overlaps the previous */
+  #handInner .card{
+    width:46px!important;
+    height:70px!important;
+    border-radius:7px!important;
+    margin-left:-18px!important;
+    flex-shrink:0!important;
+    transition:transform 0.18s cubic-bezier(0.34,1.56,0.64,1),
+               box-shadow 0.15s, border-color 0.15s,
+               margin 0.15s!important;
+  }
+  /* First card no negative margin */
+  #handInner .card:first-child{margin-left:0!important;}
+  /* Selected card: lift up, widen gap from neighbors */
+  #handInner .card.sel{
+    transform:translateY(-24px) scale(1.08)!important;
+    margin-left:-10px!important;
+    margin-right:8px!important;
+    z-index:50!important;
+  }
+  #handInner .card:first-child.sel{
+    margin-left:0!important;
+  }
+  /* Hover: subtle lift */
+  #handInner .card:hover:not(.nh):not(.sel){
+    transform:translateY(-10px)!important;
+    z-index:40!important;
+  }
+  /* Card text sizing */
+  #handInner .card .cv{font-size:11px!important;}
+  #handInner .card .cs{font-size:9px!important;}
+  #handInner .card .cc{font-size:20px!important;}
+
+  /* z-index stacking: later cards on top */
+  #handInner .card:nth-child(1){z-index:1;}
+  #handInner .card:nth-child(2){z-index:2;}
+  #handInner .card:nth-child(3){z-index:3;}
+  #handInner .card:nth-child(4){z-index:4;}
+  #handInner .card:nth-child(5){z-index:5;}
+  #handInner .card:nth-child(6){z-index:6;}
+  #handInner .card:nth-child(7){z-index:7;}
+  #handInner .card:nth-child(8){z-index:8;}
+  #handInner .card:nth-child(9){z-index:9;}
+  #handInner .card:nth-child(10){z-index:10;}
+  #handInner .card:nth-child(11){z-index:11;}
+  #handInner .card:nth-child(12){z-index:12;}
+  #handInner .card:nth-child(13){z-index:13;}
+
+  /* drag hint hidden on mobile */
+  #playerArea > div:last-child{display:none;}
+}
+
+/* Extra small phones (< 380px) */
+@media (max-width: 380px) {
+  #handInner .card{
+    width:40px!important;
+    height:62px!important;
+    margin-left:-16px!important;
+  }
+  #handInner .card.sel{
+    margin-left:-8px!important;
+    margin-right:6px!important;
+  }
+  #felt{min-height:115px;max-height:130px;}
+  #feltCards{height:115px;}
+  #oppBar{flex:0 0 64px;}
+}
+</style>
+</head>
+<body>
+
+<!-- LOBBY -->
+<div id="lobby">
+<div class="lbox">
+  <div class="logo-title">TRECE</div>
+  <div class="logo-sub">game kartu tiga belas</div>
+  <div class="logo-suits">
+    <span class="s-r">♦</span><span class="s-r">♥</span>
+    <span class="s-b">♣</span><span class="s-b">♠</span>
+  </div>
+
+  <div id="stepA">
+    <div class="fl">
+      <label>Username</label>
+      <input class="fi" id="uname" placeholder="Nama kamu..." maxlength="20" autocomplete="off">
+    </div>
+    <div class="divider">pilih mode</div>
+    <button class="btn btn-gold" onclick="doCreate()">⚔ BUAT ROOM BARU</button>
+    <button class="btn btn-out" onclick="showJoinForm()">🚪 GABUNG ROOM</button>
+    <div id="joinWrap" style="display:none;margin-top:6px;">
+      <div class="fl">
+        <label>Kode Room</label>
+        <input class="fi" id="joinCode" placeholder="ABCD" maxlength="4"
+          style="text-transform:uppercase;letter-spacing:10px;font-size:24px;text-align:center;" autocomplete="off">
+      </div>
+      <button class="btn btn-gold" onclick="doJoin()">MASUK ROOM</button>
+    </div>
+    <div class="lstat" id="lstA"></div>
+  </div>
+
+  <div id="stepB" style="display:none;">
+    <div class="room-box">
+      <div class="room-code" id="rcodeDisp">----</div>
+      <div class="room-hint" id="roomHint">Bagikan kode ini ke teman</div>
+    </div>
+    <!-- ALWAYS 4 slots -->
+    <div class="pslots" id="pslots"></div>
+    <div class="lstat" id="lstB"></div>
+    <!-- Ready button (shown to all after first game or while waiting) -->
+    <button class="btn btn-ready" id="btnReady" onclick="toggleReady()" style="display:none;">✓ SIAP MAIN</button>
+    <button class="btn btn-gold" id="btnStart" onclick="hostStart()" style="display:none;">▶ MULAI GAME</button>
+    <button class="btn btn-red" onclick="doLeave()">✕ Keluar Room</button>
+  </div>
+</div>
+</div>
+
+<!-- GAME -->
+<div id="game">
+  <canvas id="bgCanvas"></canvas>
+  <div class="game-layer">
+    <div id="oppBar"></div>
+    <div id="center">
+      <div id="tdots"></div>
+      <div style="position:relative;width:min(820px,99vw);">
+        <div id="feltLbl">MEJA PERMAINAN</div>
+        <div id="felt">
+          <div id="feltCards">
+            <div class="empty-msg" id="emptyMsg">Meja kosong — bebas memulai</div>
+          </div>
+          <div id="comboBadge" style="display:none;"></div>
+        </div>
+      </div>
+      <div id="timerWrap" style="display:none;">
+        <div id="timerBar"></div>
+        <div id="timerText">30</div>
+      </div>
+      <div id="ghostRow"><span class="ghost-lbl">sebelumnya:</span></div>
+      <div id="gstat"></div>
+    </div>
+    <div id="playerArea">
+      <div id="comboHint">Pilih kartu untuk dimainkan</div>
+      <div id="handWrap"><div id="handInner"></div></div>
+      <div id="actRow">
+        <button class="abtn abtn-play" id="btnPlay" onclick="playerPlay()" disabled>MAIN</button>
+        <button class="abtn abtn-skip" id="btnSkip" onclick="playerSkip()" disabled>SKIP</button>
+      </div>
+      <div id="myplate">—</div>
+      <div style="font-size:8px;font-family:'JetBrains Mono',monospace;color:rgba(212,168,67,0.2);text-align:center;margin-top:2px;">drag kartu untuk ubah urutan</div>
+    </div>
+  </div>
+</div>
+<div id="notif"></div>
+<div id="endModal"></div>
+<div id="posAnnounce"></div>
+<div id="winCelebration"><div class="win-wrap"><div class="win-text">MENANG!</div><div class="win-sub">KAMU JUARA 🏆</div></div></div>
+
+<script>
+'use strict';
+// ══ CONSTANTS ══
+const SUITS=['♦','♣','♥','♠'];
+const SUIT_NAMES={0:'Wajik',1:'Keriting',2:'Hati',3:'Sekop'};
+const VALUES=[3,4,5,6,7,8,9,10,'J','Q','K','A',2];
+const VORD={3:0,4:1,5:2,6:3,7:4,8:5,9:6,10:7,J:8,Q:9,K:10,A:11,2:12};
+const BOT_NAMES=['Bot Agus','Bot Budi','Bot Citra'];
+
+// ══ CARD ENGINE ══
+const mkCard=(v,s)=>({val:v,suit:s,id:`${v}_${s}`});
+function mkDeck(){const d=[];for(const v of VALUES)for(let s=0;s<4;s++)d.push(mkCard(v,s));return d;}
+function shuffle(a){const r=[...a];for(let i=r.length-1;i>0;i--){const j=0|Math.random()*(i+1);[r[i],r[j]]=[r[j],r[i]];}return r;}
+const crank=c=>VORD[c.val]*4+c.suit;
+const srtH=h=>[...h].sort((a,b)=>crank(a)-crank(b));
+const allSV=cs=>cs.every(c=>c.val===cs[0].val);
+const allSS=cs=>cs.every(c=>c.suit===cs[0].suit);
+function isConsec(s){for(let i=1;i<s.length;i++)if(VORD[s[i].val]!==VORD[s[i-1].val]+1)return false;return true;}
+
+function detectCombo(cards){
+  if(!cards||!cards.length)return null;
+  const n=cards.length,s=srtH(cards);
+  if(n===1)return{type:'single',rank:crank(s[0]),cards:s,len:1};
+  if(n===2&&allSV(s))return{type:'double',rank:crank(s[1]),cards:s,len:2};
+  if(n===3){
+    if(allSV(s))return{type:'triple',rank:crank(s[2]),cards:s,len:3};
+    if(allSS(s)&&isConsec(s))return{type:'seri',rank:crank(s[2]),cards:s,len:3};
+  }
+  if(n===4){
+    if(allSV(s))return{type:'bomb_polo',rank:VORD[s[0].val]*100,cards:s,len:4};
+    if(allSS(s)&&isConsec(s))return{type:'seri',rank:crank(s[3]),cards:s,len:4};
+  }
+  if(n===5){
+    // Bomb Seri: EXACTLY 5 kartu, suit sama, berurutan — prioritas tertinggi
+    if(allSS(s)&&isConsec(s))return{type:'bomb_seri',rank:crank(s[4]),cards:s,len:5};
+    const ps=detectPS(s);if(ps)return ps;
+  }
+  // 6+ kartu suit sama berurutan → seri biasa
+  if(n>=3&&allSS(s)&&isConsec(s))return{type:'seri',rank:crank(s[n-1]),cards:s,len:n};
+  return null;
+}
+function detectPS(sorted){
+  if(sorted.length!==5)return null;
+  for(let mask=0;mask<32;mask++){
+    const bits=[];for(let i=0;i<5;i++)if((mask>>i)&1)bits.push(i);
+    if(bits.length!==3)continue;
+    const sc=bits.map(i=>sorted[i]),pc=sorted.filter((_,i)=>!bits.includes(i));
+    if(allSV(pc)&&allSS(sc)&&isConsec(srtH(sc))){
+      const ss=srtH(sc);return{type:'polo_seri',rank:crank(ss[2])*100+crank(pc[1]),cards:sorted,len:5};
+    }
+  }return null;
+}
+const BOMBS=new Set(['bomb_polo','bomb_seri']);
+const isBomb=c=>c&&BOMBS.has(c.type);
+function comboBeats(cur,played){
+  if(!cur)return!!played;if(!played)return false;
+  const bp=isBomb(played),bc=isBomb(cur);
+  if(bp&&!bc)return true;if(!bp&&bc)return false;
+  if(bp&&bc){
+    if(played.type===cur.type)return played.rank>cur.rank;
+    return played.type==='bomb_seri'&&cur.type==='bomb_polo';
+  }
+  if(played.type!==cur.type)return false;
+  if(played.type==='seri'&&played.len!==cur.len)return false;
+  return played.rank>cur.rank;
+}
+function comboLabel(c){
+  if(!c)return'';
+  if(c.type==='seri')return`Seri (${c.len} kartu)`;
+  return{single:'Kartu Tunggal',double:'Double',triple:'Triple',
+    polo_seri:'Polo + Seri',bomb_polo:'💣 BOMB POLO',bomb_seri:'💣 BOMB SERI'}[c.type]||'';
+}
+
+// ══ FIRST TURN: player with highest-suit 3 goes first ══
+function determineStart(hands){
+  // Cari pemain dengan kartu 3 suit TERTINGGI (&#9824;=3 > &#9829;=2 > &#9827;=1 > &#9830;=0)
+  let startP=0,highestSuit=-1,topCard=null;
+  for(let p=0;p<4;p++){
+    for(const c of hands[p]){
+      if(c.val===3&&c.suit>highestSuit){highestSuit=c.suit;startP=p;topCard=c;}
+    }
+  }
+  // Kumpulkan SEMUA kartu 3 dari SEMUA pemain, dengan info owner
+  // Diurutkan suit terendah ke tertinggi untuk urutan reveal popup
+  const allThrees=[];
+  for(let p=0;p<4;p++){
+    for(const c of hands[p]){
+      if(c.val===3)allThrees.push(Object.assign({},c,{_owner:p}));
+    }
+  }
+  allThrees.sort((a,b)=>a.suit-b.suit);
+  return{startP,topCard,allThrees};
+}
+
+// ══ BOT AI — STRATEGIC ENGINE ══
+// Filosofi:
+//  • Jangan buang kombinasi kuat untuk menang ronde kecil
+//  • Prioritas: habiskan kartu — bukan menang setiap ronde
+//  • Pass (skip) jika lawan dekat selesai dan kamu tidak bisa menang efisien
+//  • Simpan Bomb untuk situasi kritis
+//  • Pilih combo yang membuang kartu paling banyak sekaligus
+
+function getCombos(arr,k){
+  if(k>arr.length)return[];if(k===arr.length)return[arr];if(k===1)return arr.map(x=>[x]);
+  const res=[];for(let i=0;i<=arr.length-k;i++){for(const r of getCombos(arr.slice(i+1),k-1))res.push([arr[i],...r]);}
+  return res;
+}
+
+// Hitung semua kombinasi valid dari tangan
+function getAllCombos(hand){
+  const all=[];
+  const n=hand.length;
+  // singles
+  for(const c of hand){all.push({type:'single',rank:crank(c),cards:[c],len:1});}
+  // pairs, triples, quads
+  for(let k=2;k<=4;k++){
+    for(const sub of getCombos(hand,k)){
+      const c=detectCombo(sub);
+      if(c)all.push(c);
+    }
+  }
+  // seri 3–6 kartu
+  for(let k=3;k<=6;k++){
+    if(k>n)break;
+    for(const sub of getCombos(hand,k)){
+      const c=detectCombo(sub);
+      if(c&&(c.type==='seri'||c.type==='polo_seri'||c.type==='bomb_seri'))all.push(c);
+    }
+  }
+  return all;
+}
+
+// Nilai strategis sebuah kartu (lebih tinggi = lebih berharga, jangan buang dulu)
+function cardValue(c){
+  return VORD[c.val]*4+c.suit;
+}
+
+// Hitung "potensi" tangan: berapa banyak combo kuat yang bisa dibentuk
+function handPotential(hand){
+  const combos=getAllCombos(hand);
+  let score=0;
+  for(const c of combos){
+    if(c.type==='bomb_polo')score+=50;
+    else if(c.type==='bomb_seri')score+=60;
+    else if(c.type==='polo_seri')score+=20;
+    else if(c.type==='seri')score+=c.len*3;
+    else if(c.type==='triple')score+=8;
+    else if(c.type==='double')score+=3;
+  }
+  return score;
+}
+
+// Apakah ada kartu 2 (poker/angka tertinggi) di tangan?
+function hasPokerCard(hand){return hand.some(c=>c.val===2);}
+
+// Apakah tangan punya bomb?
+function hasBomb(hand){
+  for(const sub of getCombos(hand,4)){const c=detectCombo(sub);if(c&&c.type==='bomb_polo')return true;}
+  for(const sub of getCombos(hand,5)){const c=detectCombo(sub);if(c&&c.type==='bomb_seri')return true;}
+  return false;
+}
+
+// Seberapa "berbahaya" kondisi saat ini: lawan dengan kartu sedikit = bahaya tinggi
+function opponentPressure(G,myIdx){
+  if(!G)return 0;
+  let minCards=13;
+  for(let i=0;i<4;i++){
+    if(i===myIdx||G.finished.includes(i))continue;
+    minCards=Math.min(minCards,G.hands[i].length);
+  }
+  // Semakin sedikit kartu lawan, semakin tinggi tekanan
+  if(minCards<=2)return 3; // kritis
+  if(minCards<=4)return 2; // tinggi
+  if(minCards<=6)return 1; // sedang
+  return 0;
+}
+
+// Skor sebuah combo: lebih tinggi = lebih bagus untuk dimainkan SEKARANG
+// Prinsip: pilih combo yang:
+//   1. Membuang kartu terbanyak (prioritas utama)
+//   2. Menggunakan kartu dengan nilai RENDAH (simpan kartu kuat)
+//   3. Tidak memecah potensi combo kuat
+function scoreCombo(combo, hand, curCombo, pressure){
+  let score=0;
+
+  // Utama: lebih banyak kartu dibuang = lebih baik
+  score += combo.len * 20;
+
+  // Hitung total nilai kartu yang dibuang (lebih rendah = lebih baik)
+  // Kartu rendah mudah dibuang, kartu tinggi simpan untuk mendesak
+  const avgRank = combo.cards.reduce((s,c)=>s+cardValue(c),0)/combo.len;
+  score -= avgRank * 0.8;
+
+  // Bonus: habiskan semua kartu sekarang
+  if(combo.len===hand.length) score+=300;
+
+  // Penalti besar: jangan pakai Bomb sembarangan
+  if(combo.type==='bomb_polo'||combo.type==='bomb_seri'){
+    // Bomb hanya layak jika: tangan hampir habis, atau lawan kritis
+    if(hand.length>5&&pressure<2) score-=120;
+    else if(pressure>=2) score+=30; // ok kalau lawan dekat menang
+    else score-=60;
+  }
+
+  // Bonus: combo tipe seri/polo lebih efisien membuang banyak kartu
+  if(combo.type==='seri') score+=combo.len*5;
+  if(combo.type==='polo_seri') score+=15;
+
+  // Penalti: jangan pakai triple/double jika itu satu-satunya combo besar
+  // (simpan untuk nanti bisa mendesak)
+  if(combo.type==='triple'){
+    const hasOtherBig=hand.filter(c=>!combo.cards.includes(c)).length>=4;
+    if(!hasOtherBig)score-=10;
+  }
+
+  // Penalti: jangan pakai kartu 2 (poker) kecuali tangan mau habis
+  if(combo.cards.some(c=>c.val===2)&&hand.length>3) score-=50;
+
+  return score;
+}
+
+// Putuskan apakah bot harus SKIP atau MAIN
+function shouldSkip(hand, curCombo, cands, G, myIdx){
+  if(!curCombo)return false; // wajib main di meja kosong
+  if(!cands.length)return true; // tidak ada pilihan
+
+  const pressure=opponentPressure(G,myIdx);
+
+  // Kalau tangan hampir habis (<=3 kartu), jangan skip — mainkan apa pun
+  if(hand.length<=3)return false;
+
+  // Kalau lawan kritis (<=2 kartu), jangan skip — harus blokir
+  if(pressure>=3)return false;
+
+  // Cari combo terbaik
+  const best=cands.sort((a,b)=>scoreCombo(b,hand,curCombo,pressure)-scoreCombo(a,hand,curCombo,pressure))[0];
+
+  // Jika combo terbaik adalah Bomb tapi tidak perlu — skip lebih baik
+  if(isBomb(best)&&hand.length>4&&pressure<2)return true;
+
+  // Hitung biaya: jika combo terbaik menghabiskan kartu tinggi dan tangan masih banyak
+  // skip lebih baik agar dapat kesempatan main bebas
+  const handAfter=hand.filter(c=>!best.cards.some(bc=>bc.id===c.id));
+  const potBefore=handPotential(hand);
+  const potAfter=handPotential(handAfter);
+
+  // Jika memainkan combo ini sangat merusak potensi tangan dan lawan tidak kritis
+  if(potBefore-potAfter>40&&pressure<1&&hand.length>7)return true;
+
+  // Jika combo yang tersedia hanya "single" kartu kuat (A atau 2) dan kita masih banyak
+  if(best.type==='single'&&best.cards[0].val===2&&hand.length>4&&pressure<2)return true;
+  if(best.type==='single'&&best.cards[0].val==='A'&&hand.length>5&&pressure<1)return true;
+
+  return false;
+}
+
+function botDecide(hand, curCombo, isFirstTurn, firstCard, G, myIdx){
+  const h=srtH(hand);
+  const pressure=G?opponentPressure(G,myIdx):0;
+
+  // ── Meja kosong: bot yang punya giliran bebas ──
+  if(!curCombo){
+    return botOpenTable(h, G, myIdx, pressure);
+  }
+
+  // ── Poker combo di meja — prioritas Bomb ──
+  if(isPokerCombo(curCombo)){
+    const bomb=findBestBomb(h,curCombo);
+    if(bomb)return bomb;
+    // Tidak ada bomb — tidak bisa lawan poker, skip
+    return null;
+  }
+
+  // ── Cari semua respons yang valid ──
+  const allCombos=getAllCombos(h);
+  const cands=allCombos.filter(c=>comboBeats(curCombo,c));
+
+  if(shouldSkip(h,curCombo,cands,G,myIdx))return null;
+  if(!cands.length)return null;
+
+  // Pilih combo dengan skor terbaik
+  cands.sort((a,b)=>scoreCombo(b,h,curCombo,pressure)-scoreCombo(a,h,curCombo,pressure));
+  return cands[0];
+}
+
+// Buka meja dengan strategi
+function botOpenTable(hand, G, myIdx, pressure){
+  const n=hand.length;
+
+  // Kalau tinggal sedikit kartu, habiskan semuanya jika bisa
+  if(n<=4){
+    const allC=getAllCombos(hand);
+    // Cari combo yang habiskan semua kartu
+    const finish=allC.filter(c=>c.len===n);
+    if(finish.length){
+      finish.sort((a,b)=>b.len-a.len);
+      return finish[0];
+    }
+    // Mainkan sebanyak mungkin
+    allC.sort((a,b)=>b.len-a.len);
+    return allC[0];
+  }
+
+  // Kumpulkan semua combo yang mungkin
+  const allC=getAllCombos(hand);
+
+  // Jangan buka dengan Bomb kecuali darurat
+  const nonBombs=allC.filter(c=>!isBomb(c));
+  const pool=nonBombs.length?nonBombs:allC;
+
+  // Skor tiap combo dan pilih terbaik
+  pool.sort((a,b)=>scoreCombo(b,hand,null,pressure)-scoreCombo(a,hand,null,pressure));
+
+  // Pilih beberapa kandidat teratas lalu cek mana yang paling "selamat"
+  const top=pool.slice(0,5);
+
+  // Prioritaskan: combo yang tidak memecah potensi besar di tangan
+  let best=top[0];
+  let bestScore=-Infinity;
+  for(const c of top){
+    const after=hand.filter(h=>!c.cards.some(cc=>cc.id===h.id));
+    const pot=handPotential(after);
+    const s=scoreCombo(c,hand,null,pressure)+pot*0.3;
+    if(s>bestScore){bestScore=s;best=c;}
+  }
+
+  return best;
+}
+
+// Cari Bomb terbaik (terkecil yang masih menang) untuk lawan Poker
+function findBestBomb(hand,curCombo){
+  const bombs=[];
+  for(const sub of getCombos(hand,4)){
+    const c=detectCombo(sub);
+    if(c&&c.type==='bomb_polo'&&comboBeats(curCombo,c))bombs.push(c);
+  }
+  for(const sub of getCombos(hand,5)){
+    const c=detectCombo(sub);
+    if(c&&c.type==='bomb_seri'&&comboBeats(curCombo,c))bombs.push(c);
+  }
+  if(!bombs.length)return null;
+  // Pakai bomb terkecil (hemat bomb besar)
+  bombs.sort((a,b)=>a.rank-b.rank);
+  return bombs[0];
+}
+
+// ══ NETWORK ══
+let ably=null,chan=null,myId='',myName='',roomCode='',isHost=false;
+let lobbyPlayers=[];  // always 4 entries
+let readyPlayers=new Set(); // ids of players who are ready
+let myReady=false;
+let gameHasStarted=false; // tracks if at least one game has been played
+
+function genCode(){const c='ABCDEFGHJKLMNPQRSTUVWXYZ';return Array.from({length:4},()=>c[0|Math.random()*c.length]).join('');}
+function genId(){return'p'+Math.random().toString(36).slice(2,10);}
+
+function setA(m,err=false){
+  const el=document.getElementById('lstA');
+  el.textContent=m;el.className='lstat'+(err?' err':'');
+}
+function setB(m){document.getElementById('lstB').textContent=m;}
+
+function validateInputs(){
+  myName=document.getElementById('uname').value.trim();
+  if(myName.length<2){setA('⚠ Username minimal 2 karakter!',true);return null;}
+  return true;
+}
+
+function fetchAblyKey(cb){
+  fetch('/api/getkey')
+    .then(r=>{
+      if(!r.ok)throw new Error('Gagal mengambil konfigurasi (HTTP '+r.status+')');
+      return r.json();
+    })
+    .then(data=>{
+      if(!data.key)throw new Error('Konfigurasi server tidak lengkap');
+      cb(data.key);
+    })
+    .catch(err=>{
+      setA('⚠ '+err.message,true);
+    });
+}
+
+function initAbly(key,cb){
+  try{
+    // Detect iOS
+    const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)&&!window.MSStream;
+    const isAndroid=/Android/.test(navigator.userAgent);
+    const isMobile=isIOS||isAndroid;
+
+    // iOS WebKit struggles with native WebSocket in some network conditions.
+    // Force fallback transports: try web_socket first, then xhr_streaming, then xhr_polling.
+    const opts={
+      key,
+      clientId:myId,
+      // On mobile prefer xhr fallbacks so connection always works
+      transports: isMobile
+        ? ['web_socket','xhr_streaming','xhr_polling']
+        : ['web_socket','xhr_streaming','xhr_polling'],
+      // Shorter timeouts so failure is detected quickly
+      realtimeRequestTimeout: 10000,
+      connectTimeout: 15000,
+      disconnectedRetryTimeout: 3000,
+      // Needed for iOS background/foreground transitions
+      closeOnUnload: false,
+    };
+
+    ably=new Ably.Realtime(opts);
+
+    let cbCalled=false;
+    let connTimeout=setTimeout(()=>{
+      if(!cbCalled){
+        setA('⚠ Koneksi timeout — coba lagi atau ganti jaringan',true);
+        try{ably.close();}catch(e){}
+      }
+    },18000);
+
+    ably.connection.on('connected',()=>{
+      if(cbCalled)return;
+      cbCalled=true;
+      clearTimeout(connTimeout);
+      cb();
+    });
+
+    ably.connection.on('failed',()=>{
+      clearTimeout(connTimeout);
+      setA('⚠ API Key tidak valid atau koneksi gagal',true);
+    });
+
+    ably.connection.on('suspended',()=>{
+      setA('⚠ Koneksi tertangguhkan — mencoba ulang...',false);
+    });
+
+    ably.connection.on('disconnected',()=>{
+      // Only show error if cb already called (was connected before)
+      if(cbCalled)setA('⚠ Koneksi terputus — mencoba ulang...',false);
+    });
+
+    // iOS: reconnect when app comes back to foreground
+    document.addEventListener('visibilitychange',()=>{
+      if(document.visibilityState==='visible'&&ably){
+        try{
+          if(ably.connection.state==='suspended'||ably.connection.state==='disconnected'){
+            ably.connect();
+          }
+        }catch(e){}
+      }
+    });
+
+  }catch(e){setA('⚠ Error: '+e.message,true);}
+}
+
+// Fill lobbyPlayers to always have exactly 4 entries (real + bots)
+function rebuildLobby(realPlayers){
+  lobbyPlayers=realPlayers.slice(); // copy real players
+  const botCount=4-lobbyPlayers.length;
+  for(let i=0;i<botCount;i++){
+    lobbyPlayers.push({id:'bot'+i,name:BOT_NAMES[i],isBot:true});
+  }
+}
+
+function showJoinForm(){document.getElementById('joinWrap').style.display='block';}
+
+function doCreate(){
+  if(!validateInputs())return;
+  myId=genId();isHost=true;roomCode=genCode();
+  setA('Menghubungkan...');
+  fetchAblyKey(key=>{
+    initAbly(key,()=>{
+      chan=ably.channels.get('trece-'+roomCode);
+      chan.subscribe(handleMsg);
+      rebuildLobby([{id:myId,name:myName,isBot:false}]);
+      broadcastLobby();
+      showStepB();
+    });
+  });
+}
+
+function doJoin(){
+  if(!validateInputs())return;
+  const code=document.getElementById('joinCode').value.trim().toUpperCase();
+  if(code.length!==4){setA('⚠ Kode harus 4 huruf',true);return;}
+  myId=genId();isHost=false;roomCode=code;
+  setA('Bergabung...');
+  fetchAblyKey(key=>{
+    initAbly(key,()=>{
+      chan=ably.channels.get('trece-'+roomCode);
+      chan.subscribe(handleMsg);
+      setTimeout(()=>{
+        send({type:'join_req',id:myId,name:myName});
+        setA('Menunggu host...');
+      },600);
+      setTimeout(()=>{
+        if(document.getElementById('stepB').style.display==='none')
+          setA('⚠ Room tidak ditemukan atau sudah dimulai',true);
+      },7000);
+    });
+  });
+}
+
+function doLeave(){
+  send({type:'leave',id:myId});
+  if(ably)ably.close();
+  location.reload();
+}
+
+function showStepB(isReturnToLobby=false){
+  document.getElementById('stepA').style.display='none';
+  document.getElementById('stepB').style.display='block';
+  document.getElementById('rcodeDisp').textContent=roomCode;
+  renderSlots();
+  if(isReturnToLobby){
+    // Post-game: show ready button for all, start only for host
+    document.getElementById('roomHint').textContent='Main lagi? Tekan Siap!';
+    document.getElementById('btnReady').style.display='block';
+    const btnReady=document.getElementById('btnReady');
+    btnReady.className='btn btn-ready';
+    btnReady.textContent='✓ SIAP MAIN';
+    btnReady.disabled=false;
+    myReady=false;
+    if(isHost){
+      document.getElementById('btnStart').style.display='block';
+      document.getElementById('btnStart').disabled=true;
+      setB('Tunggu semua pemain siap...');
+    }else{
+      document.getElementById('btnStart').style.display='none';
+      setB('Tunggu semua pemain siap dan host mulai...');
+    }
+  }else{
+    // First time lobby
+    document.getElementById('roomHint').textContent='Bagikan kode ini ke teman';
+    document.getElementById('btnReady').style.display='none';
+    if(isHost){
+      document.getElementById('btnStart').style.display='block';
+      document.getElementById('btnStart').disabled=false;
+      setB('Menunggu pemain... (bot mengisi slot kosong)');
+    }else{
+      document.getElementById('btnStart').style.display='none';
+      setB('Menunggu host memulai game...');
+    }
+  }
+}
+
+function renderSlots(){
+  document.getElementById('pslots').innerHTML=lobbyPlayers.map((p,i)=>{
+    const isReadyP=p.isBot?true:readyPlayers.has(p.id);
+    const readyCls=(gameHasStarted&&isReadyP)?' ready':'';
+    return `<div class="pslot${!p.isBot?' filled':''}${readyCls}">
+      <div class="slot-av">${p.isBot?'🤖':p.name[0].toUpperCase()}</div>
+      <div style="flex:1;min-width:0;">
+        <div class="slot-nm${p.isBot?' slot-bot':''}">${p.name}</div>
+        ${p.id===myId?'<div class="slot-you">KAMU</div>':''}
+        ${p.isBot?'<div style="font-size:8px;color:rgba(212,168,67,0.25)">bot</div>':''}
+      </div>
+      ${gameHasStarted?`<div class="slot-ready-badge">${isReadyP?'✓ SIAP':''}</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+function send(data){if(chan)chan.publish('m',JSON.stringify(data));}
+
+function broadcastLobby(){
+  const realPlayers=lobbyPlayers.filter(p=>!p.isBot);
+  send({type:'lobby',realPlayers,readyIds:[...readyPlayers],gameHasStarted});
+}
+
+function handleMsg(msg){
+  let d;
+  try{d=JSON.parse(msg.data);}catch{return;}
+
+  // Ignore own messages for lobby events (Ably echoes to self too)
+  switch(d.type){
+    case 'join_req': {
+      if(!isHost)break;
+      const realPlayers=lobbyPlayers.filter(p=>!p.isBot);
+      if(realPlayers.length>=4){
+        send({type:'join_denied',tid:d.id,reason:'Room penuh (4/4)'});
+        break;
+      }
+      // Add new real player, rebuilding with bots
+      realPlayers.push({id:d.id,name:d.name,isBot:false});
+      rebuildLobby(realPlayers);
+      broadcastLobby();
+      renderSlots();
+      break;
+    }
+    case 'join_denied':
+      if(d.tid===myId)setA('⚠ '+d.reason,true);
+      break;
+    case 'lobby': {
+      // Non-host receives real players list and rebuilds
+      if(isHost)break;
+      const rp=d.realPlayers||[];
+      rebuildLobby(rp);
+      // sync ready state
+      if(d.readyIds)readyPlayers=new Set(d.readyIds);
+      if(d.gameHasStarted!==undefined)gameHasStarted=d.gameHasStarted;
+      const isMeIn=lobbyPlayers.find(p=>p.id===myId);
+      if(isMeIn&&document.getElementById('stepB').style.display==='none')showStepB(gameHasStarted);
+      else renderSlots();
+      break;
+    }
+    case 'leave': {
+      if(!isHost)break;
+      const rp=lobbyPlayers.filter(p=>p.id!==d.id&&!p.isBot);
+      // remove from ready
+      readyPlayers.delete(d.id);
+      rebuildLobby(rp);
+      broadcastLobby();
+      renderSlots();
+      checkAllReady();
+      break;
+    }
+    case 'player_ready': {
+      readyPlayers.add(d.id);
+      renderSlots();
+      if(isHost){
+        broadcastLobby();
+        checkAllReady();
+      }
+      break;
+    }
+    case 'play_again': {
+      // Non-host: return to lobby in same room
+      if(!isHost){
+        gameHasStarted=true;
+        readyPlayers=new Set(d.readyIds||[]);
+        rebuildLobby(d.realPlayers||[]);
+        returnToLobby();
+      }
+      break;
+    }
+    case 'game_start':
+      receiveStart(d);
+      break;
+    case 'game_action':
+      if(isHost)hostReceiveAction(d);
+      break;
+    case 'game_state':
+      if(!isHost)receiveState(d.state);
+      break;
+  }
+}
+
+// ══ GAME STATE ══
+let G=null;
+// Stacked cards on the felt (accumulates within a round, cleared when round resets)
+let feltStackedCards=[]; // array of {cards, playerName, isMyPlay}
+
+// ══ TURN TIMER ══
+const TURN_SECONDS=30;
+let timerInterval=null;
+let timerSecondsLeft=0;
+
+function startTimer(onExpire){
+  clearTimer();
+  timerSecondsLeft=TURN_SECONDS;
+  const wrap=document.getElementById('timerWrap');
+  const bar=document.getElementById('timerBar');
+  const txt=document.getElementById('timerText');
+  wrap.style.display='block';
+  bar.style.width='100%';
+  bar.className='';
+  txt.textContent=TURN_SECONDS;
+
+  timerInterval=setInterval(()=>{
+    timerSecondsLeft--;
+    const pct=Math.max(0,(timerSecondsLeft/TURN_SECONDS)*100);
+    bar.style.width=pct+'%';
+    txt.textContent=timerSecondsLeft;
+    if(timerSecondsLeft===10){bar.className='warn';SFX.timerWarn();}
+    if(timerSecondsLeft<=5&&timerSecondsLeft>0){bar.className='danger';SFX.timerTick();}
+    if(timerSecondsLeft<=0){
+      clearTimer();
+      onExpire();
+    }
+  },1000);
+}
+
+function clearTimer(){
+  if(timerInterval){clearInterval(timerInterval);timerInterval=null;}
+  const wrap=document.getElementById('timerWrap');
+  if(wrap)wrap.style.display='none';
+}
+
+// ── Position Announce Queue ──
+// Ensures popups are shown one at a time, sequentially, never overlapping.
+let _posQueue=[];
+let _posShowing=false;
+
+// Total duration per popup: in(0.7) + hold(3.2) + out(0.9) + gap(0.3) = ~5.1s
+const POS_TOTAL_MS = 5100;
+
+function showPositionAnnounce(rank, playerName, isMe){
+  _posQueue.push({rank, playerName, isMe});
+  _drainPosQueue();
+}
+
+function _drainPosQueue(){
+  if(_posShowing||_posQueue.length===0)return;
+  _posShowing=true;
+  const {rank, playerName, isMe}=_posQueue.shift();
+  _showOnePosAnnounce(rank, playerName, isMe, ()=>{
+    _posShowing=false;
+    _drainPosQueue();
+  });
+}
+
+function _showOnePosAnnounce(rank, playerName, isMe, onDone){
+  const medals=['🥇','🥈','🥉','💀'];
+  const posLabels=['JUARA 1!','POSISI 2','POSISI 3','TERAKHIR'];
+  const el=document.getElementById('posAnnounce');
+  const banner=document.createElement('div');
+  banner.className=`pos-banner pos-${rank+1}`;
+  banner.innerHTML=`${medals[rank]} ${isMe?'KAMU':'<span style="font-size:0.7em">'+playerName+'</span>'}<br><span style="font-size:0.55em;opacity:0.8;letter-spacing:2px">${posLabels[rank]}</span>`;
+  el.innerHTML='';
+  el.appendChild(banner);
+  // Wait for full animation cycle (in + hold + out) then call done
+  setTimeout(()=>{
+    if(banner.parentNode)banner.remove();
+    onDone();
+  }, POS_TOTAL_MS);
+}
+
+// How many ms until the current queue finishes (for timing showEndModal)
+function posQueueRemainingMs(){
+  return (_posShowing?1:0 + _posQueue.length) * POS_TOTAL_MS + 600;
+}
+
+function toggleReady(){
+  if(myReady)return; // can't un-ready
+  myReady=true;
+  readyPlayers.add(myId);
+  const btn=document.getElementById('btnReady');
+  btn.className='btn btn-ready active';
+  btn.textContent='✓ SUDAH SIAP!';
+  btn.disabled=true;
+  SFX.ready();
+  send({type:'player_ready',id:myId});
+  renderSlots();
+  if(isHost)checkAllReady();
+}
+
+function checkAllReady(){
+  if(!isHost||!gameHasStarted)return;
+  const realPlayers=lobbyPlayers.filter(p=>!p.isBot);
+  const allReady=realPlayers.every(p=>readyPlayers.has(p.id));
+  const btnStart=document.getElementById('btnStart');
+  if(btnStart){
+    btnStart.disabled=!allReady;
+    if(allReady)setB('Semua pemain siap! Host bisa mulai game.');
+    else{
+      const notReady=realPlayers.filter(p=>!readyPlayers.has(p.id)).map(p=>p.name);
+      setB(`Menunggu: ${notReady.join(', ')}`);
+    }
+  }
+}
+
+function returnToLobby(){
+  // Hide game, show lobby stepB — no reload, no re-login
+  G=null;
+  feltStackedCards=[];
+  document.getElementById('endModal').innerHTML='';
+  const lobby=document.getElementById('lobby');
+  const game=document.getElementById('game');
+  lobby.classList.remove('fade-out','gone');
+  game.classList.remove('show');
+  showStepB(true);
+}
+
+function hostStart(){
+  // Reset ready state for next round
+  readyPlayers=new Set();
+  myReady=false;
+  gameHasStarted=true;
+
+  // Shuffle deck and deal 13 to each of 4 players
+  // Guard: reshuffle if any single player holds all 4 rank-3 cards (unfair)
+  let deck, hands;
+  let attempts=0;
+  do {
+    deck=shuffle(mkDeck());
+    hands=[];
+    for(let i=0;i<4;i++)hands.push(deck.slice(i*13,(i+1)*13));
+    attempts++;
+    // Check: no player should have more than 2 rank-3 cards (fair spread)
+    const maxThrees=Math.max(...hands.map(h=>h.filter(c=>c.val===3).length));
+    if(maxThrees<=2||attempts>=10)break;
+  }while(true);
+
+  const msg={
+    type:'game_start',
+    players:lobbyPlayers,
+    handsData:hands.map((h,i)=>({idx:i,cards:h}))
+  };
+  send(msg);
+
+  beginGame({
+    players:lobbyPlayers,
+    hands,
+    mySlot:lobbyPlayers.findIndex(p=>p.id===myId)
+  });
+}
+
+function receiveStart(d){
+  const mySlot=d.players.findIndex(p=>p.id===myId);
+  beginGame({
+    players:d.players,
+    hands:d.handsData.map(h=>h.cards),
+    mySlot
+  });
+}
+
+function beginGame({players,hands,mySlot}){
+  // Fase BID: kartu 3 TETAP di tangan, semua player giliran memainkan kartu 3 mereka
+  feltStackedCards=[];
+  _posQueue=[];_posShowing=false; // reset popup queue for new game
+  _bidTransitionShown=false; // reset bid transition flag for new game
+
+  G={
+    players,
+    hands,
+    current:0,  // bid always starts from player 0
+    currentCombo:null,
+    prevCombo:null,
+    lastPlayedBy:-1,
+    skipped:[false,false,false,false],
+    finished:[],
+    firstTurn:false,
+    firstCard:null,
+    phase:'bid',
+    bidPlays:[],
+    bidDone:[false,false,false,false],
+    mySlot,
+    selected:[]
+  };
+
+  const lobby=document.getElementById('lobby');
+  lobby.classList.add('fade-out');
+  setTimeout(()=>lobby.classList.add('gone'),500);
+  document.getElementById('game').classList.add('show');
+  if(!window._bgStarted){window._bgStarted=true;startBgCanvas();}
+  SFX.gameStart();
+  renderGame();
+  setTimeout(()=>proceedTurn(),700);
+}
+
+
+function showFirstPlayerPopup(name,isMe,cardStr,onDone){
+  // Legacy wrapper — now delegates to the full sequence
+  showThreeRevealSequence([],name,isMe,onDone);
+}
+
+// Sequential reveal: show each rank-3 card one by one (suit low→high),
+// then a final "X mulai!" popup. Each step waits for the previous to finish.
+function showThreeRevealSequence(allThrees,startName,isMe,onDone){
+  const el=document.getElementById('posAnnounce');
+  const SUIT_SYM=['♦','♣','♥','♠'];
+  const SUIT_COL=['#e03040','#aaccff','#e03040','#aaccff']; // r/b/r/b
+
+  // Build step list: one entry per card (sorted suit low→high, already sorted)
+  // Then a final step: first-player announcement
+  const steps=[];
+
+  allThrees.forEach((c,idx)=>{
+    const ownerName=c._ownerName||'';
+    const sym=SUIT_SYM[c.suit];
+    const col=SUIT_COL[c.suit];
+    const isLast=idx===allThrees.length-1;
+    steps.push({
+      html:[
+        '<div style="font-size:9px;letter-spacing:3px;color:rgba(0,255,136,0.4);margin-bottom:10px">KARTU 3 DITEMUKAN ('+(idx+1)+'/'+allThrees.length+')</div>',
+        '<div style="font-size:36px;margin-bottom:8px">',
+          '<span style="font-family:serif;color:'+col+';text-shadow:0 0 18px '+col+'88">3'+sym+'</span>',
+        '</div>',
+        '<div style="font-size:13px;color:#f0c85a;font-weight:700;margin-bottom:4px">'+ownerName+'</div>',
+        isLast
+          ? '<div style="font-size:9px;color:rgba(0,255,136,0.5);letter-spacing:2px;margin-top:6px">kartu tertinggi — menentukan giliran</div>'
+          : '<div style="font-size:9px;color:rgba(255,255,255,0.25);letter-spacing:1px;margin-top:6px">kartu ini dikeluarkan dari tangan</div>'
+      ].join(''),
+      dur: isLast ? 2000 : 1600
+    });
+  });
+
+  // Final step: first player announcement
+  steps.push({
+    html:[
+      '<div style="font-size:9px;letter-spacing:3px;color:rgba(0,255,136,0.45);margin-bottom:14px">GILIRAN PERTAMA</div>',
+      '<div style="font-size:'+(isMe?'28':'22')+'px;font-weight:700;color:'+(isMe?'#00ff88':'#f0c85a')+';margin-bottom:10px">',
+        isMe?'🎯 Kamu mulai!':'⭐ '+startName+' mulai!',
+      '</div>',
+      '<div style="font-size:10px;color:rgba(255,255,255,0.3);letter-spacing:1px">Meja reset — bebas pilih kombinasi apa saja</div>'
+    ].join(''),
+    dur: 2200
+  });
+
+  let stepIdx=0;
+  function runStep(){
+    if(stepIdx>=steps.length){onDone();return;}
+    const step=steps[stepIdx++];
+    const div=document.createElement('div');
+    Object.assign(div.style,{
+      background:'rgba(6,13,16,0.97)',
+      border:'2px solid rgba(0,255,136,0.45)',
+      borderRadius:'18px',
+      padding:'22px 32px',
+      textAlign:'center',
+      fontFamily:'JetBrains Mono,monospace',
+      animation:'posIn 0.4s cubic-bezier(0.34,1.4,0.64,1) both',
+      maxWidth:'300px',
+      boxShadow:'0 0 40px rgba(0,255,136,0.08)'
+    });
+    div.innerHTML=step.html;
+    el.innerHTML='';
+    el.appendChild(div);
+    setTimeout(()=>{
+      div.style.animation='posOut 0.35s ease-in forwards';
+      setTimeout(()=>{div.remove();runStep();},350);
+    },step.dur);
+  }
+  runStep();
+}
+
+// ══ TURN FLOW ══
+function proceedTurn(){
+  if(!G||G.phase==='end')return;
+
+  // ── BID PHASE ──
+  if(G.phase==='bid'){
+    proceedBidTurn();
+    return;
+  }
+
+  const cur=G.current;
+  const pl=G.players[cur];
+
+  clearTimer();
+
+  // If current player has already finished, advance
+  if(G.finished.includes(cur)){advanceTurn();return;}
+
+  if(pl.isBot){
+    // Only host drives bot turns
+    if(isHost){
+      const delay=850+Math.random()*350;
+      setTimeout(()=>doBotTurn(cur),delay);
+    }
+    // Non-host just waits for state update
+  }else if(pl.id===myId){
+    if(G.finished.includes(G.mySlot)){
+      setGStat('Kamu sudah selesai! Menunggu pemain lain...');
+      renderGame();
+      return;
+    }
+    setGStat('Giliran KAMU!');
+    SFX.yourTurn();
+    renderGame();
+    startTimer(()=>{
+      setGStat('Waktu habis — otomatis main kartu terkecil!');
+      if(G.currentCombo){
+        playerSkip();
+      }else{
+        // Must play something — auto-play lowest card
+        const hand=G.hands[G.mySlot];
+        if(hand&&hand.length>0){
+          const lowest=srtH(hand)[0];
+          const combo={type:'single',rank:crank(lowest),cards:[lowest],len:1};
+          G.selected=[];
+          clearTimer();
+          SFX.cardPlay();
+          if(isHost){
+            applyPlay(G.mySlot,combo);
+          }else{
+            send({type:'game_action',action:'play',pid:myId,
+              combo:{type:combo.type,rank:combo.rank,len:combo.len,cards:combo.cards}});
+          }
+        }
+      }
+    });
+  }else{
+    setGStat(`Menunggu ${pl.name}...`);
+    renderGame();
+  }
+}
+
+// ── BID PHASE LOGIC ──
+function proceedBidTurn(){
+  if(!G||G.phase!=='bid')return;
+  const cur=G.current;
+  const pl=G.players[cur];
+  clearTimer();
+
+  // HOST drives all bid logic (bots + auto-skips + waiting for non-host actions)
+  if(isHost){
+    const myThrees=G.hands[cur].filter(c=>c.val===3);
+    if(!myThrees.length){
+      // No 3s — auto-skip
+      setTimeout(()=>applyBid(cur,null),400);
+      return;
+    }
+    if(pl.isBot){
+      setTimeout(()=>{
+        const combo=detectCombo(myThrees)||{type:'single',rank:0,cards:[myThrees[0]],len:1};
+        applyBid(cur,combo);
+      },900+Math.random()*400);
+    }else if(pl.id===myId){
+      // Host is this player
+      setGStat('Fase BID: mainkan kartu 3 kamu!');
+      SFX.yourTurn();
+      renderGame();
+      startTimer(()=>{
+        const threes=G.hands[G.mySlot].filter(c=>c.val===3);
+        const combo=threes.length?(detectCombo(threes)||{type:'single',rank:0,cards:[threes[0]],len:1}):null;
+        applyBid(G.mySlot,combo);
+      });
+    }else{
+      // Waiting for non-host player to send bid action
+      setGStat(`Menunggu ${pl.name} bid...`);
+      renderGame();
+    }
+  }else{
+    // NON-HOST: player bisa bid kapan saja, tidak perlu nunggu giliran resmi
+    // Hanya update UI — player sudah bisa pilih dan klik MAIN kapan saja
+    const ms=G.mySlot;
+    const myBidDone=G.bidDone&&G.bidDone[ms];
+
+    if(myBidDone){
+      // Sudah bid, tunggu yang lain
+      setGStat(`Menunggu pemain lain bid... (${G.bidDone.filter(Boolean).length}/4)`);
+      renderGame();
+      return;
+    }
+
+    const myThrees=G.hands[ms].filter(c=>c.val===3);
+    if(!myThrees.length){
+      // Tidak punya kartu 3 — auto-skip langsung
+      setTimeout(()=>{
+        if(G&&G.phase==='bid'&&!G.bidDone[G.mySlot]){
+          G.bidDone[G.mySlot]=true; // mark locally
+          send({type:'game_action',action:'bid',pid:myId,combo:null});
+          setGStat(`Menunggu pemain lain bid... (${G.bidDone.filter(Boolean).length}/4)`);
+          renderGame();
+        }
+      },400);
+      setGStat('Kamu tidak punya kartu 3 — skip otomatis');
+      renderGame();
+    }else{
+      // Punya kartu 3 — minta player pilih dan klik MAIN
+      // Tampilkan pesan berbeda tergantung apakah giliran resmi atau belum
+      if(cur===ms){
+        setGStat('⭐ Giliran kamu BID! Pilih kartu 3 dan tekan MAIN');
+        SFX.yourTurn();
+      }else{
+        setGStat('Fase BID: pilih kartu 3 kamu dan tekan MAIN kapan saja!');
+      }
+      renderGame();
+      // Jika ini giliran resminya, mulai timer
+      if(cur===ms){
+        startTimer(()=>{
+          if(G&&G.phase==='bid'&&!G.bidDone[G.mySlot]){
+            const threes=G.hands[G.mySlot].filter(c=>c.val===3);
+            const combo=threes.length?(detectCombo(threes)||{type:'single',rank:0,cards:[threes[0]],len:1}):null;
+            G.bidDone[G.mySlot]=true;
+            if(combo){
+              const ids=new Set(combo.cards.map(c=>c.id));
+              G.hands[G.mySlot]=G.hands[G.mySlot].filter(c=>!ids.has(c.id));
+              feltStackedCards.push({cards:combo.cards,playerName:G.players[G.mySlot].name,isMyPlay:true});
+              renderGame();
+              send({type:'game_action',action:'bid',pid:myId,
+                combo:{type:combo.type,rank:combo.rank||0,len:combo.len,cards:combo.cards}});
+            }else{
+              send({type:'game_action',action:'bid',pid:myId,combo:null});
+            }
+          }
+          clearTimer();
+        });
+      }
+    }
+  }
+}
+
+function applyBid(pidx,combo){
+  if(!G||G.phase!=='bid')return;
+  if(G.bidDone[pidx])return;
+  // Only host (or self for local UI) should run this
+  // Non-host must NOT call this for other players — state comes via receiveState
+  if(!isHost&&pidx!==G.mySlot)return;
+  G.bidDone[pidx]=true;
+
+  if(combo){
+    // Remove bid cards from hand, record play
+    const ids=new Set(combo.cards.map(c=>c.id));
+    G.hands[pidx]=G.hands[pidx].filter(c=>!ids.has(c.id));
+    G.bidPlays.push({pidx,cards:combo.cards});
+    // Place on felt
+    feltStackedCards.push({cards:combo.cards,playerName:G.players[pidx].name,isMyPlay:pidx===G.mySlot});
+    setGStat(`${G.players[pidx].name} memainkan kartu 3`);
+    SFX.cardPlay();
+  }else{
+    setGStat(`${G.players[pidx].name} tidak punya kartu 3 — skip`);
+  }
+
+  if(isHost){
+    bcastState();
+    // Check if all 4 players have bid
+    if(G.bidDone.every(Boolean)){
+      setTimeout(()=>finishBidPhase(),600);
+      return;
+    }
+    // Advance to next player who hasn't bid
+    let next=(pidx+1)%4;
+    let tries=0;
+    while(G.bidDone[next]&&tries<4){next=(next+1)%4;tries++;}
+    G.current=next;
+    renderGame();
+    proceedTurn();
+  }else{
+    // Non-host: just update local UI; wait for host state update to drive next turn
+    renderGame();
+  }
+}
+
+function finishBidPhase(){
+  if(!G)return;
+  // Determine startP: player who played the highest-suit 3
+  // bidPlays contains {pidx, cards[]}
+  let startP=0,highestSuit=-1,topCard=null;
+  const allThrees=[];
+  for(const bp of G.bidPlays){
+    for(const c of bp.cards){
+      allThrees.push(Object.assign({},c,{_owner:bp.pidx,_ownerName:G.players[bp.pidx].name}));
+      if(c.suit>highestSuit){highestSuit=c.suit;startP=bp.pidx;topCard=c;}
+    }
+  }
+  // If nobody played any 3 (edge case), start from player 0
+  if(highestSuit===-1)startP=0;
+
+  // Reset to play phase
+  G.phase='play';
+  G.current=startP;
+  G.currentCombo=null;
+  G.prevCombo=null;
+  G.lastPlayedBy=-1;
+  G.skipped=[false,false,false,false];
+  // Reset felt — clear 3s for fresh start
+  feltStackedCards=[];
+  // Broadcast final bid result (startP) to all clients BEFORE popup
+  if(isHost)bcastState();
+
+  // Show sequential reveal then start game
+  const isMe=startP===G.mySlot;
+  const nm=G.players[startP].name;
+  allThrees.sort((a,b)=>a.suit-b.suit);
+  renderGame();
+  showThreeRevealSequence(allThrees,nm,isMe,()=>{
+    proceedTurn();
+  });
+}
+
+function doBotTurn(pidx){
+  if(!isHost||!G||G.phase==='end'||G.current!==pidx)return;
+  const play=botDecide(G.hands[pidx],G.currentCombo,false,null,G,pidx);
+  if(play&&comboBeats(G.currentCombo,play)){
+    applyPlay(pidx,play);
+  }else{
+    applySkip(pidx);
+  }
+}
+
+function isPokerCombo(combo){
+  if(!combo)return false;
+  if(combo.type==='single'||combo.type==='double'||combo.type==='triple'){
+    return combo.cards.every(c=>c.val===2);
+  }
+  return false;
+}
+
+function triggerPokerBombEnd(pokerIdx,bombIdx,bombCombo){
+  G.phase='end';
+  clearTimer();
+  feltStackedCards.push({cards:bombCombo.cards,playerName:G.players[bombIdx].name,isMyPlay:bombIdx===G.mySlot});
+  const bombNm=G.players[bombIdx].name;
+  const pokerNm=G.players[pokerIdx].name;
+  SFX.pokerBombed();
+  showNotif(`💣 ${bombNm} BOMB! ${pokerNm} LANGSUNG KALAH!`,true);
+  setGStat(`💣 ${bombNm} melawan Poker dengan Bomb! ${pokerNm} kalah!`);
+  // Rank 1: Bomb player; Rank 4: Poker player; Rank 2&3: remaining by fewest cards
+  const others=[0,1,2,3].filter(p=>p!==bombIdx&&p!==pokerIdx&&!G.finished.includes(p));
+  others.sort((a,b)=>G.hands[a].length-G.hands[b].length);
+  G.finished=[bombIdx,...others,pokerIdx];
+  // Queue all position announcements — they show sequentially via the queue
+  G.finished.forEach((p,rank)=>{
+    showPositionAnnounce(rank,G.players[p].name,p===G.mySlot);
+  });
+  if(G.finished[0]===G.mySlot)showWinCelebration();
+  if(isHost)bcastState();
+  renderGame();
+  // Show end modal only after all position popups have finished
+  setTimeout(showEndModal, posQueueRemainingMs());
+}
+
+function applyPlay(pidx,combo){
+  // Remove played cards from hand
+  const ids=new Set(combo.cards.map(c=>c.id));
+  G.hands[pidx]=G.hands[pidx].filter(c=>!ids.has(c.id));
+
+  // POKER vs BOMB: jika combo sebelumnya adalah Poker (angka 2) dan sekarang Bomb
+  const prevWasPoker=G.currentCombo&&isPokerCombo(G.currentCombo);
+  const curIsBomb=isBomb(combo);
+  if(prevWasPoker&&curIsBomb){
+    triggerPokerBombEnd(G.lastPlayedBy,pidx,combo);
+    return;
+  }
+
+  G.prevCombo=G.currentCombo;
+  G.currentCombo=combo;
+  G.lastPlayedBy=pidx;
+  G.skipped=[false,false,false,false];
+
+  // Push to stacked cards (accumulate within a round)
+  feltStackedCards.push({cards:combo.cards,playerName:G.players[pidx].name,isMyPlay:pidx===G.mySlot});
+
+  const nm=G.players[pidx].name;
+  if(G.hands[pidx].length===0){
+    const rank=G.finished.length;
+    G.finished.push(pidx);
+    setGStat(`🎉 ${nm} selesai! Posisi #${G.finished.length}`);
+    showNotif(`🎉 ${nm} selesai!`);
+    showPositionAnnounce(rank,nm,pidx===G.mySlot);
+    SFX.playerFinish();
+  }else{
+    setGStat(`${nm} mainkan ${comboLabel(combo)}`);
+    if(isBomb(combo)){showNotif(`💣 ${nm}: ${comboLabel(combo)}!`,true);SFX.bomb();}
+  }
+
+  checkEnd();
+  if(G.phase!=='end')advanceTurn();
+  if(isHost)bcastState();
+  renderGame();
+}
+
+function applySkip(pidx){
+  G.skipped[pidx]=true;
+  setGStat(`${G.players[pidx].name} skip`);
+
+  // Check if all OTHER active players (not lastPlayedBy) have skipped
+  const active=[0,1,2,3].filter(p=>!G.finished.includes(p)&&p!==G.lastPlayedBy);
+  const allSkipped=active.length>0&&active.every(p=>G.skipped[p]);
+
+  if(allSkipped&&G.lastPlayedBy>=0){
+    // Round over — lastPlayedBy leads again, clear the felt stack
+    G.prevCombo=null;
+    G.currentCombo=null;
+    G.skipped=[false,false,false,false];
+    G.current=G.lastPlayedBy;
+    G.lastPlayedBy=-1;
+    feltStackedCards=[]; // clear stacked cards for new round
+    lastComboId='_clear_'; // force re-render
+    SFX.newRound();
+    setGStat(`${G.players[G.current].name} berhak main lagi!`);
+    if(isHost)bcastState();
+    renderGame();
+    proceedTurn();
+    return;
+  }
+  advanceTurn();
+  if(isHost)bcastState();
+  renderGame();
+}
+
+function advanceTurn(){
+  if(G.phase==='end'||G.phase==='bid')return;
+  let next=(G.current+1)%4,tries=0;
+  while(G.finished.includes(next)&&tries<4){next=(next+1)%4;tries++;}
+  if(G.finished.includes(next))return; // everyone done
+  G.current=next;
+  proceedTurn();
+}
+
+function showWinCelebration(){
+  // Win popup removed — handled by position announce queue instead
+  SFX.win();
+}
+
+function checkEnd(){
+  const rem=[0,1,2,3].filter(p=>!G.finished.includes(p));
+  if(rem.length<=1){
+    G.phase='end';
+    clearTimer();
+    if(rem.length===1){
+      const lastP=rem[0];
+      const rank=G.finished.length;
+      G.finished.push(lastP);
+      showPositionAnnounce(rank,G.players[lastP].name,lastP===G.mySlot);
+    }
+    // Re-sort queue: local player's popup shows first, then others in rank order
+    _posQueue.sort((a,b)=>{
+      if(a.isMe&&!b.isMe)return-1;
+      if(!a.isMe&&b.isMe)return 1;
+      return a.rank-b.rank;
+    });
+    // Show win celebration if local player is the winner
+    if(G.finished.length>0&&G.finished[0]===G.mySlot){
+      showWinCelebration();
+    }else{
+      SFX.lose();
+    }
+    if(isHost)bcastState();
+    // Wait for all position announce popups to finish before showing end modal
+    setTimeout(showEndModal, posQueueRemainingMs());
+  }
+}
+
+function bcastState(){
+  if(!isHost)return;
+  const stateWithStack=JSON.parse(JSON.stringify(G));
+  stateWithStack._feltStack=feltStackedCards;
+  send({type:'game_state',state:stateWithStack});
+}
+
+// Track bid→play transition to prevent double popup on non-host
+let _bidTransitionShown = false;
+
+function receiveState(state){
+  const ms=G?G.mySlot:0;
+  // Sync felt stack from host
+  if(state._feltStack!==undefined){
+    feltStackedCards=state._feltStack;
+    delete state._feltStack;
+  }
+
+  // ── Preserve local hand order ──
+  const localHand = G ? [...(G.hands[ms]||[])] : null;
+
+  const wasEnd=G&&G.phase==='end';
+  const wasBid=G&&G.phase==='bid';
+  G=state;
+  G.mySlot=ms;
+  G.selected=G.selected||[];
+  G.bidDone=G.bidDone||[false,false,false,false];
+  G.bidPlays=G.bidPlays||[];
+
+  // Restore local order: keep only cards still present in host's authoritative hand
+  if(localHand){
+    const hostHandIds=new Set((G.hands[ms]||[]).map(c=>c.id));
+    const preserved=localHand.filter(c=>hostHandIds.has(c.id));
+    const preservedIds=new Set(preserved.map(c=>c.id));
+    const extra=(G.hands[ms]||[]).filter(c=>!preservedIds.has(c.id));
+    G.hands[ms]=[...preserved,...extra];
+  }
+
+  lastComboId=''; // force felt re-render with synced stack
+  renderGame();
+
+  const isBidToPlayTransition = wasBid && G.phase==='play';
+
+  if(G.phase==='end'){
+    if(!wasEnd){
+      if(G.finished.length>0&&G.finished[0]===G.mySlot){
+        showWinCelebration();
+      }
+      setTimeout(showEndModal, posQueueRemainingMs());
+    }
+  }else if(G.phase==='bid'){
+    // Bid phase: update UI. Player bisa bid kapan saja (tidak tergantung G.current)
+    if(!G.bidDone[G.mySlot]){
+      // Belum bid — panggil proceedBidTurn untuk update UI dan timer jika perlu
+      proceedBidTurn();
+    }else{
+      setGStat(`Menunggu pemain lain bid... (${G.bidDone.filter(Boolean).length}/4)`);
+      renderGame();
+    }
+  }else if(isBidToPlayTransition&&!_bidTransitionShown){
+    // Bid phase just ended — show reveal sequence then start play (only once)
+    _bidTransitionShown=true;
+    const allThrees=[];
+    for(const bp of G.bidPlays){
+      for(const c of bp.cards){
+        allThrees.push(Object.assign({},c,{_owner:bp.pidx,_ownerName:G.players[bp.pidx].name}));
+      }
+    }
+    allThrees.sort((a,b)=>a.suit-b.suit);
+    const startP=G.current;
+    const isMe=startP===ms;
+    const nm=G.players[startP].name;
+    clearTimer();
+    showThreeRevealSequence(allThrees,nm,isMe,()=>{
+      _bidTransitionShown=false;
+      proceedTurn();
+    });
+  }else{
+    proceedTurn();
+  }
+}
+
+// ══ PLAYER ACTIONS ══
+function playerPlay(){
+  if(!G||G.phase==='end')return;
+  // Bid phase: boleh submit kapan saja (tidak perlu nunggu giliran)
+  // Play phase: harus giliran sendiri
+  if(G.phase!=='bid'&&G.current!==G.mySlot)return;
+  const hand=G.hands[G.mySlot];
+  const selCards=(G.selected||[]).map(i=>hand[i]);
+
+  // ── BID PHASE: hanya kartu 3 yang boleh dimainkan ──
+  if(G.phase==='bid'){
+    if(!selCards.length)return;
+    if(selCards.some(c=>c.val!==3)){
+      showNotif('Fase BID: hanya kartu 3 yang boleh dimainkan!');
+      return;
+    }
+    if(G.bidDone[G.mySlot])return; // already bid
+    const combo=detectCombo(selCards)||{type:'single',rank:0,cards:selCards,len:selCards.length};
+    G.selected=[];
+    clearTimer();
+    SFX.cardPlay();
+    if(isHost){
+      applyBid(G.mySlot,combo);
+    }else{
+      // Mark locally to prevent double-submit (host will confirm via state)
+      G.bidDone[G.mySlot]=true;
+      // Remove bid cards from local hand for immediate visual feedback
+      const ids=new Set(combo.cards.map(c=>c.id));
+      G.hands[G.mySlot]=G.hands[G.mySlot].filter(c=>!ids.has(c.id));
+      feltStackedCards.push({cards:combo.cards,playerName:G.players[G.mySlot].name,isMyPlay:true});
+      renderGame();
+      setGStat('Kartu 3 dimainkan — menunggu pemain lain...');
+      send({type:'game_action',action:'bid',pid:myId,
+        combo:{type:combo.type,rank:combo.rank||0,len:combo.len,cards:combo.cards}});
+    }
+    return;
+  }
+
+  const combo=detectCombo(selCards);
+  if(!combo||!comboBeats(G.currentCombo,combo))return;
+
+  G.selected=[];
+  clearTimer();
+  SFX.cardPlay();
+  if(isHost){
+    applyPlay(G.mySlot,combo);
+  }else{
+    send({type:'game_action',action:'play',pid:myId,
+      combo:{type:combo.type,rank:combo.rank,len:combo.len,cards:combo.cards}});
+  }
+}
+
+function playerSkip(){
+  if(!G||G.phase==='end'||G.current!==G.mySlot)return;
+  if(!G.currentCombo)return; // meja kosong — harus main sesuatu
+  G.selected=[];
+  clearTimer();
+  SFX.skip();
+  if(isHost){
+    applySkip(G.mySlot);
+  }else{
+    send({type:'game_action',action:'skip',pid:myId});
+  }
+}
+
+function hostReceiveAction(d){
+  if(!isHost)return;
+  const pidx=G.players.findIndex(p=>p.id===d.pid);
+  if(pidx<0||pidx!==G.current)return;
+  if(G.phase==='bid'){
+    if(d.action==='bid'){
+      // Validate: all cards must be rank 3
+      if(d.combo&&d.combo.cards&&d.combo.cards.some(c=>c.val!==3))return;
+      // Guard: must be this player's turn and not already bid
+      if(G.bidDone[pidx])return;
+      if(G.current!==pidx)return;
+      applyBid(pidx,d.combo||null);
+    }
+    return;
+  }
+  if(d.action==='play'){
+    if(comboBeats(G.currentCombo,d.combo)){
+      if(G.firstTurn)G.firstTurn=false;
+      applyPlay(pidx,d.combo);
+    }
+  }else if(d.action==='skip'){
+    applySkip(pidx);
+  }
+}
+
+// ══ RENDER ══
+const sc=s=>(s===0||s===2)?'r':'b';
+const vd=v=>String(v);
+
+function mkCardHTML(c,idx,selectable,selected,dimmed=false){
+  const col=sc(c.suit),sym=SUITS[c.suit],v=vd(c.val);
+  const selCls=selected?'sel':'';
+  const nhCls=(!selectable||dimmed)?'nh':'';
+  const dimStyle=dimmed?'opacity:0.35;filter:grayscale(0.6);':'';
+  const fcCls=''; // no firstCard highlight
+  const click=selectable&&!dimmed?`onclick="toggleCard(${idx})"` :'';
+  // On mobile: selected cards get higher z-index so they pop above neighbors
+  const zStyle=selected?`style="z-index:${50+idx};${dimStyle}"`:`style="z-index:${idx+1};${dimStyle}"`;
+  return `<div class="card ${col} ${selCls} ${nhCls} ${fcCls}" ${click} ${zStyle}
+    draggable="true"
+    data-idx="${idx}"
+    ondragstart="handleCardDragStart(event,${idx})"
+    ondragover="handleCardDragOver(event,${idx})"
+    ondragend="handleCardDragEnd(event)"
+    ondrop="handleCardDrop(event,${idx})"
+    title="${v}${sym}">
+    <div class="ct"><span class="cv">${v}</span><span class="cs">${sym}</span></div>
+    <span class="cc">${sym}</span>
+    <div class="cb2"><span class="cv">${v}</span><span class="cs">${sym}</span></div>
+  </div>`;
+}
+
+function mkGhostHTML(c){
+  const col=sc(c.suit),sym=SUITS[c.suit],v=vd(c.val);
+  return `<div class="ghost-card ${col}">
+    <div class="ct"><span class="cv">${v}</span><span class="cs">${sym}</span></div>
+    <span class="cc">${sym}</span>
+    <div class="cb2"><span class="cv">${v}</span><span class="cs">${sym}</span></div>
+  </div>`;
+}
+
+let lastComboId='';
+
+function renderFeltCards(cards){
+  const fc=document.getElementById('feltCards');
+  const badge=document.getElementById('comboBadge');
+
+  // Empty table
+  if(!feltStackedCards||!feltStackedCards.length){
+    const emptyMsg=G&&G.phase==='bid'?'Fase BID — mainkan kartu 3 untuk menentukan giliran pertama':'Meja kosong — bebas memulai';
+    fc.innerHTML=`<div class="empty-msg">${emptyMsg}</div>`;
+    badge.style.display='none';
+    return;
+  }
+
+  fc.innerHTML='';
+
+  // Always render ALL plays stacked on top of each other at center.
+  // Earlier plays sit underneath (lower z-index), latest play on top.
+  // Each play fans its own cards slightly — NO opacity, NO side-by-side.
+  let globalZ=1;
+  feltStackedCards.forEach((play, stackIdx)=>{
+    const isLatest = stackIdx === feltStackedCards.length - 1;
+    const n = play.cards.length;
+
+    // Fan spread for this play's cards
+    const spread = Math.min(160, n * 32);
+    const step = n > 1 ? spread / (n - 1) : 0;
+    const startX = -(spread / 2);
+
+    // Each older play is rotated slightly differently so they peek out
+    const baseRot = (stackIdx % 2 === 0 ? 1 : -1) * (stackIdx * 2.5);
+
+    play.cards.forEach((c, i)=>{
+      const col = sc(c.suit), sym = SUITS[c.suit], v = vd(c.val);
+      const x = n > 1 ? startX + i * step : 0;
+      const rot = baseRot + (i - (n - 1) / 2) * 2.2;
+      const yOff = Math.abs(i - (n - 1) / 2) * 1.5;
+
+      const div = document.createElement('div');
+      div.className = 'felt-stack-card' + (isLatest ? ' animate' : '');
+      // No opacity, no scale difference — just z-index layering
+      div.style.cssText = [
+        `--sf:translateX(${x}px) translateY(${yOff+55}px) rotate(${rot*2}deg)`,
+        `--st:translateX(${x}px) translateY(${yOff}px) rotate(${rot}deg)`,
+        `animation-delay:${i*50}ms`,
+        `z-index:${globalZ++}`
+      ].join(';') + ';';
+
+      div.innerHTML = `<div class="card ${col} nh">
+        <div class="ct"><span class="cv">${v}</span><span class="cs">${sym}</span></div>
+        <span class="cc">${sym}</span>
+        <div class="cb2"><span class="cv">${v}</span><span class="cs">${sym}</span></div>
+      </div>`;
+      fc.appendChild(div);
+    });
+  });
+
+  // Badge shows current combo label
+  if(cards && cards.length){
+    badge.style.display = 'block';
+    const curCombo = G && G.currentCombo;
+    badge.textContent = comboLabel(curCombo) || '';
+    badge.className = isBomb(curCombo) ? 'bomb' : '';
+    badge.id = 'comboBadge';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+function renderGame(){
+  if(!G)return;
+  const ms=G.mySlot;
+  const isMyTurn=G.current===ms;
+
+  // ── Opponents (the 3 others) ──
+  const others=[0,1,2,3].filter(i=>i!==ms);
+  document.getElementById('oppBar').innerHTML=others.map(pidx=>{
+    const p=G.players[pidx],hand=G.hands[pidx];
+    const active=G.current===pidx,done=G.finished.includes(pidx);
+    const finRank=G.finished.indexOf(pidx);
+    const medals=['🥇','🥈','🥉','💀'];
+    const badge=done?medals[Math.min(finRank,3)]:(active?'▶':'');
+    return `<div class="opp${active?' my-go':''}${done?' done':''}">
+      <div class="opp-nm">${badge} ${p.name} (${hand.length})</div>
+      <div class="opp-backs">${hand.slice(0,16).map(()=>'<div class="cback"></div>').join('')}</div>
+    </div>`;
+  }).join('');
+
+  // ── Turn dots (all 4) ──
+  document.getElementById('tdots').innerHTML=[0,1,2,3].map(i=>{
+    const a=G.current===i,d=G.finished.includes(i);
+    return `<div class="tdot${a?' on':''}${d?' dn':''}">
+      <div class="tdot-pip"></div>
+      <span>${G.players[i].name.split(' ')[0]}</span>
+    </div>`;
+  }).join('');
+
+  // ── Felt (re-render if combo changed or stack changed) ──
+  const cid=(G.currentCombo?G.currentCombo.cards.map(c=>c.id).join(','):'')+'|'+feltStackedCards.length;
+  if(cid!==lastComboId){
+    lastComboId=cid;
+    renderFeltCards(G.currentCombo?G.currentCombo.cards:null);
+  }
+
+  // ── Ghost row ──
+  const gr=document.getElementById('ghostRow');
+  gr.querySelectorAll('.ghost-card').forEach(el=>el.remove());
+  if(G.prevCombo&&G.prevCombo.cards&&G.currentCombo){
+    G.prevCombo.cards.forEach(c=>gr.insertAdjacentHTML('beforeend',mkGhostHTML(c)));
+    gr.classList.add('vis');
+  }else gr.classList.remove('vis');
+
+  // ── Player hand ──
+  const hand=G.hands[ms]||[];
+  const isBidPhase=G.phase==='bid';
+  // Bid phase: player dapat memilih kartu 3 kapan saja selama belum bid
+  const myBidDone=isBidPhase&&G.bidDone&&G.bidDone[ms];
+  const canSelectBid=isBidPhase&&!myBidDone;
+  const canSelect=(isMyTurn&&G.phase!=='end')||canSelectBid;
+
+  // During bid phase: cards that are NOT rank-3 get dimmed (nh = not-hoverable)
+  document.getElementById('handInner').innerHTML=
+    hand.map((c,i)=>{
+      const isBidBlocked=isBidPhase&&c.val!==3;
+      const sel=G.selected&&G.selected.includes(i);
+      return mkCardHTML(c,i,canSelect&&!isBidBlocked,sel,isBidBlocked);
+    }).join('');
+
+  // ── Nameplate ──
+  const np=document.getElementById('myplate');
+  const bidStatus=isBidPhase?` — FASE BID (${G.bidDone.filter(Boolean).length}/4)`:'';
+  np.textContent=`${G.players[ms].name} — ${hand.length} kartu${isMyTurn?' ◀ GILIRAN KAMU':''}${bidStatus}`;
+  np.className=isMyTurn?'on':'';
+
+  // ── Buttons ──
+  const gameOver=G.phase==='end';
+  document.getElementById('btnPlay').disabled=true;
+  const canSkip=!gameOver&&isMyTurn&&(!!G.currentCombo)&&!isBidPhase;
+  document.getElementById('btnSkip').disabled=!canSkip;
+
+  if(!gameOver&&(isMyTurn||canSelectBid))updateComboHint();
+  else{
+    document.getElementById('comboHint').textContent='';
+    document.getElementById('comboHint').style.color='rgba(212,168,67,0.35)';
+  }
+}
+
+function toggleCard(idx){
+  if(!G||G.phase==='end')return;
+  if(!G.selected)G.selected=[];
+  const hand=G.hands[G.mySlot]||[];
+  const card=hand[idx];
+  const ms=G.mySlot;
+
+  if(G.phase==='bid'){
+    // Bid phase: boleh pilih kartu 3 kapan saja, ASALKAN belum bid
+    if(G.bidDone&&G.bidDone[ms])return; // sudah bid, tidak bisa pilih lagi
+    if(!card||card.val!==3){
+      showNotif('Fase BID: hanya kartu 3 yang boleh dipilih!');
+      return;
+    }
+    // boleh pilih kartu 3 kapan saja (tidak perlu giliran)
+  }else{
+    // Play phase: harus giliran sendiri
+    if(G.current!==ms)return;
+  }
+
+  const i=G.selected.indexOf(idx);
+  if(i>=0){G.selected.splice(i,1);SFX.cardDeselect();}else{G.selected.push(idx);SFX.cardSelect();}
+  document.getElementById('handInner').innerHTML=
+    hand.map((c,i)=>mkCardHTML(c,i,true,G.selected.includes(i))).join('');
+  updateComboHint();
+}
+
+function updateComboHint(){
+  const hint=document.getElementById('comboHint');
+  const btnPlay=document.getElementById('btnPlay');
+
+  // ── BID PHASE hint ──
+  if(G.phase==='bid'){
+    const ms=G.mySlot;
+    // Jika sudah bid, disable semua
+    if(G.bidDone&&G.bidDone[ms]){
+      hint.textContent='Kartu 3 sudah dimainkan — menunggu pemain lain...';
+      hint.style.color='rgba(0,255,136,0.35)';
+      btnPlay.disabled=true;return;
+    }
+    const hand=G.hands[ms]||[];
+    const myThrees=hand.filter(c=>c.val===3);
+    if(!myThrees.length){
+      hint.textContent='Kamu tidak punya kartu 3 — skip otomatis';
+      hint.style.color='rgba(255,255,255,0.3)';
+      btnPlay.disabled=true;return;
+    }
+    if(!G.selected||!G.selected.length){
+      hint.textContent='Pilih kartu 3 untuk dimainkan di fase BID';
+      hint.style.color='rgba(212,168,67,0.45)';
+      btnPlay.disabled=true;return;
+    }
+    const sel=G.selected.map(i=>hand[i]).filter(Boolean);
+    if(sel.some(c=>c.val!==3)){
+      hint.textContent='Hanya kartu 3 yang boleh dimainkan!';
+      hint.style.color='#e03040';btnPlay.disabled=true;return;
+    }
+    hint.textContent='✓ Mainkan kartu 3 sekarang!';
+    hint.style.color='#00e8ff';
+    btnPlay.disabled=false;
+    return;
+  }
+
+  if(!G.selected||!G.selected.length){
+    hint.textContent=G.firstTurn&&G.firstCard
+      ?`Mainkan 3 ${SUIT_NAMES[G.firstCard.suit]} terlebih dulu (berkilau emas)`
+      :'Pilih kartu untuk dimainkan';
+    hint.style.color='rgba(212,168,67,0.35)';
+    btnPlay.disabled=true;return;
+  }
+  const hand=G.hands[G.mySlot]||[];
+  const sel=G.selected.map(i=>hand[i]);
+  const combo=detectCombo(sel);
+  if(!combo){
+    hint.textContent='Kombinasi tidak valid';hint.style.color='#e03040';btnPlay.disabled=true;
+  }else if(!comboBeats(G.currentCombo,combo)){
+    hint.textContent=`${comboLabel(combo)} — terlalu kecil`;hint.style.color='#e03040';btnPlay.disabled=true;
+  }else{
+    hint.textContent=`✓ ${comboLabel(combo)} — siap dimainkan!`;
+    hint.style.color=isBomb(combo)?'#cc44ff':'#00e8ff';
+    btnPlay.disabled=false;
+  }
+}
+
+function setGStat(m){const el=document.getElementById('gstat');if(el)el.textContent=m;}
+
+function showNotif(msg,bomb=false){
+  const n=document.getElementById('notif');
+  const pill=document.createElement('div');
+  pill.className='npill'+(bomb?' bomb':'');
+  pill.textContent=msg;
+  n.appendChild(pill);
+  setTimeout(()=>pill.remove(),2300);
+}
+
+function showEndModal(){
+  if(!G)return;
+  const medals=['🥇','🥈','🥉','💀'];
+  const clrs=['#d4a843','#aaaaaa','#cd7f32','#8b1a1a'];
+  const ms=G.mySlot;
+  const items=G.finished.map((pidx,rank)=>`
+    <li class="ritem" style="animation-delay:${rank*0.08}s">
+      <div class="rcircle" style="background:${clrs[rank]}18;color:${clrs[rank]};border:1px solid ${clrs[rank]}44">${medals[rank]}</div>
+      <span style="color:${pidx===ms?'var(--neon)':'var(--gold3)'};flex:1">${G.players[pidx].name}${pidx===ms?' (Kamu)':''}</span>
+      <span style="font-size:9px;font-family:'JetBrains Mono';color:rgba(212,168,67,0.4)">${rank===0?'MENANG':rank===3?'KALAH':'#'+(rank+1)}</span>
+    </li>`).join('');
+
+  // Host broadcasts play_again signal; non-host just returns
+  const mainLagiAction = isHost
+    ? `hostInitPlayAgain()`
+    : `returnToLobby()`;
+
+  document.getElementById('endModal').innerHTML=`<div class="overlay"><div class="modal">
+    <div class="modal-t">${G.finished[0]===ms?'🎉 MENANG!':'GAME SELESAI'}</div>
+    <ul class="rlist">${items}</ul>
+    <button class="btn btn-gold" style="font-family:'Cinzel Decorative';font-size:12px;" onclick="${mainLagiAction}">MAIN LAGI</button>
+  </div></div>`;
+}
+
+function hostInitPlayAgain(){
+  // Reset ready state
+  readyPlayers=new Set();
+  myReady=false;
+  gameHasStarted=true;
+  // Tell all players to return to lobby
+  const realPlayers=lobbyPlayers.filter(p=>!p.isBot);
+  send({type:'play_again',realPlayers,readyIds:[]});
+  returnToLobby();
+}
+
+// ══ BACKGROUND CANVAS ══
+function startBgCanvas(){
+  const canvas=document.getElementById('bgCanvas');
+  const ctx=canvas.getContext('2d');
+  let W,H;
+  function resize(){W=canvas.width=window.innerWidth;H=canvas.height=window.innerHeight;}
+  resize();
+  window.addEventListener('resize',resize);
+
+  const pts=Array.from({length:35},()=>({
+    x:Math.random()*1200,y:Math.random()*900,
+    vx:(Math.random()-.5)*.3,vy:(Math.random()-.5)*.15,
+    sz:Math.random()*1.8+.4,op:Math.random()*.35+.08,
+    col:Math.random()<.5?'0,255,136':'212,168,67',
+    ph:Math.random()*Math.PI*2
+  }));
+  const syms=[
+    ...Array(4).fill(null).map((_,i)=>({sym:'♦♣♥♠'[i],x:Math.random()*1400,y:Math.random()*900,vx:(Math.random()-.5)*.18,vy:-.1-Math.random()*.12,sz:Math.random()*16+7,op:Math.random()*.055+.015,isRed:i===0||i===2,rot:Math.random()*360,vrot:(Math.random()-.5)*.25}))
+  ];
+
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    pts.forEach(p=>{
+      p.x=(p.x+p.vx+W)%W;p.y=(p.y+p.vy+H)%H;p.ph+=.018;
+      ctx.beginPath();ctx.arc(p.x,p.y,p.sz,0,Math.PI*2);
+      ctx.fillStyle=`rgba(${p.col},${p.op*(0.7+.3*Math.sin(p.ph))})`;ctx.fill();
+    });
+    syms.forEach(s=>{
+      s.x=(s.x+s.vx+W)%W;s.y=(s.y+s.vy+H)%H;s.rot+=s.vrot;
+      ctx.save();ctx.translate(s.x,s.y);ctx.rotate(s.rot*Math.PI/180);
+      ctx.font=`${s.sz}px serif`;
+      ctx.fillStyle=s.isRed?`rgba(224,48,64,${s.op})`:`rgba(180,200,255,${s.op*.6})`;
+      ctx.fillText(s.sym,-s.sz/2,-s.sz/4);ctx.restore();
+    });
+    requestAnimationFrame(draw);
+  }
+  draw();
+}
+
+// ══ CARD DRAG REORDER ══
+let dragSrcIdx=null;
+let dragClickThreshold=false;
+
+function handleCardDragStart(e,idx){
+  dragSrcIdx=idx;
+  dragClickThreshold=true;
+  e.dataTransfer.effectAllowed='move';
+  e.dataTransfer.setData('text/plain',String(idx));
+  setTimeout(()=>{
+    const el=e.target.closest('.card');
+    if(el)el.classList.add('dragging');
+  },0);
+  const inner=document.getElementById('handInner');
+  if(inner)inner.classList.add('drag-active');
+}
+
+function handleCardDragOver(e,idx){
+  e.preventDefault();
+  e.dataTransfer.dropEffect='move';
+  // Highlight target
+  document.querySelectorAll('#handInner .card').forEach(el=>{
+    el.classList.remove('drag-over');
+  });
+  if(dragSrcIdx!==null&&dragSrcIdx!==idx){
+    e.target.closest('.card')?.classList.add('drag-over');
+  }
+}
+
+function handleCardDrop(e,toIdx){
+  e.preventDefault();
+  if(dragSrcIdx===null||dragSrcIdx===toIdx)return;
+  if(!G)return;
+  const ms=G.mySlot;
+  const hand=G.hands[ms];
+
+  // Save selected card ids before reorder
+  const selIds=new Set((G.selected||[]).map(i=>hand[i]?hand[i].id:null).filter(Boolean));
+
+  // Reorder hand
+  const moved=hand.splice(dragSrcIdx,1)[0];
+  hand.splice(toIdx,0,moved);
+
+  // Remap selected indices based on card identity
+  G.selected=hand.reduce((acc,c,i)=>{if(selIds.has(c.id))acc.push(i);return acc;},[]);
+
+  dragSrcIdx=null;
+  const isMyTurn=G.current===ms&&G.phase!=='end';
+  document.getElementById('handInner').innerHTML=
+    hand.map((c,i)=>mkCardHTML(c,i,isMyTurn,G.selected.includes(i))).join('');
+  if(isMyTurn)updateComboHint();
+}
+
+function handleCardDragEnd(e){
+  dragSrcIdx=null;
+  document.querySelectorAll('#handInner .card').forEach(el=>{
+    el.classList.remove('dragging','drag-over');
+  });
+  const inner=document.getElementById('handInner');
+  if(inner)inner.classList.remove('drag-active');
+}
+
+// ══ DRAG SCROLL (only when not dragging a card) ══
+(function(){
+  let drag=false,sx=0,ss=0;
+  const w=document.getElementById('handWrap');
+  w.addEventListener('mousedown',e=>{
+    if(e.target.closest('.card'))return; // let card handle its own drag
+    drag=true;sx=e.pageX;ss=w.scrollLeft;w.style.cursor='grabbing';
+  });
+  document.addEventListener('mousemove',e=>{if(drag)w.scrollLeft=ss-(e.pageX-sx);});
+  document.addEventListener('mouseup',()=>{drag=false;w.style.cursor='grab';});
+  w.addEventListener('touchstart',e=>{if(e.target.closest('.card'))return;sx=e.touches[0].pageX;ss=w.scrollLeft;},{passive:true});
+  w.addEventListener('touchmove',e=>{w.scrollLeft=ss-(e.touches[0].pageX-sx);},{passive:true});
+})();
+
+document.getElementById('joinCode').addEventListener('input',function(){this.value=this.value.toUpperCase();});
+</script>
+</body>
+</html>
