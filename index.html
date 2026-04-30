@@ -1792,6 +1792,85 @@ function initAbly(key,cb){
   }catch(e){setA('⚠ Error: '+e.message,true);}
 }
 
+// ══ PRESENCE: enter & subscribe (called after channel is set up) ══
+function setupPresence(){
+  if(!chan)return;
+  // Enter presence so others can detect when we disconnect
+  chan.presence.enter({id:myId,name:myName}).catch(()=>{});
+
+  // Only the host tracks presence-leave events
+  chan.presence.subscribe('leave',(member)=>{
+    if(!isHost)return;
+    const leftId=member.clientId;
+    if(!leftId||leftId===myId)return;
+    // Check if this person is a real player in our lobby
+    const inLobby=lobbyPlayers.find(p=>p.id===leftId&&!p.isBot);
+    if(!inLobby)return;
+
+    // ── CASE 1: Game is running — replace with a bot mid-game ──
+    if(G&&G.phase!=='end'){
+      handlePlayerDisconnectInGame(leftId);
+    } else {
+      // ── CASE 2: In lobby (waiting or post-game) — remove from room ──
+      readyPlayers.delete(leftId);
+      const rp=lobbyPlayers.filter(p=>p.id!==leftId&&!p.isBot);
+      rebuildLobby(rp);
+      broadcastLobby();
+      renderSlots();
+      checkAllReady();
+      setB(`⚠ ${inLobby.name} keluar dari room.`);
+    }
+  });
+}
+
+// ══ Handle a real player disconnecting mid-game (host only) ══
+function handlePlayerDisconnectInGame(leftId){
+  if(!G||!isHost)return;
+  const pidx=G.players.findIndex(p=>p.id===leftId);
+  if(pidx<0)return;
+
+  const leftName=G.players[pidx].name;
+
+  // Pick a bot name not already used
+  const usedNames=G.players.map(p=>p.name);
+  const botName=BOT_NAMES.find(n=>!usedNames.includes(n))||'Bot';
+
+  // Replace the player entry with a bot in both G.players and lobbyPlayers
+  G.players[pidx]={id:'bot_dc_'+pidx,name:botName,isBot:true};
+
+  // Also update lobbyPlayers so the lobby reflects the change
+  const lpIdx=lobbyPlayers.findIndex(p=>p.id===leftId);
+  if(lpIdx>=0)lobbyPlayers[lpIdx]={id:'bot_dc_'+pidx,name:botName,isBot:true};
+
+  // Remove from ready set
+  readyPlayers.delete(leftId);
+
+  showNotif(`⚠ ${leftName} disconnect — digantikan bot ${botName}`);
+  setGStat(`${leftName} terputus — bot mengambil alih`);
+
+  // If it was their turn, advance immediately
+  if(G.current===pidx&&G.phase==='play'){
+    // Skip their turn if there's a current combo, else bot will play
+    clearTimer();
+    setTimeout(()=>{
+      if(G&&G.phase!=='end'&&G.current===pidx){
+        doBotTurn(pidx);
+      }
+    },800);
+  } else if(G.current===pidx&&G.phase==='bid'){
+    // Auto-skip bid
+    clearTimer();
+    setTimeout(()=>{
+      if(G&&G.phase==='bid'&&!G.bidDone[pidx]){
+        applyBid(pidx,null);
+      }
+    },500);
+  }
+
+  bcastState();
+  renderGame();
+}
+
 // Fill lobbyPlayers to always have exactly 4 entries (real + bots)
 function rebuildLobby(realPlayers){
   lobbyPlayers=realPlayers.slice(); // copy real players
@@ -1811,6 +1890,7 @@ function doCreate(){
     initAbly(key,()=>{
       chan=ably.channels.get('trece-'+roomCode);
       chan.subscribe(handleMsg);
+      setupPresence();
       rebuildLobby([{id:myId,name:myName,isBot:false}]);
       broadcastLobby();
       showStepB();
@@ -1828,6 +1908,7 @@ function doJoin(){
     initAbly(key,()=>{
       chan=ably.channels.get('trece-'+roomCode);
       chan.subscribe(handleMsg);
+      setupPresence();
       setTimeout(()=>{
         send({type:'join_req',id:myId,name:myName});
         setA('Menunggu host...');
@@ -1842,6 +1923,7 @@ function doJoin(){
 
 function doLeave(){
   send({type:'leave',id:myId});
+  if(chan)chan.presence.leave().catch(()=>{});
   if(ably)ably.close();
   location.reload();
 }
@@ -2673,6 +2755,8 @@ function bcastState(){
   if(!isHost)return;
   const stateWithStack=JSON.parse(JSON.stringify(G));
   stateWithStack._feltStack=feltStackedCards;
+  // Also embed lobby info so non-host clients can update their lobby view
+  stateWithStack._lobbyPlayers=lobbyPlayers;
   send({type:'game_state',state:stateWithStack});
 }
 
@@ -2685,6 +2769,11 @@ function receiveState(state){
   if(state._feltStack!==undefined){
     feltStackedCards=state._feltStack;
     delete state._feltStack;
+  }
+  // Sync lobby players from host (handles bot replacements for disconnected players)
+  if(state._lobbyPlayers!==undefined){
+    lobbyPlayers=state._lobbyPlayers;
+    delete state._lobbyPlayers;
   }
 
   // ── Preserve local hand order ──
@@ -2819,7 +2908,9 @@ function playerSkip(){
 function hostReceiveAction(d){
   if(!isHost)return;
   const pidx=G.players.findIndex(p=>p.id===d.pid);
-  if(pidx<0||pidx!==G.current)return;
+  // Ignore if player not found or has been replaced by a bot
+  if(pidx<0||G.players[pidx].isBot)return;
+  if(pidx!==G.current)return;
   if(G.phase==='bid'){
     if(d.action==='bid'){
       // Validate: all cards must be rank 3
