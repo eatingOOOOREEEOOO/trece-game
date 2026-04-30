@@ -1379,13 +1379,32 @@ function determineStart(hands){
   return{startP,topCard,allThrees};
 }
 
-// ══ BOT AI — STRATEGIC ENGINE ══
+// ══ BOT AI — ADVANCED STRATEGIC ENGINE v2 ══
 // Filosofi:
-//  • Jangan buang kombinasi kuat untuk menang ronde kecil
-//  • Prioritas: habiskan kartu — bukan menang setiap ronde
-//  • Pass (skip) jika lawan dekat selesai dan kamu tidak bisa menang efisien
-//  • Simpan Bomb untuk situasi kritis
-//  • Pilih combo yang membuang kartu paling banyak sekaligus
+//  • Setiap bot punya "persona" strategis berbeda (agresif / konservatif / adaptif)
+//  • Baca situasi: track kartu lawan, tekanan, fase permainan
+//  • Simpan kartu kuat; gunakan kartu kecil efisien di awal
+//  • Variasi strategi: tidak mudah ditebak, tapi tetap adil
+//  • Bomb hanya untuk situasi kritis; jangan buang sembarangan
+
+// ── Persona Bot (diinisialisasi saat game mulai) ──
+// Setiap bot dapat persona acak yang mempengaruhi gaya bermain
+let _botPersona = {};
+
+function initBotPersonas(players){
+  _botPersona = {};
+  const styles = ['aggressive','conservative','adaptive','opportunist'];
+  players.forEach((p,i)=>{
+    if(p.isBot){
+      // Randomly assign a style; shuffle ensures bots differ from each other
+      _botPersona[i] = styles[(i + Math.floor(Math.random()*styles.length)) % styles.length];
+    }
+  });
+}
+
+function getBotPersona(idx){
+  return _botPersona[idx] || 'adaptive';
+}
 
 function getCombos(arr,k){
   if(k>arr.length)return[];if(k===arr.length)return[arr];if(k===1)return arr.map(x=>[x]);
@@ -1397,16 +1416,13 @@ function getCombos(arr,k){
 function getAllCombos(hand){
   const all=[];
   const n=hand.length;
-  // singles
   for(const c of hand){all.push({type:'single',rank:crank(c),cards:[c],len:1});}
-  // pairs, triples, quads
   for(let k=2;k<=4;k++){
     for(const sub of getCombos(hand,k)){
       const c=detectCombo(sub);
       if(c)all.push(c);
     }
   }
-  // seri 3–6 kartu
   for(let k=3;k<=6;k++){
     if(k>n)break;
     for(const sub of getCombos(hand,k)){
@@ -1417,12 +1433,10 @@ function getAllCombos(hand){
   return all;
 }
 
-// Nilai strategis sebuah kartu (lebih tinggi = lebih berharga, jangan buang dulu)
 function cardValue(c){
   return VORD[c.val]*4+c.suit;
 }
 
-// Hitung "potensi" tangan: berapa banyak combo kuat yang bisa dibentuk
 function handPotential(hand){
   const combos=getAllCombos(hand);
   let score=0;
@@ -1438,17 +1452,15 @@ function handPotential(hand){
   return score;
 }
 
-// Apakah ada kartu 2 (poker/angka tertinggi) di tangan?
 function hasPokerCard(hand){return hand.some(c=>c.val===2);}
 
-// Apakah tangan punya bomb?
 function hasBomb(hand){
   for(const sub of getCombos(hand,4)){const c=detectCombo(sub);if(c&&c.type==='bomb_polo')return true;}
   for(const sub of getCombos(hand,5)){const c=detectCombo(sub);if(c&&c.type==='bomb_seri')return true;}
   return false;
 }
 
-// Seberapa "berbahaya" kondisi saat ini: lawan dengan kartu sedikit = bahaya tinggi
+// Hitung minimum kartu lawan aktif (tekanan)
 function opponentPressure(G,myIdx){
   if(!G)return 0;
   let minCards=13;
@@ -1456,89 +1468,137 @@ function opponentPressure(G,myIdx){
     if(i===myIdx||G.finished.includes(i))continue;
     minCards=Math.min(minCards,G.hands[i].length);
   }
-  // Semakin sedikit kartu lawan, semakin tinggi tekanan
-  if(minCards<=2)return 3; // kritis
-  if(minCards<=4)return 2; // tinggi
-  if(minCards<=6)return 1; // sedang
+  if(minCards<=2)return 3;
+  if(minCards<=4)return 2;
+  if(minCards<=6)return 1;
   return 0;
 }
 
-// Skor sebuah combo: lebih tinggi = lebih bagus untuk dimainkan SEKARANG
-// Prinsip: pilih combo yang:
-//   1. Membuang kartu terbanyak (prioritas utama)
-//   2. Menggunakan kartu dengan nilai RENDAH (simpan kartu kuat)
-//   3. Tidak memecah potensi combo kuat
-function scoreCombo(combo, hand, curCombo, pressure){
+// Estimasi "ancaman" dari pemain tertentu (makin sedikit kartu = ancaman tinggi)
+function threatLevel(G, pidx){
+  if(!G||G.finished.includes(pidx))return 0;
+  const n=G.hands[pidx].length;
+  if(n<=2)return 4;
+  if(n<=4)return 3;
+  if(n<=6)return 2;
+  if(n<=9)return 1;
+  return 0;
+}
+
+// Apakah bot (myIdx) sedang dalam posisi yang berpotensi menang (kartu sedikit)?
+function isWinningPosition(hand, G, myIdx){
+  if(hand.length<=3)return true;
+  // Am I the player with fewest cards?
+  let myCount=hand.length, minOther=13;
+  for(let i=0;i<4;i++){
+    if(i===myIdx||G.finished.includes(i))continue;
+    minOther=Math.min(minOther,G.hands[i].length);
+  }
+  return myCount<minOther;
+}
+
+// Skor combo berdasarkan persona bot
+function scoreCombo(combo, hand, curCombo, pressure, persona){
   let score=0;
+  persona = persona||'adaptive';
 
   // Utama: lebih banyak kartu dibuang = lebih baik
   score += combo.len * 20;
 
-  // Hitung total nilai kartu yang dibuang (lebih rendah = lebih baik)
-  // Kartu rendah mudah dibuang, kartu tinggi simpan untuk mendesak
   const avgRank = combo.cards.reduce((s,c)=>s+cardValue(c),0)/combo.len;
-  score -= avgRank * 0.8;
 
-  // Bonus: habiskan semua kartu sekarang
-  if(combo.len===hand.length) score+=300;
-
-  // Penalti besar: jangan pakai Bomb sembarangan
-  if(combo.type==='bomb_polo'||combo.type==='bomb_seri'){
-    // Bomb hanya layak jika: tangan hampir habis, atau lawan kritis
-    if(hand.length>5&&pressure<2) score-=120;
-    else if(pressure>=2) score+=30; // ok kalau lawan dekat menang
-    else score-=60;
+  // Persona: aggressive — suka mainkan kartu tinggi, kendalikan meja
+  // conservative — hemat kartu kuat, buang kartu kecil dulu
+  // adaptive — seimbang, baca situasi
+  // opportunist — mainkan combo besar kalau bisa habiskan banyak
+  if(persona==='aggressive'){
+    // Sedikit lebih rela pakai kartu kuat untuk kontrol meja
+    score -= avgRank * 0.4;
+    if(combo.type==='triple'||combo.type==='polo_pair')score+=10;
+  } else if(persona==='conservative'){
+    // Hindari pakai kartu kuat kecuali perlu
+    score -= avgRank * 1.1;
+    if(combo.cards.some(c=>cardValue(c)>30))score-=15;
+  } else if(persona==='opportunist'){
+    // Fokus habiskan banyak kartu sekaligus
+    score += combo.len * 10;
+    score -= avgRank * 0.6;
+  } else {
+    // adaptive: standar
+    score -= avgRank * 0.8;
   }
 
-  // Bonus: combo tipe seri/polo lebih efisien membuang banyak kartu
+  // Bonus habiskan semua kartu
+  if(combo.len===hand.length) score+=300;
+
+  // Penalti Bomb kecuali situasi tepat
+  if(combo.type==='bomb_polo'||combo.type==='bomb_seri'){
+    if(hand.length>5&&pressure<2) score-=130;
+    else if(pressure>=3) score+=40;
+    else if(pressure>=2) score+=20;
+    else score-=70;
+    // Aggressive bots sedikit lebih mau pakai bomb
+    if(persona==='aggressive'&&pressure>=2)score+=25;
+  }
+
   if(combo.type==='seri') score+=combo.len*5;
   if(combo.type==='polo_seri') score+=15;
   if(combo.type==='polo_pair') score+=14;
 
-  // Penalti: jangan pakai triple/double jika itu satu-satunya combo besar
-  // (simpan untuk nanti bisa mendesak)
   if(combo.type==='triple'){
     const hasOtherBig=hand.filter(c=>!combo.cards.includes(c)).length>=4;
-    if(!hasOtherBig)score-=10;
+    if(!hasOtherBig)score-=12;
   }
 
-  // Penalti: jangan pakai kartu 2 (poker) kecuali tangan mau habis
-  if(combo.cards.some(c=>c.val===2)&&hand.length>3) score-=50;
+  // Penalti kartu 2 (poker) kecuali mau habis
+  if(combo.cards.some(c=>c.val===2)&&hand.length>3){
+    score -= (persona==='aggressive') ? 30 : 55;
+  }
+
+  // Bonus kecil untuk variasi: sedikit noise acak agar pola tidak mudah ditebak
+  score += (Math.random()-0.5)*6;
 
   return score;
 }
 
-// Putuskan apakah bot harus SKIP atau MAIN
-function shouldSkip(hand, curCombo, cands, G, myIdx){
-  if(!curCombo)return false; // wajib main di meja kosong
-  if(!cands.length)return true; // tidak ada pilihan
+// Putuskan apakah bot harus SKIP
+function shouldSkip(hand, curCombo, cands, G, myIdx, persona){
+  if(!curCombo)return false;
+  if(!cands.length)return true;
+  persona=persona||'adaptive';
 
   const pressure=opponentPressure(G,myIdx);
+  const winning=isWinningPosition(hand,G,myIdx);
 
-  // Kalau tangan hampir habis (<=3 kartu), jangan skip — mainkan apa pun
+  // Kalau tangan hampir habis, jangan skip
   if(hand.length<=3)return false;
-
-  // Kalau lawan kritis (<=2 kartu), jangan skip — harus blokir
   if(pressure>=3)return false;
 
-  // Cari combo terbaik
-  const best=cands.sort((a,b)=>scoreCombo(b,hand,curCombo,pressure)-scoreCombo(a,hand,curCombo,pressure))[0];
+  // Kalau sedang menang (kartu paling sedikit), jangan skip sembarangan
+  if(winning&&hand.length<=5)return false;
 
-  // Jika combo terbaik adalah Bomb tapi tidak perlu — skip lebih baik
+  const best=cands.slice().sort((a,b)=>scoreCombo(b,hand,curCombo,pressure,persona)-scoreCombo(a,hand,curCombo,pressure,persona))[0];
+
   if(isBomb(best)&&hand.length>4&&pressure<2)return true;
 
-  // Hitung biaya: jika combo terbaik menghabiskan kartu tinggi dan tangan masih banyak
-  // skip lebih baik agar dapat kesempatan main bebas
   const handAfter=hand.filter(c=>!best.cards.some(bc=>bc.id===c.id));
   const potBefore=handPotential(hand);
   const potAfter=handPotential(handAfter);
 
-  // Jika memainkan combo ini sangat merusak potensi tangan dan lawan tidak kritis
-  if(potBefore-potAfter>40&&pressure<1&&hand.length>7)return true;
+  // Conservative: lebih rela skip untuk jaga tangan
+  const skipThreshold = persona==='conservative' ? 25 : persona==='aggressive' ? 55 : 40;
+  if(potBefore-potAfter>skipThreshold&&pressure<1&&hand.length>7)return true;
 
-  // Jika combo yang tersedia hanya "single" kartu kuat (A atau 2) dan kita masih banyak
   if(best.type==='single'&&best.cards[0].val===2&&hand.length>4&&pressure<2)return true;
-  if(best.type==='single'&&best.cards[0].val==='A'&&hand.length>5&&pressure<1)return true;
+
+  // Opportunist: skip kalau hanya bisa mainkan single kartu biasa saat meja ramai
+  if(persona==='opportunist'&&best.type==='single'&&best.len===1&&hand.length>6&&pressure<1){
+    // Skip 30% of the time to wait for better opening
+    if(Math.random()<0.30)return true;
+  }
+
+  // Aggressive: lebih jarang skip, suka kontrol meja
+  if(persona==='aggressive'&&pressure>=1)return false;
 
   return false;
 }
@@ -1546,77 +1606,82 @@ function shouldSkip(hand, curCombo, cands, G, myIdx){
 function botDecide(hand, curCombo, isFirstTurn, firstCard, G, myIdx){
   const h=srtH(hand);
   const pressure=G?opponentPressure(G,myIdx):0;
+  const persona=getBotPersona(myIdx);
 
-  // ── Meja kosong: bot yang punya giliran bebas ──
   if(!curCombo){
-    return botOpenTable(h, G, myIdx, pressure);
+    return botOpenTable(h, G, myIdx, pressure, persona);
   }
 
-  // ── Poker combo di meja — prioritas Bomb ──
   if(isPokerCombo(curCombo)){
     const bomb=findBestBomb(h,curCombo);
     if(bomb)return bomb;
-    // Tidak ada bomb — tidak bisa lawan poker, skip
     return null;
   }
 
-  // ── Cari semua respons yang valid ──
   const allCombos=getAllCombos(h);
   const cands=allCombos.filter(c=>comboBeats(curCombo,c));
 
-  if(shouldSkip(h,curCombo,cands,G,myIdx))return null;
+  if(shouldSkip(h,curCombo,cands,G,myIdx,persona))return null;
   if(!cands.length)return null;
 
-  // Pilih combo dengan skor terbaik
-  cands.sort((a,b)=>scoreCombo(b,h,curCombo,pressure)-scoreCombo(a,h,curCombo,pressure));
+  // Strategi kontekstual berdasarkan persona
+  cands.sort((a,b)=>scoreCombo(b,h,curCombo,pressure,persona)-scoreCombo(a,h,curCombo,pressure,persona));
+
+  // Kalau aggressive & ada combo yang beat dengan margin tipis, coba pakai combo lebih besar untuk "menindas"
+  if(persona==='aggressive'&&pressure>=2&&cands.length>1){
+    // 40% chance pilih combo kedua (lebih dominan)
+    if(Math.random()<0.40)return cands[Math.min(1,cands.length-1)];
+  }
+
   return cands[0];
 }
 
 // Buka meja dengan strategi
-function botOpenTable(hand, G, myIdx, pressure){
+function botOpenTable(hand, G, myIdx, pressure, persona){
   const n=hand.length;
+  persona=persona||'adaptive';
 
-  // Kalau tinggal sedikit kartu, habiskan semuanya jika bisa
   if(n<=4){
     const allC=getAllCombos(hand);
-    // Cari combo yang habiskan semua kartu
     const finish=allC.filter(c=>c.len===n);
     if(finish.length){
       finish.sort((a,b)=>b.len-a.len);
       return finish[0];
     }
-    // Mainkan sebanyak mungkin
     allC.sort((a,b)=>b.len-a.len);
     return allC[0];
   }
 
-  // Kumpulkan semua combo yang mungkin
   const allC=getAllCombos(hand);
-
-  // Jangan buka dengan Bomb kecuali darurat
   const nonBombs=allC.filter(c=>!isBomb(c));
   const pool=nonBombs.length?nonBombs:allC;
 
-  // Skor tiap combo dan pilih terbaik
-  pool.sort((a,b)=>scoreCombo(b,hand,null,pressure)-scoreCombo(a,hand,null,pressure));
+  pool.sort((a,b)=>scoreCombo(b,hand,null,pressure,persona)-scoreCombo(a,hand,null,pressure,persona));
 
-  // Pilih beberapa kandidat teratas lalu cek mana yang paling "selamat"
-  const top=pool.slice(0,5);
+  const topN = persona==='opportunist' ? 7 : 5;
+  const top=pool.slice(0,topN);
 
-  // Prioritaskan: combo yang tidak memecah potensi besar di tangan
   let best=top[0];
   let bestScore=-Infinity;
   for(const c of top){
     const after=hand.filter(h=>!c.cards.some(cc=>cc.id===h.id));
     const pot=handPotential(after);
-    const s=scoreCombo(c,hand,null,pressure)+pot*0.3;
+    // Persona influences how much weight is given to future potential
+    const potWeight = persona==='conservative' ? 0.5 : persona==='aggressive' ? 0.15 : 0.3;
+    const s=scoreCombo(c,hand,null,pressure,persona)+pot*potWeight;
     if(s>bestScore){bestScore=s;best=c;}
+  }
+
+  // Opportunist: occasionally open with a big combo to surprise
+  if(persona==='opportunist'&&pressure>=1&&Math.random()<0.25){
+    const bigCombos=pool.filter(c=>c.len>=3&&!isBomb(c));
+    if(bigCombos.length)return bigCombos[0];
   }
 
   return best;
 }
 
-// Cari Bomb terbaik (terkecil yang masih menang) untuk lawan Poker
+// Cari Bomb terbaik untuk lawan Poker
 function findBestBomb(hand,curCombo){
   const bombs=[];
   for(const sub of getCombos(hand,4)){
@@ -1628,7 +1693,6 @@ function findBestBomb(hand,curCombo){
     if(c&&c.type==='bomb_seri'&&comboBeats(curCombo,c))bombs.push(c);
   }
   if(!bombs.length)return null;
-  // Pakai bomb terkecil (hemat bomb besar)
   bombs.sort((a,b)=>a.rank-b.rank);
   return bombs[0];
 }
@@ -2094,6 +2158,7 @@ function beginGame({players,hands,mySlot}){
   feltStackedCards=[];
   _posQueue=[];_posShowing=false; // reset popup queue for new game
   _bidTransitionShown=false; // reset bid transition flag for new game
+  initBotPersonas(players); // assign random personas to bots each game
 
   G={
     players,
@@ -2222,8 +2287,18 @@ function proceedTurn(){
   if(pl.isBot){
     // Only host drives bot turns
     if(isHost){
-      const delay=850+Math.random()*350;
-      setTimeout(()=>doBotTurn(cur),delay);
+      // Variable delay: simulate "thinking" based on situation complexity
+      const hand=G.hands[cur];
+      const allCombos=getAllCombos(hand);
+      const validMoves=G.currentCombo?allCombos.filter(c=>comboBeats(G.currentCombo,c)):allCombos;
+      // More choices = longer "think time"; endgame = shorter (decisive)
+      const baseDelay = hand.length<=3 ? 600 : hand.length<=6 ? 900 : 1100;
+      const thinkBonus = Math.min(validMoves.length, 10) * 55;
+      const randJitter = Math.random()*500 - 100;
+      // Occasionally add a longer "hesitation" pause (~15% chance)
+      const hesitation = Math.random()<0.15 ? 900+Math.random()*700 : 0;
+      const delay = Math.max(500, baseDelay + thinkBonus + randJitter + hesitation);
+      setTimeout(()=>doBotTurn(cur), delay);
     }
     // Non-host just waits for state update
   }else if(pl.id===myId){
@@ -2280,9 +2355,12 @@ function proceedBidTurn(){
     }
     if(pl.isBot){
       setTimeout(()=>{
-        const combo=detectCombo(myThrees)||{type:'single',rank:0,cards:[myThrees[0]],len:1};
-        applyBid(cur,combo);
-      },900+Math.random()*400);
+        const bidDelay = 700 + Math.random()*600 + (Math.random()<0.15?800:0);
+        setTimeout(()=>{
+          const combo=detectCombo(myThrees)||{type:'single',rank:0,cards:[myThrees[0]],len:1};
+          applyBid(cur,combo);
+        }, bidDelay);
+      },0);
     }else if(pl.id===myId){
       // Host is this player
       setGStat('Fase BID: mainkan kartu 3 kamu!');
