@@ -189,7 +189,7 @@ button,input{touch-action:manipulation;cursor:pointer;}
 #game{position:fixed;inset:0;display:none;flex-direction:column;overflow:hidden;}
 #game.show{display:flex;}
 #bgCanvas{position:absolute;inset:0;pointer-events:none;z-index:0;}
-.game-layer{position:relative;z-index:1;display:flex;flex-direction:column;height:100%;overflow-x:hidden;overflow-y:hidden;}
+.game-layer,#gameWrap{position:relative;z-index:1;display:flex;flex-direction:column;height:100%;overflow-x:hidden;overflow-y:hidden;}
 
 /* Opponents — 3 shown, fixed height */
 #oppBar{flex:0 0 96px;display:flex;gap:5px;padding:6px 6px 3px;background:rgba(0,0,0,0.2);border-bottom:1px solid rgba(212,168,67,0.07);}
@@ -1014,6 +1014,62 @@ button,input{touch-action:manipulation;cursor:pointer;}
   100%{opacity:0;transform:translateY(-80px) scale(0.9);}
 }
 
+/* ══ BOMB EFFECT ══ */
+@keyframes screenShake{
+  0%  {transform:translate(0,0) rotate(0deg);}
+  8%  {transform:translate(-10px,-8px) rotate(-1.5deg);}
+  16% {transform:translate(10px,8px) rotate(1.5deg);}
+  24% {transform:translate(-9px,5px) rotate(-1deg);}
+  32% {transform:translate(9px,-5px) rotate(1deg);}
+  40% {transform:translate(-6px,7px) rotate(-0.8deg);}
+  48% {transform:translate(6px,-7px) rotate(0.8deg);}
+  56% {transform:translate(-4px,4px) rotate(-0.4deg);}
+  64% {transform:translate(4px,-4px) rotate(0.4deg);}
+  72% {transform:translate(-2px,2px) rotate(-0.2deg);}
+  80% {transform:translate(2px,-2px) rotate(0.2deg);}
+  100%{transform:translate(0,0) rotate(0deg);}
+}
+@keyframes bombFlash{
+  0%  {opacity:0;}
+  8%  {opacity:0.55;}
+  25% {opacity:0.3;}
+  60% {opacity:0.12;}
+  100%{opacity:0;}
+}
+@keyframes particleExplode{
+  0%  {opacity:1;transform:translate(0,0) scale(1);}
+  80% {opacity:0.8;}
+  100%{opacity:0;transform:translate(var(--px),var(--py)) scale(0) rotate(var(--pr));}
+}
+@keyframes bombLabel{
+  0%  {opacity:0;transform:translate(-50%,-50%) scale(0.3) rotate(-8deg);}
+  25% {opacity:1;transform:translate(-50%,-50%) scale(1.25) rotate(2deg);}
+  55% {opacity:1;transform:translate(-50%,-50%) scale(1) rotate(0deg);}
+  80% {opacity:1;transform:translate(-50%,-50%) scale(1.05) rotate(0deg);}
+  100%{opacity:0;transform:translate(-50%,-50%) scale(0.8) rotate(0deg);}
+}
+#bombFlashEl{
+  position:fixed;inset:0;pointer-events:none;z-index:200;
+  background:radial-gradient(ellipse at 50% 50%,rgba(255,100,0,0.7) 0%,rgba(204,44,255,0.5) 40%,rgba(255,0,80,0.3) 70%,transparent 100%);
+  opacity:0;
+}
+#bombFlashEl.active{animation:bombFlash 0.7s ease-out forwards;}
+#bombLabelEl{
+  position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+  pointer-events:none;z-index:210;
+  font-family:'Cinzel Decorative',serif;font-size:clamp(36px,8vw,80px);font-weight:900;
+  color:#fff;
+  text-shadow:0 0 30px #ff4400,0 0 60px #cc00ff,0 0 90px #ff8800,0 4px 0 rgba(0,0,0,0.9);
+  letter-spacing:6px;white-space:nowrap;
+  opacity:0;
+}
+#bombLabelEl.active{animation:bombLabel 1.4s cubic-bezier(0.22,1,0.36,1) forwards;}
+.bomb-particle{
+  position:fixed;pointer-events:none;z-index:205;border-radius:50%;
+  animation:particleExplode var(--dur) ease-out forwards;
+}
+#gameWrap.shake{animation:screenShake 0.55s cubic-bezier(0.36,0.07,0.19,0.97) both;}
+
 /* ══ EMOTE SYSTEM ══ */
 #emoteBtn{
   position:fixed;right:12px;bottom:140px;z-index:50;
@@ -1163,7 +1219,10 @@ button,input{touch-action:manipulation;cursor:pointer;}
 
 <div id="game">
   <canvas id="bgCanvas"></canvas>
-  <div class="game-layer">
+  <!-- Bomb overlay effects -->
+  <div id="bombFlashEl"></div>
+  <div id="bombLabelEl">💣 BOMB!</div>
+  <div id="gameWrap" class="game-layer">
     <div id="oppBar"></div>
     <div id="center">
       <div id="tdots"></div>
@@ -2356,9 +2415,10 @@ function clearTimer(){
 // Ensures popups are shown one at a time, sequentially, never overlapping.
 let _posQueue=[];
 let _posShowing=false;
+let _posTimer=null;
 
-// Total duration per popup: in(0.7) + hold(3.2) + out(0.9) + gap(0.3) = ~5.1s
-const POS_TOTAL_MS = 5100;
+// Total duration per popup: in(0.5) + hold(2.2) + out(0.6) + gap(0.2) = ~3.5s
+const POS_TOTAL_MS = 3500;
 
 function showPositionAnnounce(rank, playerName, isMe){
   _posQueue.push({rank, playerName, isMe});
@@ -2384,18 +2444,27 @@ function _showOnePosAnnounce(rank, playerName, isMe, onDone){
   banner.innerHTML=`${medals[rank]} ${isMe?'KAMU':'<span style="font-size:0.7em">'+playerName+'</span>'}<br><span style="font-size:0.55em;opacity:0.8;letter-spacing:2px">${posLabels[rank]}</span>`;
   el.innerHTML='';
   el.appendChild(banner);
-  // Wait for full animation cycle (in + hold + out) then call done
-  setTimeout(()=>{
+  if(_posTimer)clearTimeout(_posTimer);
+  _posTimer=setTimeout(()=>{
+    _posTimer=null;
     if(banner.parentNode)banner.remove();
     onDone();
   }, POS_TOTAL_MS);
 }
 
-// How many ms until the current queue finishes (for timing showEndModal)
+// Fix: operator precedence diperbaiki dengan kurung eksplisit
 function posQueueRemainingMs(){
-  return (_posShowing?1:0 + _posQueue.length) * POS_TOTAL_MS + 600;
+  return ((_posShowing?1:0) + _posQueue.length) * POS_TOTAL_MS + 400;
 }
 
+// Cancel semua popup posisi sekaligus (dipanggil saat returnToLobby)
+function clearPosQueue(){
+  if(_posTimer){clearTimeout(_posTimer);_posTimer=null;}
+  _posQueue=[];
+  _posShowing=false;
+  const el=document.getElementById('posAnnounce');
+  if(el)el.innerHTML='';
+}
 function toggleReady(){
   if(myReady)return; // can't un-ready
   myReady=true;
@@ -2426,6 +2495,7 @@ function checkAllReady(){
 }
 
 function returnToLobby(){
+  clearPosQueue();
   // Hide game, show lobby stepB — no reload, no re-login
   G=null;
   feltStackedCards=[];
@@ -2459,7 +2529,7 @@ function receiveStart(d){
 function beginGame({players,hands,mySlot}){
   // Fase BID: kartu 3 TETAP di tangan, semua player giliran memainkan kartu 3 mereka
   feltStackedCards=[];
-  _posQueue=[];_posShowing=false; // reset popup queue for new game
+  clearPosQueue(); // reset popup queue for new game
   _bidTransitionShown=false; // reset bid transition flag for new game
   initBotPersonas(players); // assign random personas to bots each game
 
@@ -2844,6 +2914,7 @@ function triggerPokerBombEnd(pokerIdx,bombIdx,bombCombo){
   const bombNm=G.players[bombIdx].name;
   const pokerNm=G.players[pokerIdx].name;
   SFX.pokerBombed();
+  triggerBombEffect(true);
   showNotif(`💣 ${bombNm} BOMB! ${pokerNm} LANGSUNG KALAH!`,true);
   setGStat(`💣 ${bombNm} melawan Poker dengan Bomb! ${pokerNm} kalah!`);
   // Rank 1: Bomb player; Rank 4: Poker player; Rank 2&3: remaining by fewest cards
@@ -2892,7 +2963,7 @@ function applyPlay(pidx,combo){
     SFX.playerFinish();
   }else{
     setGStat(`${nm} mainkan ${comboLabel(combo)}`);
-    if(isBomb(combo)){showNotif(`💣 ${nm}: ${comboLabel(combo)}!`,true);SFX.bomb();}
+    if(isBomb(combo)){showNotif(`💣 ${nm}: ${comboLabel(combo)}!`,true);SFX.bomb();triggerBombEffect(false);}
   }
 
   checkEnd();
@@ -3783,6 +3854,49 @@ function _doBetAndStart(){
   send(msg);
 
   beginGame({players:lobbyPlayers, hands, mySlot:lobbyPlayers.findIndex(p=>p.id===myId)});
+}
+
+// ══ BOMB EFFECT ══
+function triggerBombEffect(isPokerBomb){
+  const wrap = document.getElementById('gameWrap');
+  wrap.classList.remove('shake');
+  void wrap.offsetWidth;
+  wrap.classList.add('shake');
+  setTimeout(()=>wrap.classList.remove('shake'), 600);
+
+  const flash = document.getElementById('bombFlashEl');
+  flash.classList.remove('active');
+  void flash.offsetWidth;
+  flash.classList.add('active');
+  setTimeout(()=>flash.classList.remove('active'), 750);
+
+  const lbl = document.getElementById('bombLabelEl');
+  lbl.textContent = isPokerBomb ? '💣 BOMB!!' : '💣 BOMB!';
+  lbl.classList.remove('active');
+  void lbl.offsetWidth;
+  lbl.classList.add('active');
+  setTimeout(()=>lbl.classList.remove('active'), 1500);
+
+  const colors = ['#ff4400','#ff8800','#ffcc00','#cc00ff','#ff0088','#00ffcc','#ffffff'];
+  const cx = window.innerWidth / 2;
+  const cy = window.innerHeight / 2;
+  const count = isPokerBomb ? 70 : 45;
+  for(let i = 0; i < count; i++){
+    const el = document.createElement('div');
+    el.className = 'bomb-particle';
+    const angle = (Math.random() * 360) * Math.PI / 180;
+    const dist  = 120 + Math.random() * (isPokerBomb ? 340 : 260);
+    const px    = Math.cos(angle) * dist;
+    const py    = Math.sin(angle) * dist;
+    const size  = 4 + Math.random() * (isPokerBomb ? 14 : 10);
+    const dur   = 0.6 + Math.random() * 0.7;
+    const rot   = (Math.random() * 720 - 360) + 'deg';
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    const shape = Math.random() > 0.4 ? '50%' : (Math.random() > 0.5 ? '2px' : '0');
+    el.style.cssText = `left:${cx}px;top:${cy}px;width:${size}px;height:${size}px;background:${color};border-radius:${shape};box-shadow:0 0 ${size*2}px ${color};--px:${px}px;--py:${py}px;--dur:${dur}s;--pr:${rot};`;
+    document.body.appendChild(el);
+    setTimeout(()=>el.remove(), dur * 1000 + 100);
+  }
 }
 
 // Tampilkan chip float animation
