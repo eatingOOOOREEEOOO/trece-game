@@ -629,73 +629,88 @@ button,input{touch-action:manipulation;cursor:pointer;}
 @keyframes pOut{from{opacity:1}to{opacity:0;transform:translateY(-8px)}}
 
 /* ══════════════════════════════════════════
-   MOBILE UI OVERHAUL — kartu fan/overlap,
-   layout lebih compact, tidak perlu scroll
+   MOBILE UI OVERHAUL v2 — lebih playable,
+   tombol besar, kartu mudah di-tap
    ══════════════════════════════════════════ */
 @media (max-width: 600px) {
 
-  /* ── Opponent bar: lebih tipis ── */
+  /* ── Opponent bar: compact ── */
   #oppBar{
-    flex:0 0 72px;
-    padding:4px 4px 2px;
+    flex:0 0 66px;
+    padding:3px 3px 2px;
     gap:3px;
   }
-  .opp{padding:3px 4px;border-radius:7px;gap:2px;}
-  .opp-nm{font-size:8px;}
-  .opp-backs{max-height:34px;gap:1px;}
-  .cback{width:10px;height:16px;border-radius:2px;}
+  .opp{padding:3px 5px;border-radius:7px;gap:2px;}
+  .opp-nm{font-size:8.5px;}
+  .opp-backs{max-height:32px;gap:1px;}
+  .cback{width:11px;height:17px;border-radius:2px;}
 
-  /* ── Center area: lebih kecil ── */
-  #center{gap:3px;padding:2px 4px;}
-  #tdots{gap:8px;}
-  .tdot{font-size:9px;gap:3px;}
+  /* ── Center area ── */
+  #center{gap:2px;padding:1px 4px;}
+  #tdots{gap:6px;}
+  .tdot{font-size:8.5px;gap:3px;}
   .tdot-pip{width:6px;height:6px;}
 
-  /* ── Felt: lebih pendek di mobile ── */
+  /* ── Felt: compact ── */
   #felt{
-    min-height:130px;
-    max-height:150px;
-    border-radius:14px;
+    min-height:120px;
+    max-height:135px;
+    border-radius:12px;
     width:99vw;
   }
-  #feltCards{height:130px;}
+  #feltCards{height:120px;}
   .felt-stack-card .card,
   #feltCards .card{
-    width:44px!important;
-    height:65px!important;
+    width:42px!important;
+    height:62px!important;
   }
   #feltCards .card .cv{font-size:10px;}
   #feltCards .card .cs{font-size:9px;}
-  #feltCards .card .cc{font-size:18px;}
-  .empty-msg{font-size:12px;}
-  #comboBadge{font-size:8px;padding:2px 7px;bottom:5px;right:6px;}
+  #feltCards .card .cc{font-size:17px;}
+  .empty-msg{font-size:11px;}
+  #comboBadge{font-size:8px;padding:2px 6px;bottom:4px;right:5px;}
 
   /* ── Timer ── */
   #timerWrap{height:3px;width:99vw;}
 
-  /* ── Status text ── */
-  #gstat{font-size:9px;min-height:12px;}
+  /* ── Status text — sembunyikan, info ada di nameplate ── */
+  #gstat{font-size:9px;min-height:11px;}
 
-  /* ── Player area: compact ── */
-  #playerArea{gap:3px;padding:3px 0 6px;}
-  #comboHint{font-size:9px;min-height:12px;}
+  /* ── Player area ── */
+  #playerArea{
+    gap:0;
+    padding:0;
+    /* Fixed tinggi agar tidak overflow layar */
+    flex:0 0 auto;
+  }
 
-  /* ── ACTION BUTTONS ── */
-  #actRow{gap:6px;}
-  .abtn{padding:9px 0;font-size:11px;border-radius:8px;flex:1;}
+  /* ── Combo hint — satu baris tipis ── */
+  #comboHint{
+    font-size:9px;
+    min-height:0;
+    height:16px;
+    line-height:16px;
+    padding:0 8px;
+    overflow:hidden;
+    white-space:nowrap;
+    text-overflow:ellipsis;
+  }
 
-  /* ── Nameplate ── */
-  #myplate{font-size:8px;padding:2px 10px;}
+  /* ── Chip bar — lebih kecil ── */
+  #chipBar .chip-pill{
+    padding:3px 10px;
+    font-size:10px;
+    gap:5px;
+  }
 
-  /* ══ HAND: fan overlap layout ══
-     Kartu ditumpuk dengan overlap — tidak perlu scroll,
-     semua 13 kartu muat di layar HP
-  */
+  /* ══ HAND: overlap fan — kartu lebih besar, tap area lebih lega ══ */
   #handWrap{
     overflow:visible!important;
     overflow-x:visible!important;
-    padding:32px 0 6px;
+    /* Padding atas untuk ruang angkat kartu yang dipilih */
+    padding:36px 0 4px;
     width:100%;
+    flex-shrink:0;
   }
   #handInner{
     position:relative;
@@ -704,43 +719,48 @@ button,input{touch-action:manipulation;cursor:pointer;}
     justify-content:center!important;
     width:100%!important;
     min-width:unset!important;
-    /* overlap cards using negative margin */
     gap:0!important;
   }
-  /* Each card overlaps the previous */
+
+  /* ── Kartu: lebih tinggi agar gambar terbaca, overlap lebih renggang ── */
   #handInner .card{
-    width:46px!important;
-    height:70px!important;
-    border-radius:7px!important;
-    margin-left:-18px!important;
+    width:52px!important;
+    height:78px!important;
+    border-radius:8px!important;
+    margin-left:-22px!important;
     flex-shrink:0!important;
-    transition:transform 0.18s cubic-bezier(0.34,1.56,0.64,1),
+    /* Tambah border tebal agar lebih mudah dibedakan */
+    border-width:1.5px!important;
+    transition:transform 0.2s cubic-bezier(0.34,1.56,0.64,1),
                box-shadow 0.15s, border-color 0.15s,
-               margin 0.15s!important;
+               margin 0.2s!important;
   }
-  /* First card no negative margin */
+  /* Kartu pertama tanpa margin kiri */
   #handInner .card:first-child{margin-left:0!important;}
-  /* Selected card: lift up, widen gap from neighbors */
+
+  /* Kartu dipilih — angkat lebih jauh, beri ruang ke tetangga */
   #handInner .card.sel{
-    transform:translateY(-24px) scale(1.08)!important;
-    margin-left:-10px!important;
-    margin-right:8px!important;
+    transform:translateY(-30px) scale(1.1)!important;
+    margin-left:-14px!important;
+    margin-right:10px!important;
     z-index:50!important;
+    border-color:var(--gold2)!important;
+    box-shadow:0 0 0 2px var(--gold),0 8px 20px rgba(212,168,67,0.35)!important;
   }
-  #handInner .card:first-child.sel{
-    margin-left:0!important;
-  }
-  /* Hover: subtle lift */
-  #handInner .card:hover:not(.nh):not(.sel){
-    transform:translateY(-10px)!important;
+  #handInner .card:first-child.sel{margin-left:0!important;}
+
+  /* Tap highlight — angkat sedikit saja (bukan hover hover) */
+  #handInner .card:active:not(.nh):not(.sel){
+    transform:translateY(-8px) scale(1.04)!important;
     z-index:40!important;
   }
-  /* Card text sizing */
-  #handInner .card .cv{font-size:11px!important;}
-  #handInner .card .cs{font-size:9px!important;}
-  #handInner .card .cc{font-size:20px!important;}
 
-  /* z-index stacking: later cards on top */
+  /* Text kartu */
+  #handInner .card .cv{font-size:12px!important;font-weight:700!important;}
+  #handInner .card .cs{font-size:10px!important;}
+  #handInner .card .cc{font-size:22px!important;}
+
+  /* z-index stacking: kartu terakhir di atas */
   #handInner .card:nth-child(1){z-index:1;}
   #handInner .card:nth-child(2){z-index:2;}
   #handInner .card:nth-child(3){z-index:3;}
@@ -755,24 +775,72 @@ button,input{touch-action:manipulation;cursor:pointer;}
   #handInner .card:nth-child(12){z-index:12;}
   #handInner .card:nth-child(13){z-index:13;}
 
-  /* drag hint hidden on mobile */
+  /* ── ACTION BUTTONS — besar, mudah dipencet jempol ── */
+  #actRow{
+    gap:10px;
+    padding:6px 12px 4px;
+    width:100%;
+    box-sizing:border-box;
+  }
+  .abtn{
+    /* Tinggi 52px — zona nyaman jempol */
+    padding:0!important;
+    height:52px!important;
+    font-size:13px!important;
+    letter-spacing:2px!important;
+    border-radius:12px!important;
+    flex:1!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+  }
+  /* MAIN button: lebih mencolok */
+  .abtn-play{
+    box-shadow:0 4px 18px rgba(0,255,136,0.35)!important;
+  }
+  .abtn-play:not(:disabled):active{
+    transform:scale(0.96)!important;
+    box-shadow:0 2px 8px rgba(0,255,136,0.2)!important;
+  }
+  /* SKIP button: lebih muted */
+  .abtn-skip{
+    flex:0 0 110px!important;
+    font-size:12px!important;
+  }
+
+  /* ── Nameplate — satu baris paling bawah ── */
+  #myplate{
+    font-size:8px;
+    padding:2px 12px;
+    margin:2px auto 4px;
+    max-width:90%;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+
+  /* Sembunyikan hint drag di mobile */
   #playerArea > div:last-child{display:none;}
 }
 
-/* Extra small phones (< 380px) */
+/* ── Extra small phones (< 380px) ── */
 @media (max-width: 380px) {
   #handInner .card{
-    width:40px!important;
-    height:62px!important;
-    margin-left:-16px!important;
+    width:46px!important;
+    height:70px!important;
+    margin-left:-20px!important;
   }
   #handInner .card.sel{
-    margin-left:-8px!important;
-    margin-right:6px!important;
+    margin-left:-12px!important;
+    margin-right:8px!important;
+    transform:translateY(-28px) scale(1.08)!important;
   }
-  #felt{min-height:115px;max-height:130px;}
-  #feltCards{height:115px;}
-  #oppBar{flex:0 0 64px;}
+  .abtn{height:48px!important;font-size:12px!important;}
+  .abtn-skip{flex:0 0 96px!important;}
+  #felt{min-height:108px;max-height:120px;}
+  #feltCards{height:108px;}
+  #oppBar{flex:0 0 60px;}
+  #handWrap{padding:32px 0 4px;}
 }
 
 .card-img-wrap {
@@ -1396,8 +1464,8 @@ button,input{touch-action:manipulation;cursor:pointer;}
       </div>
       <div id="handWrap"><div id="handInner"></div></div>
       <div id="actRow">
-        <button class="abtn abtn-play" id="btnPlay" onclick="playerPlay()" disabled>MAIN</button>
-        <button class="abtn abtn-skip" id="btnSkip" onclick="playerSkip()" disabled>SKIP</button>
+        <button class="abtn abtn-skip" id="btnSkip" onclick="playerSkip()" ontouchstart="this.ontouchend=()=>{playerSkip();}" disabled>⏭ SKIP</button>
+        <button class="abtn abtn-play" id="btnPlay" onclick="playerPlay()" ontouchstart="this.ontouchend=()=>{playerPlay();}" disabled>▶ MAIN</button>
       </div>
       <div id="myplate">—</div>
       <div style="font-size:8px;font-family:'JetBrains Mono',monospace;color:rgba(212,168,67,0.2);text-align:center;margin-top:2px;">drag kartu untuk ubah urutan</div>
@@ -3380,12 +3448,14 @@ function mkCardHTML(c,idx,selectable,selected,dimmed=false){
   const dimStyle=dimmed?'opacity:0.35;filter:grayscale(0.6);':'';
   const fcCls='';
   const click=selectable&&!dimmed?`onclick="toggleCard(${idx})"` :'';
+  // ontouchstart: respons instan di mobile, cegah delay 300ms
+  const touch=selectable&&!dimmed?`ontouchstart="event.preventDefault();toggleCard(${idx})"` :'';
   const zStyle=selected?`style="z-index:${50+idx};${dimStyle}"`:`style="z-index:${idx+1};${dimStyle}"`;
   const imgKey=`${c.val}_${c.suit}`;
   const imgSrc=CARD_IMAGES[imgKey]||'';
   const imgHtml=imgSrc?`<div class="card-img-wrap"><img src="${imgSrc}" alt="${v}${sym}"></div>`:'';
   const hasCls=imgSrc?' has-img':'';
-  return `<div class="card ${col} ${selCls} ${nhCls} ${fcCls}${hasCls}" ${click} ${zStyle}
+  return `<div class="card ${col} ${selCls} ${nhCls} ${fcCls}${hasCls}" ${click} ${touch} ${zStyle}
     draggable="true"
     data-idx="${idx}"
     ondragstart="handleCardDragStart(event,${idx})"
