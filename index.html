@@ -265,9 +265,7 @@ button,input{touch-action:manipulation;cursor:pointer;}
 #timerText{display:none;}
 
 /* Ghost */
-#ghostRow{display:flex;align-items:center;gap:3px;opacity:0;transition:opacity 0.3s;flex-shrink:0;max-height:54px;overflow:hidden;}
-#ghostRow.vis{opacity:0.3;}
-.ghost-lbl{font-size:9px;font-family:'JetBrains Mono',monospace;color:rgba(212,168,67,0.5);margin-right:4px;white-space:nowrap;}
+#ghostRow{display:none!important;}
 
 #gstat{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--neon);text-align:center;min-height:15px;text-shadow:0 0 10px rgba(0,255,136,0.4);flex-shrink:0;}
 
@@ -535,14 +533,6 @@ button,input{touch-action:manipulation;cursor:pointer;}
 
   /* ── Timer ── */
   #timerWrap{height:3px;width:99vw;}
-
-  /* ── Ghost row: lebih compact ── */
-  #ghostRow{max-height:40px;}
-  .ghost-card{width:24px;height:37px;border-radius:4px;padding:1px;}
-  .ghost-card .cv{font-size:7px;}
-  .ghost-card .cs{font-size:6px;}
-  .ghost-card .cc{font-size:11px;}
-  .ghost-lbl{font-size:8px;}
 
   /* ── Status text ── */
   #gstat{font-size:9px;min-height:12px;}
@@ -926,6 +916,182 @@ button,input{touch-action:manipulation;cursor:pointer;}
   transition: box-shadow 0.3s;
 }
 
+/* ══ CHIP SYSTEM ══ */
+/* Chip display di lobby slot */
+.slot-chips{font-size:9px;font-family:'JetBrains Mono',monospace;color:var(--gold2);letter-spacing:1px;margin-top:2px;}
+.slot-chips.gained{color:var(--neon);}
+.slot-chips.lost{color:var(--red);}
+
+/* Chip bar — compact pill, satu baris di samping myplate */
+#chipBar{
+  display:none;
+  align-items:center;gap:8px;
+  font-family:'JetBrains Mono',monospace;
+}
+#chipBar.show{display:flex;}
+.chip-pill{
+  display:flex;align-items:center;gap:5px;
+  background:rgba(0,0,0,0.3);
+  border:1px solid rgba(212,168,67,0.22);
+  border-radius:20px;padding:3px 11px;
+  font-size:11px;white-space:nowrap;
+}
+.chip-pill .cp-ico{font-size:12px;}
+.chip-pill .cp-val{color:var(--gold2);font-weight:700;letter-spacing:0.5px;}
+.chip-pill .cp-sep{color:rgba(212,168,67,0.2);margin:0 2px;}
+.chip-pill .cp-bet{color:rgba(0,255,136,0.6);font-size:10px;}
+.chip-pill .cp-win{color:var(--neon);font-size:10px;}
+
+/* Chip bet modal (sebelum game mulai) */
+#betModal{
+  position:fixed;inset:0;z-index:80;display:none;
+  align-items:center;justify-content:center;
+  background:rgba(0,0,0,0.75);
+}
+#betModal.open{display:flex;}
+.bet-box{
+  background:linear-gradient(150deg,rgba(14,45,30,0.99),rgba(6,13,16,0.99));
+  border:1px solid rgba(212,168,67,0.4);border-radius:18px;
+  padding:28px 32px;width:min(380px,92vw);
+  box-shadow:0 0 60px rgba(0,0,0,0.9),0 0 0 1px rgba(212,168,67,0.08);
+  text-align:center;
+}
+.bet-title{font-family:'Cinzel Decorative',serif;font-size:14px;color:var(--gold2);
+  letter-spacing:3px;margin-bottom:6px;}
+.bet-sub{font-size:10px;color:rgba(212,168,67,0.4);font-family:'JetBrains Mono',monospace;
+  letter-spacing:1px;margin-bottom:20px;}
+.bet-players{display:flex;flex-direction:column;gap:8px;margin-bottom:20px;}
+.bet-player-row{display:flex;align-items:center;justify-content:space-between;gap:8px;
+  background:rgba(0,0,0,0.25);border:1px solid rgba(212,168,67,0.15);
+  border-radius:9px;padding:8px 12px;}
+.bet-pname{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--gold3);flex:1;text-align:left;}
+.bet-pchips{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--gold2);}
+.bet-pchips.low{color:var(--red);}
+.bet-amount-wrap{display:flex;align-items:center;gap:6px;margin-bottom:16px;}
+.bet-btn{width:30px;height:30px;border-radius:6px;border:1px solid rgba(212,168,67,0.3);
+  background:rgba(0,0,0,0.3);color:var(--gold2);font-size:16px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:background 0.15s;flex-shrink:0;}
+.bet-btn:hover{background:rgba(212,168,67,0.15);}
+.bet-amount-display{flex:1;text-align:center;font-family:'Cinzel Decorative',serif;
+  font-size:22px;color:var(--gold2);letter-spacing:2px;}
+.bet-chips-label{font-size:9px;color:rgba(212,168,67,0.35);font-family:'JetBrains Mono',monospace;
+  letter-spacing:2px;margin-bottom:16px;}
+.bet-presets{display:flex;gap:6px;justify-content:center;margin-bottom:18px;}
+.bet-preset{padding:5px 14px;border-radius:7px;border:1px solid rgba(212,168,67,0.2);
+  background:rgba(0,0,0,0.2);color:var(--gold);font-family:'JetBrains Mono',monospace;
+  font-size:11px;cursor:pointer;transition:background 0.12s;}
+.bet-preset:hover{background:rgba(212,168,67,0.1);border-color:rgba(212,168,67,0.4);}
+.bet-preset.active{background:rgba(212,168,67,0.15);border-color:var(--gold);color:var(--gold2);}
+
+/* Rekap chip di end modal */
+.chip-recap{
+  margin:10px 0 4px;padding:10px;
+  background:rgba(0,0,0,0.25);border:1px solid rgba(212,168,67,0.15);border-radius:10px;
+}
+.chip-recap-title{font-size:8px;letter-spacing:3px;color:rgba(212,168,67,0.4);
+  font-family:'JetBrains Mono',monospace;text-align:center;margin-bottom:8px;text-transform:uppercase;}
+.chip-recap-row{display:flex;align-items:center;justify-content:space-between;
+  padding:4px 6px;border-radius:6px;margin-bottom:3px;}
+.chip-recap-row.me{background:rgba(0,255,136,0.06);border:1px solid rgba(0,255,136,0.15);}
+.chip-recap-name{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--gold3);flex:1;}
+.chip-recap-delta{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;}
+.chip-recap-delta.pos{color:var(--neon);}
+.chip-recap-delta.neg{color:var(--red);}
+.chip-recap-total{font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(212,168,67,0.5);}
+
+/* Chip float animation saat menang/kalah */
+.chip-float{
+  position:fixed;z-index:300;pointer-events:none;
+  font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;
+  text-shadow:0 2px 8px rgba(0,0,0,0.8);
+  animation:chipFly 1.8s ease-out forwards;
+}
+@keyframes chipFly{
+  0%  {opacity:0;transform:translateY(0) scale(0.7);}
+  15% {opacity:1;transform:translateY(-10px) scale(1.1);}
+  80% {opacity:1;transform:translateY(-55px) scale(1);}
+  100%{opacity:0;transform:translateY(-80px) scale(0.9);}
+}
+
+/* ══ EMOTE SYSTEM ══ */
+#emoteBtn{
+  position:fixed;right:12px;bottom:140px;z-index:50;
+  width:42px;height:42px;border-radius:50%;border:1px solid rgba(212,168,67,0.35);
+  background:rgba(6,13,16,0.88);color:var(--gold2);font-size:20px;
+  cursor:pointer;display:none;align-items:center;justify-content:center;
+  box-shadow:0 2px 12px rgba(0,0,0,0.6);
+  transition:transform 0.15s,background 0.15s;
+  -webkit-tap-highlight-color:transparent;
+}
+#emoteBtn:hover{background:rgba(14,40,26,0.95);transform:scale(1.1);}
+#emoteBtn.game-open{display:flex;}
+
+#emotePicker{
+  position:fixed;right:10px;bottom:190px;z-index:51;
+  background:rgba(6,13,16,0.97);border:1px solid rgba(212,168,67,0.3);
+  border-radius:14px;padding:10px 8px;
+  display:none;flex-direction:column;gap:4px;
+  box-shadow:0 8px 32px rgba(0,0,0,0.8);
+  min-width:200px;
+}
+#emotePicker.open{display:flex;}
+
+.emote-section-label{
+  font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:2px;
+  color:rgba(212,168,67,0.35);padding:2px 6px;text-transform:uppercase;
+}
+.emote-row{display:flex;gap:4px;flex-wrap:wrap;padding:0 4px;}
+.emote-item{
+  background:rgba(255,255,255,0.04);border:1px solid rgba(212,168,67,0.12);
+  border-radius:8px;padding:5px 8px;cursor:pointer;font-size:18px;
+  transition:background 0.12s,transform 0.1s;flex-shrink:0;
+  -webkit-tap-highlight-color:transparent;
+}
+.emote-item:hover{background:rgba(212,168,67,0.12);transform:scale(1.15);}
+.chat-item{
+  background:rgba(255,255,255,0.04);border:1px solid rgba(212,168,67,0.12);
+  border-radius:8px;padding:5px 10px;cursor:pointer;
+  font-family:'Crimson Pro',serif;font-size:12px;color:var(--gold3);
+  transition:background 0.12s;white-space:nowrap;
+  -webkit-tap-highlight-color:transparent;
+}
+.chat-item:hover{background:rgba(212,168,67,0.1);}
+
+/* Floating emote bubbles that float upward */
+.emote-bubble{
+  position:fixed;z-index:200;
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+  pointer-events:none;
+  animation:emoteFly 3.2s ease-out forwards;
+}
+.emote-bubble .eb-emoji{font-size:30px;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.6));}
+.emote-bubble .eb-name{
+  font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1px;
+  color:var(--gold2);background:rgba(6,13,16,0.85);
+  padding:2px 7px;border-radius:10px;border:1px solid rgba(212,168,67,0.25);
+  white-space:nowrap;
+}
+.emote-bubble .eb-text{
+  font-family:'Crimson Pro',serif;font-size:12px;color:var(--gold3);
+  background:rgba(6,13,16,0.9);padding:4px 10px;border-radius:10px;
+  border:1px solid rgba(212,168,67,0.3);white-space:nowrap;max-width:180px;
+  text-align:center;line-height:1.3;
+}
+@keyframes emoteFly{
+  0%  {opacity:0;transform:translateY(0) scale(0.7);}
+  12% {opacity:1;transform:translateY(-18px) scale(1.08);}
+  80% {opacity:1;transform:translateY(-90px) scale(1);}
+  100%{opacity:0;transform:translateY(-120px) scale(0.9);}
+}
+
+/* Cooldown ring on emote button */
+#emoteCooldownRing{
+  position:absolute;inset:-3px;border-radius:50%;
+  background:conic-gradient(rgba(212,168,67,0.5) 0%,transparent 0%);
+  pointer-events:none;transition:none;
+}
+
 </style>
 </head>
 <body>
@@ -943,7 +1109,8 @@ button,input{touch-action:manipulation;cursor:pointer;}
   <div id="stepA">
     <div class="fl">
       <label>Username</label>
-      <input class="fi" id="uname" placeholder="Nama kamu..." maxlength="20" autocomplete="off">
+      <input class="fi" id="uname" placeholder="Nama kamu..." maxlength="20" autocomplete="off"
+        oninput="localStorage.setItem('trece_name',this.value.trim())">
     </div>
     <div class="divider">pilih mode</div>
     <button class="btn btn-gold" onclick="doCreate()">⚔ BUAT ROOM BARU</button>
@@ -1018,6 +1185,17 @@ button,input{touch-action:manipulation;cursor:pointer;}
     </div>
     <div id="playerArea">
       <div id="comboHint">Pilih kartu untuk dimainkan</div>
+      <!-- Chip bar — compact pill, satu baris dengan myplate -->
+      <div id="chipBar">
+        <div class="chip-pill">
+          <span class="cp-ico">💰</span>
+          <span class="cp-val" id="chipBarVal">1,000</span>
+          <span class="cp-sep">|</span>
+          <span class="cp-bet" id="chipBarBet">100 chip</span>
+          <span class="cp-sep">→</span>
+          <span class="cp-win" id="chipBarWin">+300</span>
+        </div>
+      </div>
       <div id="handWrap"><div id="handInner"></div></div>
       <div id="actRow">
         <button class="abtn abtn-play" id="btnPlay" onclick="playerPlay()" disabled>MAIN</button>
@@ -1032,6 +1210,56 @@ button,input{touch-action:manipulation;cursor:pointer;}
 <div id="endModal"></div>
 <div id="posAnnounce"></div>
 <div id="winCelebration"><div class="win-wrap"><div class="win-text">MENANG!</div><div class="win-sub">KAMU JUARA 🏆</div></div></div>
+
+<!-- BET MODAL -->
+<div id="betModal">
+  <div class="bet-box">
+    <div class="bet-title">⚔ TARUHAN GAME</div>
+    <div class="bet-sub" id="betSubLabel">Pilih jumlah taruhan per pemain</div>
+    <div class="bet-players" id="betPlayerList"></div>
+    <div class="bet-amount-wrap">
+      <button class="bet-btn" onclick="adjustBet(-50)">−</button>
+      <div class="bet-amount-display" id="betAmountDisplay">100</div>
+      <button class="bet-btn" onclick="adjustBet(+50)">+</button>
+    </div>
+    <div class="bet-chips-label">CHIP PER PEMAIN</div>
+    <div class="bet-presets">
+      <span class="bet-preset" onclick="setBetPreset(50)">50</span>
+      <span class="bet-preset active" onclick="setBetPreset(100)">100</span>
+      <span class="bet-preset" onclick="setBetPreset(200)">200</span>
+      <span class="bet-preset" onclick="setBetPreset(500)">500</span>
+    </div>
+    <button class="btn btn-gold" style="font-family:'Cinzel Decorative';font-size:12px;margin-bottom:0;" onclick="confirmBet()">MULAI GAME →</button>
+  </div>
+</div>
+
+<!-- EMOTE BUTTON & PICKER -->
+<button id="emoteBtn" onclick="toggleEmotePicker()" title="Emote / Chat">
+  <div id="emoteCooldownRing"></div>
+  😄
+</button>
+<div id="emotePicker">
+  <div class="emote-section-label">Reaksi</div>
+  <div class="emote-row">
+    <span class="emote-item" onclick="sendEmote('😂')">😂</span>
+    <span class="emote-item" onclick="sendEmote('🔥')">🔥</span>
+    <span class="emote-item" onclick="sendEmote('💀')">💀</span>
+    <span class="emote-item" onclick="sendEmote('👏')">👏</span>
+    <span class="emote-item" onclick="sendEmote('😤')">😤</span>
+    <span class="emote-item" onclick="sendEmote('🤯')">🤯</span>
+    <span class="emote-item" onclick="sendEmote('😴')">😴</span>
+    <span class="emote-item" onclick="sendEmote('🫡')">🫡</span>
+  </div>
+  <div class="emote-section-label" style="margin-top:6px;">Chat Cepat</div>
+  <div style="display:flex;flex-direction:column;gap:3px;padding:0 4px;">
+    <span class="chat-item" onclick="sendEmote(null,'GG! Main bagus 👍')">GG! Main bagus 👍</span>
+    <span class="chat-item" onclick="sendEmote(null,'Nasib... 😅')">Nasib... 😅</span>
+    <span class="chat-item" onclick="sendEmote(null,'Siap main lagi! ⚔')">Siap main lagi! ⚔</span>
+    <span class="chat-item" onclick="sendEmote(null,'Lama banget... ⏳')">Lama banget... ⏳</span>
+    <span class="chat-item" onclick="sendEmote(null,'Kartu jelek nih 😭')">Kartu jelek nih 😭</span>
+    <span class="chat-item" onclick="sendEmote(null,'BOMB!! 💣')">BOMB!! 💣</span>
+  </div>
+</div>
 
 <script>
 'use strict';
@@ -1792,26 +2020,19 @@ function initAbly(key,cb){
   }catch(e){setA('⚠ Error: '+e.message,true);}
 }
 
-// ══ PRESENCE: enter & subscribe (called after channel is set up) ══
+// ══ PRESENCE: masuk & pantau keluar (dipanggil setelah channel siap) ══
 function setupPresence(){
   if(!chan)return;
-  // Enter presence so others can detect when we disconnect
   chan.presence.enter({id:myId,name:myName}).catch(()=>{});
-
-  // Only the host tracks presence-leave events
   chan.presence.subscribe('leave',(member)=>{
     if(!isHost)return;
     const leftId=member.clientId;
     if(!leftId||leftId===myId)return;
-    // Check if this person is a real player in our lobby
     const inLobby=lobbyPlayers.find(p=>p.id===leftId&&!p.isBot);
     if(!inLobby)return;
-
-    // ── CASE 1: Game is running — replace with a bot mid-game ──
     if(G&&G.phase!=='end'){
       handlePlayerDisconnectInGame(leftId);
-    } else {
-      // ── CASE 2: In lobby (waiting or post-game) — remove from room ──
+    }else{
       readyPlayers.delete(leftId);
       const rp=lobbyPlayers.filter(p=>p.id!==leftId&&!p.isBot);
       rebuildLobby(rp);
@@ -1823,55 +2044,32 @@ function setupPresence(){
   });
 }
 
-// ══ Handle a real player disconnecting mid-game (host only) ══
+// ══ Handle pemain disconnect saat game berjalan (host only) ══
 function handlePlayerDisconnectInGame(leftId){
   if(!G||!isHost)return;
   const pidx=G.players.findIndex(p=>p.id===leftId);
   if(pidx<0)return;
-
   const leftName=G.players[pidx].name;
-
-  // Pick a bot name not already used
   const usedNames=G.players.map(p=>p.name);
   const botName=BOT_NAMES.find(n=>!usedNames.includes(n))||'Bot';
-
-  // Replace the player entry with a bot in both G.players and lobbyPlayers
   G.players[pidx]={id:'bot_dc_'+pidx,name:botName,isBot:true};
-
-  // Also update lobbyPlayers so the lobby reflects the change
   const lpIdx=lobbyPlayers.findIndex(p=>p.id===leftId);
   if(lpIdx>=0)lobbyPlayers[lpIdx]={id:'bot_dc_'+pidx,name:botName,isBot:true};
-
-  // Remove from ready set
   readyPlayers.delete(leftId);
-
   showNotif(`⚠ ${leftName} disconnect — digantikan bot ${botName}`);
   setGStat(`${leftName} terputus — bot mengambil alih`);
-
-  // If it was their turn, advance immediately
   if(G.current===pidx&&G.phase==='play'){
-    // Skip their turn if there's a current combo, else bot will play
     clearTimer();
-    setTimeout(()=>{
-      if(G&&G.phase!=='end'&&G.current===pidx){
-        doBotTurn(pidx);
-      }
-    },800);
-  } else if(G.current===pidx&&G.phase==='bid'){
-    // Auto-skip bid
+    setTimeout(()=>{if(G&&G.phase!=='end'&&G.current===pidx)doBotTurn(pidx);},800);
+  }else if(G.current===pidx&&G.phase==='bid'){
     clearTimer();
-    setTimeout(()=>{
-      if(G&&G.phase==='bid'&&!G.bidDone[pidx]){
-        applyBid(pidx,null);
-      }
-    },500);
+    setTimeout(()=>{if(G&&G.phase==='bid'&&!G.bidDone[pidx])applyBid(pidx,null);},500);
   }
-
   bcastState();
   renderGame();
 }
 
-// Fill lobbyPlayers to always have exactly 4 entries (real + bots)
+
 function rebuildLobby(realPlayers){
   lobbyPlayers=realPlayers.slice(); // copy real players
   const botCount=4-lobbyPlayers.length;
@@ -1889,7 +2087,7 @@ function doCreate(){
   fetchAblyKey(key=>{
     initAbly(key,()=>{
       chan=ably.channels.get('trece-'+roomCode);
-      chan.subscribe(handleMsg);
+      chan.subscribe(msg=>window.handleMsg(msg));
       setupPresence();
       rebuildLobby([{id:myId,name:myName,isBot:false}]);
       broadcastLobby();
@@ -1907,7 +2105,7 @@ function doJoin(){
   fetchAblyKey(key=>{
     initAbly(key,()=>{
       chan=ably.channels.get('trece-'+roomCode);
-      chan.subscribe(handleMsg);
+      chan.subscribe(msg=>window.handleMsg(msg));
       setupPresence();
       setTimeout(()=>{
         send({type:'join_req',id:myId,name:myName});
@@ -1969,12 +2167,17 @@ function renderSlots(){
   document.getElementById('pslots').innerHTML=lobbyPlayers.map((p,i)=>{
     const isReadyP=p.isBot?true:readyPlayers.has(p.id);
     const readyCls=(gameHasStarted&&isReadyP)?' ready':'';
+    const chipData = chipSession[p.id];
+    const chipHtml = (chipData && !p.isBot)
+      ? `<div class="slot-chips">💰 ${chipData.chips.toLocaleString()}</div>`
+      : '';
     return `<div class="pslot${!p.isBot?' filled':''}${readyCls}">
       <div class="slot-av">${p.isBot?'🤖':p.name[0].toUpperCase()}</div>
       <div style="flex:1;min-width:0;">
         <div class="slot-nm${p.isBot?' slot-bot':''}">${p.name}</div>
         ${p.id===myId?'<div class="slot-you">KAMU</div>':''}
         ${p.isBot?'<div style="font-size:8px;color:rgba(212,168,67,0.25)">bot</div>':''}
+        ${chipHtml}
       </div>
       ${gameHasStarted?`<div class="slot-ready-badge">${isReadyP?'✓ SIAP':''}</div>`:''}
     </div>`;
@@ -2050,7 +2253,49 @@ function handleMsg(msg){
         gameHasStarted=true;
         readyPlayers=new Set(d.readyIds||[]);
         rebuildLobby(d.realPlayers||[]);
+        if(d.chipSession) chipSession=d.chipSession;
         returnToLobby();
+      }
+      break;
+    }
+    case 'bet_set': {
+      // Non-host receives the bet amount set by host
+      if(!isHost){
+        currentBet = d.bet;
+      }
+      break;
+    }
+    case 'chip_result': {
+      // Non-host: receive resolved chip session from host
+      if(!isHost){
+        chipSession = d.chipSession;
+        // Show float animation for local player
+        if(G && d.finished){
+          const myPidx = d.finished.indexOf(G.mySlot);
+          if(myPidx >= 0 && currentBet > 0){
+            const myDelta = CHIP_RANK_DELTA[myPidx] * currentBet;
+            setTimeout(()=>showChipFloat(myDelta), 400);
+            updateChipHud();
+          }
+          // Rebuild end modal with chip recap
+          setTimeout(()=>{
+            const deltas = d.deltas || {};
+            const chipRecapHtml = buildChipRecap(d.finished, G.players, deltas, G.mySlot);
+            const modal = document.querySelector('#endModal .modal');
+            if(modal){
+              // Inject recap after rlist
+              const existing = modal.querySelector('.chip-recap');
+              if(!existing){
+                const rlist = modal.querySelector('.rlist');
+                if(rlist){
+                  const div = document.createElement('div');
+                  div.innerHTML = chipRecapHtml;
+                  rlist.after(div.firstChild);
+                }
+              }
+            }
+          }, 600);
+        }
       }
       break;
     }
@@ -2193,40 +2438,16 @@ function returnToLobby(){
 }
 
 function hostStart(){
-  // Reset ready state for next round
-  readyPlayers=new Set();
-  myReady=false;
-  gameHasStarted=true;
-
-  // Shuffle deck and deal 13 to each of 4 players
-  // Guard: reshuffle if any single player holds all 4 rank-3 cards (unfair)
-  let deck, hands;
-  let attempts=0;
-  do {
-    deck=shuffle(mkDeck());
-    hands=[];
-    for(let i=0;i<4;i++)hands.push(deck.slice(i*13,(i+1)*13));
-    attempts++;
-    // Check: no player should have more than 2 rank-3 cards (fair spread)
-    const maxThrees=Math.max(...hands.map(h=>h.filter(c=>c.val===3).length));
-    if(maxThrees<=2||attempts>=10)break;
-  }while(true);
-
-  const msg={
-    type:'game_start',
-    players:lobbyPlayers,
-    handsData:hands.map((h,i)=>({idx:i,cards:h}))
-  };
-  send(msg);
-
-  beginGame({
-    players:lobbyPlayers,
-    hands,
-    mySlot:lobbyPlayers.findIndex(p=>p.id===myId)
-  });
+  // Inisialisasi chip session untuk semua pemain di lobby
+  initChipSession(lobbyPlayers);
+  // Tampilkan modal taruhan — game dimulai setelah host konfirmasi
+  showBetModal();
 }
 
 function receiveStart(d){
+  // Sync chip data from host
+  if(d.chipSession) chipSession = d.chipSession;
+  if(d.currentBet !== undefined) currentBet = d.currentBet;
   const mySlot=d.players.findIndex(p=>p.id===myId);
   beginGame({
     players:d.players,
@@ -2265,6 +2486,7 @@ function beginGame({players,hands,mySlot}){
   setTimeout(()=>lobby.classList.add('gone'),500);
   document.getElementById('game').classList.add('show');
   if(!window._bgStarted){window._bgStarted=true;startBgCanvas();}
+  updateChipHud();
   // Run deal animation FIRST, then start the game
   renderGame();
   runDealAnimation({players, hands, mySlot}, () => {
@@ -2755,7 +2977,6 @@ function bcastState(){
   if(!isHost)return;
   const stateWithStack=JSON.parse(JSON.stringify(G));
   stateWithStack._feltStack=feltStackedCards;
-  // Also embed lobby info so non-host clients can update their lobby view
   stateWithStack._lobbyPlayers=lobbyPlayers;
   send({type:'game_state',state:stateWithStack});
 }
@@ -2770,7 +2991,7 @@ function receiveState(state){
     feltStackedCards=state._feltStack;
     delete state._feltStack;
   }
-  // Sync lobby players from host (handles bot replacements for disconnected players)
+  // Sync lobby players (bot replacements on disconnect)
   if(state._lobbyPlayers!==undefined){
     lobbyPlayers=state._lobbyPlayers;
     delete state._lobbyPlayers;
@@ -2908,7 +3129,6 @@ function playerSkip(){
 function hostReceiveAction(d){
   if(!isHost)return;
   const pidx=G.players.findIndex(p=>p.id===d.pid);
-  // Ignore if player not found or has been replaced by a bot
   if(pidx<0||G.players[pidx].isBot)return;
   if(pidx!==G.current)return;
   if(G.phase==='bid'){
@@ -3229,12 +3449,31 @@ function showEndModal(){
   const medals=['🥇','🥈','🥉','💀'];
   const clrs=['#d4a843','#aaaaaa','#cd7f32','#8b1a1a'];
   const ms=G.mySlot;
+
+  // ── Resolve chip bets (host only, once) ──
+  let deltas = {};
+  if(isHost && currentBet > 0 && G.finished.length === 4){
+    deltas = resolveChips(G.finished, G.players, currentBet);
+    // Broadcast updated chip session to all
+    send({type:'chip_result', deltas, chipSession, finished: G.finished});
+  }
+
+  // Show chip float animation for local player
+  const myPidx = G.finished.indexOf(ms);
+  if(currentBet > 0 && myPidx >= 0){
+    const myDelta = CHIP_RANK_DELTA[myPidx] * currentBet;
+    setTimeout(()=>showChipFloat(myDelta), 400);
+    updateChipHud();
+  }
+
   const items=G.finished.map((pidx,rank)=>`
     <li class="ritem" style="animation-delay:${rank*0.08}s">
       <div class="rcircle" style="background:${clrs[rank]}18;color:${clrs[rank]};border:1px solid ${clrs[rank]}44">${medals[rank]}</div>
       <span style="color:${pidx===ms?'var(--neon)':'var(--gold3)'};flex:1">${G.players[pidx].name}${pidx===ms?' (Kamu)':''}</span>
       <span style="font-size:9px;font-family:'JetBrains Mono';color:rgba(212,168,67,0.4)">${rank===0?'MENANG':rank===3?'KALAH':'#'+(rank+1)}</span>
     </li>`).join('');
+
+  const chipRecapHtml = buildChipRecap(G.finished, G.players, deltas, ms);
 
   // Host broadcasts play_again signal; non-host just returns
   const mainLagiAction = isHost
@@ -3244,6 +3483,7 @@ function showEndModal(){
   document.getElementById('endModal').innerHTML=`<div class="overlay"><div class="modal">
     <div class="modal-t">${G.finished[0]===ms?'🎉 MENANG!':'GAME SELESAI'}</div>
     <ul class="rlist">${items}</ul>
+    ${chipRecapHtml}
     <button class="btn btn-gold" style="font-family:'Cinzel Decorative';font-size:12px;" onclick="${mainLagiAction}">MAIN LAGI</button>
   </div></div>`;
 }
@@ -3253,9 +3493,9 @@ function hostInitPlayAgain(){
   readyPlayers=new Set();
   myReady=false;
   gameHasStarted=true;
-  // Tell all players to return to lobby
+  // Tell all players to return to lobby (with updated chip session)
   const realPlayers=lobbyPlayers.filter(p=>!p.isBot);
-  send({type:'play_again',realPlayers,readyIds:[]});
+  send({type:'play_again',realPlayers,readyIds:[],chipSession});
   returnToLobby();
 }
 
@@ -3375,6 +3615,326 @@ function handleCardDragEnd(e){
 })();
 
 document.getElementById('joinCode').addEventListener('input',function(){this.value=this.value.toUpperCase();});
+
+// ══ LOAD SAVED USERNAME ══
+(function(){
+  try{
+    const saved=localStorage.getItem('trece_name');
+    if(saved&&saved.length>=2){
+      document.getElementById('uname').value=saved;
+    }
+  }catch(e){}
+})();
+
+// ══ CHIP SYSTEM ══
+const CHIP_START   = 1000;  // chip awal per pemain per sesi
+const CHIP_MIN_BET = 50;
+const CHIP_MAX_BET = 500;
+// Multiplier kemenangan per posisi: [1st, 2nd, 3rd, 4th]
+// 1st: dapat chip dari 4 pemain (termasuk diri sendiri) → net +3x
+// 2nd: balik modal (tidak kehilangan/menang)
+// 3rd: bayar 1x bet
+// 4th: bayar 2x bet
+const CHIP_RANK_DELTA = [3, 0, -1, -2]; // dalam satuan bet
+
+// State chip sesi (keyed by player id)
+let chipSession = {}; // {id: {name, chips, isBot}}
+let currentBet  = 100;
+let _betPending = false; // host sedang menunggu konfirmasi bet
+
+// Inisialisasi chip sesi (dipanggil host saat room pertama kali dibuat)
+function initChipSession(players){
+  // Preserve existing chips untuk pemain yang sudah ada
+  const next = {};
+  players.forEach(p=>{
+    if(chipSession[p.id]){
+      next[p.id] = chipSession[p.id];
+      next[p.id].name = p.name; // update nama
+    } else {
+      next[p.id] = {name: p.name, chips: CHIP_START, isBot: p.isBot};
+    }
+  });
+  chipSession = next;
+}
+
+// Hitung delta chip dari hasil game
+function resolveChips(finished, players, bet){
+  // finished: array of pidx in finish order [1st, 2nd, 3rd, 4th]
+  const deltas = {}; // pidx → delta
+  finished.forEach((pidx, rank)=>{
+    const delta = CHIP_RANK_DELTA[rank] * bet;
+    deltas[pidx] = delta;
+    const p = players[pidx];
+    if(p && chipSession[p.id]){
+      chipSession[p.id].chips = Math.max(0, chipSession[p.id].chips + delta);
+    }
+  });
+  return deltas;
+}
+
+// Render chip di lobby slot
+function renderSlotChips(pid, el){
+  if(!chipSession[pid]) return;
+  const c = chipSession[pid].chips;
+  const span = document.createElement('div');
+  span.className = 'slot-chips';
+  span.textContent = `💰 ${c.toLocaleString()}`;
+  el.appendChild(span);
+}
+
+// Update chip bar di playerArea
+function updateChipHud(){
+  const bar = document.getElementById('chipBar');
+  if(!G || !myId){ if(bar) bar.classList.remove('show'); return; }
+  const me = G.players[G.mySlot];
+  if(!me || !chipSession[me.id]){ if(bar) bar.classList.remove('show'); return; }
+
+  bar.classList.add('show');
+  const chips = chipSession[me.id].chips;
+  document.getElementById('chipBarVal').textContent = chips.toLocaleString();
+
+  if(currentBet){
+    document.getElementById('chipBarBet').textContent = currentBet + ' chip';
+    const winDelta = CHIP_RANK_DELTA[0] * currentBet;
+    document.getElementById('chipBarWin').textContent = '+' + winDelta;
+  } else {
+    document.getElementById('chipBarBet').textContent = '—';
+    document.getElementById('chipBarWin').textContent = '—';
+  }
+}
+
+// Tampilkan modal taruhan (host only, sebelum game dimulai)
+function showBetModal(){
+  // Sync chip session untuk semua real players
+  const realPlayers = lobbyPlayers.filter(p=>!p.isBot);
+  initChipSession(lobbyPlayers);
+
+  // Render daftar pemain + chip mereka
+  const list = document.getElementById('betPlayerList');
+  list.innerHTML = realPlayers.map(p=>{
+    const c = chipSession[p.id]?.chips ?? CHIP_START;
+    const low = c < currentBet;
+    return `<div class="bet-player-row">
+      <span class="bet-pname">${p.name}${p.id===myId?' (Kamu)':''}</span>
+      <span class="bet-pchips${low?' low':''}">💰 ${c.toLocaleString()}</span>
+    </div>`;
+  }).join('');
+
+  setBetDisplay(currentBet);
+  document.getElementById('betModal').classList.add('open');
+}
+
+function adjustBet(delta){
+  const newVal = Math.min(CHIP_MAX_BET, Math.max(CHIP_MIN_BET,
+    Math.round((currentBet + delta) / 50) * 50));
+  setBetDisplay(newVal);
+}
+
+function setBetPreset(val){
+  setBetDisplay(val);
+}
+
+function setBetDisplay(val){
+  currentBet = val;
+  document.getElementById('betAmountDisplay').textContent = val;
+  // update preset highlights
+  document.querySelectorAll('.bet-preset').forEach(el=>{
+    el.classList.toggle('active', parseInt(el.textContent) === val);
+  });
+  // warn if any player can't afford it
+  const realPlayers = lobbyPlayers.filter(p=>!p.isBot);
+  const anyBroke = realPlayers.some(p=> (chipSession[p.id]?.chips??CHIP_START) < val);
+  document.getElementById('betSubLabel').textContent = anyBroke
+    ? '⚠ Ada pemain yang chipnya kurang!'
+    : 'Pilih jumlah taruhan per pemain';
+}
+
+function confirmBet(){
+  document.getElementById('betModal').classList.remove('open');
+  // Broadcast bet amount then start game
+  send({type:'bet_set', bet: currentBet});
+  _doBetAndStart();
+}
+
+function _doBetAndStart(){
+  // Host: proceed to deal
+  readyPlayers = new Set();
+  myReady = false;
+  gameHasStarted = true;
+
+  let deck, hands;
+  let attempts = 0;
+  do {
+    deck = shuffle(mkDeck());
+    hands = [];
+    for(let i=0;i<4;i++) hands.push(deck.slice(i*13,(i+1)*13));
+    attempts++;
+    const maxThrees = Math.max(...hands.map(h=>h.filter(c=>c.val===3).length));
+    if(maxThrees<=2||attempts>=10) break;
+  } while(true);
+
+  const msg = {
+    type: 'game_start',
+    players: lobbyPlayers,
+    handsData: hands.map((h,i)=>({idx:i, cards:h})),
+    chipSession,
+    currentBet
+  };
+  send(msg);
+
+  beginGame({players:lobbyPlayers, hands, mySlot:lobbyPlayers.findIndex(p=>p.id===myId)});
+}
+
+// Tampilkan chip float animation
+function showChipFloat(delta, x, y){
+  const el = document.createElement('div');
+  el.className = 'chip-float';
+  el.style.left = (x ?? window.innerWidth/2 - 30) + 'px';
+  el.style.top  = (y ?? window.innerHeight * 0.55) + 'px';
+  el.style.color = delta > 0 ? 'var(--neon)' : 'var(--red)';
+  el.textContent = (delta>0?'+':'')+delta.toLocaleString()+' 💰';
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(), 2000);
+}
+
+// Tampilkan rekap chip di end modal
+function buildChipRecap(finished, players, deltas, mySlot){
+  if(!currentBet) return '';
+  const rows = finished.map((pidx,rank)=>{
+    const p = players[pidx];
+    const delta = deltas[pidx] ?? 0;
+    const total = chipSession[p.id]?.chips ?? CHIP_START;
+    const isMe = pidx === mySlot;
+    const sign = delta>0?'+':'';
+    const cls  = delta>0?'pos':delta<0?'neg':'';
+    return `<div class="chip-recap-row${isMe?' me':''}">
+      <span class="chip-recap-name">${p.name}${isMe?' ★':''}</span>
+      <span class="chip-recap-delta ${cls}">${sign}${delta}</span>
+      <span class="chip-recap-total">= ${total.toLocaleString()}</span>
+    </div>`;
+  }).join('');
+  return `<div class="chip-recap">
+    <div class="chip-recap-title">💰 Taruhan ${currentBet} chip — Rekap Sesi</div>
+    ${rows}
+  </div>`;
+}
+
+
+const EMOTE_COOLDOWN_MS = 4000;
+let _emoteCooldown = false;
+let _emotePickerOpen = false;
+let _emoteCooldownTimer = null;
+
+function toggleEmotePicker(){
+  _emotePickerOpen = !_emotePickerOpen;
+  document.getElementById('emotePicker').classList.toggle('open', _emotePickerOpen);
+}
+
+// Close picker when clicking outside
+document.addEventListener('click', e => {
+  if(_emotePickerOpen &&
+     !e.target.closest('#emotePicker') &&
+     !e.target.closest('#emoteBtn')){
+    _emotePickerOpen = false;
+    document.getElementById('emotePicker').classList.remove('open');
+  }
+});
+
+function sendEmote(emoji, text){
+  if(_emoteCooldown) return;
+  _emotePickerOpen = false;
+  document.getElementById('emotePicker').classList.remove('open');
+
+  const payload = { type:'emote', id:myId, name:myName, emoji, text: text||null };
+  // Show locally immediately
+  showEmoteBubble(myName, emoji, text, true);
+  // Broadcast to others
+  if(chan) chan.publish('m', JSON.stringify(payload));
+
+  // Cooldown
+  _emoteCooldown = true;
+  startEmoteCooldownRing(EMOTE_COOLDOWN_MS);
+  _emoteCooldownTimer = setTimeout(()=>{ _emoteCooldown=false; }, EMOTE_COOLDOWN_MS);
+}
+
+function startEmoteCooldownRing(ms){
+  const ring = document.getElementById('emoteCooldownRing');
+  const btn = document.getElementById('emoteBtn');
+  btn.style.opacity = '0.5';
+  let start = null;
+  function frame(ts){
+    if(!start) start=ts;
+    const pct = Math.min(1, (ts-start)/ms);
+    ring.style.background = `conic-gradient(rgba(212,168,67,0.5) ${pct*360}deg, transparent ${pct*360}deg)`;
+    if(pct < 1) requestAnimationFrame(frame);
+    else { ring.style.background='none'; btn.style.opacity='1'; }
+  }
+  requestAnimationFrame(frame);
+}
+
+function showEmoteBubble(name, emoji, text, isMe){
+  const el = document.createElement('div');
+  el.className = 'emote-bubble';
+
+  // Position: own emotes appear bottom-center, others appear at random top position
+  if(isMe){
+    el.style.left = '50%';
+    el.style.transform = 'translateX(-50%)';
+    el.style.bottom = '160px';
+  } else {
+    // Random horizontal spread in upper area
+    const xPct = 10 + Math.random() * 70;
+    el.style.left = xPct + '%';
+    el.style.top = (80 + Math.random()*120) + 'px';
+  }
+
+  const nameEl = `<div class="eb-name">${isMe ? 'Kamu' : name}</div>`;
+  const emojiEl = emoji ? `<div class="eb-emoji">${emoji}</div>` : '';
+  const textEl  = text  ? `<div class="eb-text">${text}</div>` : '';
+  el.innerHTML = nameEl + emojiEl + textEl;
+
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(), 3400);
+}
+
+// Handle incoming emote messages (already routed through handleMsg)
+// We patch handleMsg via the switch — add 'emote' case:
+const _origHandleMsg = handleMsg;
+// Override: we need to add emote handling inside handleMsg's switch
+// Since handleMsg is defined above, we wrap it:
+(function patchHandleMsg(){
+  const orig = handleMsg;
+  window.handleMsg = function(msg){
+    let d;
+    try{ d = JSON.parse(msg.data); }catch{ return; }
+    if(d.type === 'emote'){
+      // Only show if it's from someone else (we already showed ours locally)
+      if(d.id !== myId){
+        showEmoteBubble(d.name, d.emoji||null, d.text||null, false);
+      }
+      return;
+    }
+    orig(msg);
+  };
+  // Re-subscribe with new handler after channel is set up
+  // (channel subscription happens in doCreate/doJoin — we store ref)
+})();
+
+// Show/hide emote button with game visibility
+const _origBeginGame = beginGame;
+window.beginGame = function(opts){
+  _origBeginGame(opts);
+  document.getElementById('emoteBtn').classList.add('game-open');
+};
+const _origReturnToLobby = returnToLobby;
+window.returnToLobby = function(){
+  _origReturnToLobby();
+  document.getElementById('emoteBtn').classList.remove('game-open');
+  document.getElementById('emotePicker').classList.remove('open');
+  const bar = document.getElementById('chipBar');
+  if(bar) bar.classList.remove('show');
+  renderSlots();
+};
 </script>
 </body>
 </html>
