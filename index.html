@@ -203,6 +203,167 @@ const SFX=(()=>{
     timerTick(){play(ac=>{const m=masterBus(ac,0.22);osc(ac,580,'square',0.038,0.35,m);});}
   };
 })();
+
+// ══ POKER INTENSE BACKSOUND ══
+// Backsound loop menegangkan tapi halus saat ada Poker (angka 2) di meja
+const PokerIntenseBGM = (()=>{
+  let ctx2 = null;
+  let gainNode = null;
+  let nodes = [];
+  let running = false;
+  let _fadeTimer = null;
+
+  function getCtx(){
+    if(!ctx2) ctx2 = new(window.AudioContext||window.webkitAudioContext)();
+    if(ctx2.state==='suspended') ctx2.resume();
+    return ctx2;
+  }
+
+  function start(){
+    if(running) return;
+    running = true;
+    if(_fadeTimer){ clearTimeout(_fadeTimer); _fadeTimer=null; }
+
+    const ac = getCtx();
+    const masterG = ac.createGain();
+    masterG.gain.setValueAtTime(0, ac.currentTime);
+    masterG.gain.linearRampToValueAtTime(0.20, ac.currentTime + 1.2); // versi pertama 0.28, dikecilkan sedikit
+    masterG.connect(ac.destination);
+    gainNode = masterG;
+
+    const comp = ac.createDynamicsCompressor();
+    comp.threshold.value=-18; comp.knee.value=6; comp.ratio.value=4;
+    comp.attack.value=0.003; comp.release.value=0.12;
+    comp.connect(masterG);
+
+    // 1) Bass drone — sawtooth mendebarkan
+    const bass = ac.createOscillator();
+    const bassG = ac.createGain();
+    bass.type = 'sawtooth';
+    bass.frequency.setValueAtTime(55, ac.currentTime);
+    const lfo = ac.createOscillator();
+    const lfoG = ac.createGain();
+    lfo.frequency.value = 0.22;
+    lfoG.gain.value = 3.5;
+    lfo.connect(lfoG); lfoG.connect(bass.frequency);
+    lfo.start();
+    bassG.gain.value = 0.55;
+    bass.connect(bassG); bassG.connect(comp);
+    bass.start();
+
+    // 2) Mid distorted pad — gelap
+    const pad = ac.createOscillator();
+    const padG = ac.createGain();
+    pad.type = 'square';
+    pad.frequency.value = 110;
+    padG.gain.value = 0.12;
+    const padLP = ac.createBiquadFilter();
+    padLP.type = 'lowpass'; padLP.frequency.value = 320;
+    pad.connect(padLP); padLP.connect(padG); padG.connect(comp);
+    pad.start();
+
+    // 3) Heartbeat — thump-thump
+    let beatInterval = null;
+    const beatBuf = ac.createBuffer(1, Math.floor(ac.sampleRate*0.08), ac.sampleRate);
+    const bd = beatBuf.getChannelData(0);
+    for(let i=0;i<bd.length;i++){
+      const env = Math.pow(1-i/bd.length, 3);
+      bd[i] = (Math.random()*2-1)*env;
+    }
+    function playBeat(){
+      if(!running) return;
+      try{
+        const src = ac.createBufferSource();
+        src.buffer = beatBuf;
+        const g = ac.createGain();
+        const lp = ac.createBiquadFilter();
+        lp.type='lowpass'; lp.frequency.value=180;
+        g.gain.setValueAtTime(0.7, ac.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime+0.08);
+        src.connect(lp); lp.connect(g); g.connect(comp);
+        src.start();
+      }catch(e){}
+    }
+    playBeat();
+    let beatPhase = 0;
+    beatInterval = setInterval(()=>{
+      if(!running){ clearInterval(beatInterval); return; }
+      beatPhase++;
+      if(beatPhase%2===0) playBeat();
+      else setTimeout(playBeat, 220);
+    }, 900);
+
+    // 4) High tension string tremolo
+    const str = ac.createOscillator();
+    const strG = ac.createGain();
+    str.type = 'triangle';
+    str.frequency.value = 220;
+    const trem = ac.createOscillator();
+    const tremG = ac.createGain();
+    trem.frequency.value = 7;
+    tremG.gain.value = 0.08;
+    trem.connect(tremG); tremG.connect(strG.gain);
+    strG.gain.value = 0.09;
+    trem.start();
+    const strLP = ac.createBiquadFilter();
+    strLP.type = 'lowpass'; strLP.frequency.value = 800;
+    str.connect(strLP); strLP.connect(strG); strG.connect(comp);
+    str.start();
+
+    nodes = [bass, lfo, pad, str, trem, beatInterval, masterG, comp];
+  }
+
+  function stop(){
+    if(!running) return;
+    running = false;
+    if(gainNode){
+      try{
+        const ac2 = getCtx();
+        gainNode.gain.setValueAtTime(gainNode.gain.value, ac2.currentTime);
+        gainNode.gain.linearRampToValueAtTime(0, ac2.currentTime + 1.5);
+      }catch(e){}
+    }
+    _fadeTimer = setTimeout(()=>{
+      nodes.forEach(n=>{
+        try{
+          if(typeof n === 'number') clearInterval(n);
+          else if(n && n.stop) n.stop();
+          else if(n && n.disconnect) n.disconnect();
+        }catch(e){}
+      });
+      nodes = [];
+      gainNode = null;
+    }, 1600);
+  }
+
+  return { start, stop };
+})();
+
+// ══ POKER INTENSE UI ══
+let _pokerIntenseActive = false;
+
+function activatePokerIntense(){
+  if(_pokerIntenseActive) return;
+  _pokerIntenseActive = true;
+  document.getElementById('pokerIntenseOverlay').classList.add('active');
+  document.getElementById('pokerIntenseScanlines').classList.add('active');
+  document.getElementById('pokerWarnBanner').classList.add('active');
+  document.getElementById('felt').classList.add('poker-intense');
+  document.getElementById('gameWrap').classList.add('poker-shake-loop');
+  PokerIntenseBGM.start();
+}
+
+function deactivatePokerIntense(){
+  if(!_pokerIntenseActive) return;
+  _pokerIntenseActive = false;
+  document.getElementById('pokerIntenseOverlay').classList.remove('active');
+  document.getElementById('pokerIntenseScanlines').classList.remove('active');
+  document.getElementById('pokerWarnBanner').classList.remove('active');
+  document.getElementById('felt').classList.remove('poker-intense');
+  document.getElementById('gameWrap').classList.remove('poker-shake-loop');
+  PokerIntenseBGM.stop();
+}
+
 </script>
 
 <style>
@@ -1063,6 +1224,90 @@ button,input{touch-action:manipulation;cursor:pointer;}
   pointer-events:none;transition:none;
 }
 
+/* ══ POKER INTENSE MODE ══ */
+#pokerIntenseOverlay{
+  position:fixed;inset:0;pointer-events:none;z-index:199;
+  background:radial-gradient(ellipse at center, transparent 45%, rgba(150,0,0,0.12) 72%, rgba(100,0,0,0.38) 100%);
+  opacity:0;
+  transition:opacity 1.2s ease;
+}
+#pokerIntenseOverlay.active{
+  opacity:1;
+  animation:intenseVignettePulse 2.4s ease-in-out infinite;
+}
+@keyframes intenseVignettePulse{
+  0%,100%{background:radial-gradient(ellipse at center,transparent 45%,rgba(150,0,0,0.12) 72%,rgba(100,0,0,0.38) 100%);}
+  50%{background:radial-gradient(ellipse at center,transparent 40%,rgba(185,0,0,0.20) 68%,rgba(130,0,0,0.50) 100%);}
+}
+
+/* Scanlines — tipis, hampir tak terlihat tapi terasa */
+#pokerIntenseScanlines{
+  position:fixed;inset:0;pointer-events:none;z-index:198;
+  opacity:0;
+  transition:opacity 1.2s ease;
+  background:repeating-linear-gradient(
+    0deg,
+    transparent,transparent 5px,
+    rgba(0,0,0,0.04) 5px,rgba(0,0,0,0.04) 6px
+  );
+}
+#pokerIntenseScanlines.active{opacity:1;}
+
+/* Banner peringatan */
+#pokerWarnBanner{
+  position:fixed;top:0;left:0;right:0;z-index:200;
+  pointer-events:none;
+  display:flex;align-items:center;justify-content:center;
+  transform:translateY(-100%);
+  transition:transform 0.5s cubic-bezier(0.22,1,0.36,1);
+}
+#pokerWarnBanner.active{transform:translateY(0);}
+#pokerWarnBanner .pwb-inner{
+  background:linear-gradient(90deg,rgba(45,0,0,0.93),rgba(110,0,0,0.93),rgba(45,0,0,0.93));
+  border-bottom:1px solid rgba(210,55,55,0.35);
+  padding:6px 24px;
+  font-family:'JetBrains Mono',monospace;
+  font-size:clamp(9px,1.8vw,11px);
+  letter-spacing:2px;
+  color:rgba(255,150,150,0.88);
+  white-space:nowrap;
+  box-shadow:0 2px 18px rgba(140,0,0,0.28);
+  width:100%;
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  animation:pokerWarnFlicker 2.2s ease-in-out infinite;
+}
+@keyframes pokerWarnFlicker{
+  0%,100%{opacity:0.82;}
+  50%{opacity:1;}
+}
+
+/* Felt subtle red glow */
+#felt.poker-intense{
+  box-shadow:
+    inset 0 0 0 1px rgba(210,40,40,0.32),
+    0 0 28px rgba(160,0,0,0.26)!important;
+  border-color:rgba(200,40,40,0.32)!important;
+  animation:feltRedPulse 2.4s ease-in-out infinite;
+}
+@keyframes feltRedPulse{
+  0%,100%{box-shadow:inset 0 0 0 1px rgba(210,40,40,0.32),0 0 28px rgba(160,0,0,0.26);}
+  50%{box-shadow:inset 0 0 0 2px rgba(230,55,55,0.50),0 0 48px rgba(190,0,0,0.40);}
+}
+
+/* Subtle shake loop — terasa tapi tidak mengganggu */
+#gameWrap.poker-shake-loop{
+  animation:pokerShakeLoop 3.5s ease-in-out infinite;
+}
+@keyframes pokerShakeLoop{
+  0%,85%,100%{transform:none;}
+  87%{transform:translate(-1.5px, 0.5px);}
+  89%{transform:translate(1px, -0.5px);}
+  91%{transform:translate(-1px, 1px);}
+  93%{transform:translate(1.5px, 0);}
+  95%{transform:translate(-0.5px, -1px);}
+  97%{transform:translate(0.5px, 0.5px);}
+}
+
 </style>
 </head>
 <body>
@@ -1121,7 +1366,11 @@ button,input{touch-action:manipulation;cursor:pointer;}
   <!-- Bomb overlay effects -->
   <div id="bombFlashEl"></div>
   <div id="bombLabelEl">💣 BOMB!</div>
-  <div id="gameWrap" class="game-layer">
+  <!-- Poker Intense Overlay -->
+<div id="pokerIntenseOverlay"></div>
+<div id="pokerIntenseScanlines"></div>
+<div id="pokerWarnBanner"><div class="pwb-inner">⚠️ POKER ANGKA 2! — BOMB bisa mengakhiri game sekarang! ⚠️</div></div>
+<div id="gameWrap" class="game-layer">
     <div id="oppBar"></div>
     <div id="center">
       <div id="tdots"></div>
@@ -2301,6 +2550,7 @@ function checkAllReady(){
 
 function returnToLobby(){
   clearPosQueue();
+  deactivatePokerIntense(); // ← pastikan intense hilang saat kembali ke lobby
   // Hide game, show lobby stepB — no reload, no re-login
   G=null;
   feltStackedCards=[];
@@ -2706,11 +2956,18 @@ function doBotTurn(pidx){
 }
 
 function isPokerCombo(combo){
+  // Untuk cek "apakah combo ini bisa di-bomb" — tetap mencakup single/double/triple angka 2
   if(!combo)return false;
   if(combo.type==='single'||combo.type==='double'||combo.type==='triple'){
     return combo.cards.every(c=>c.val===2);
   }
   return false;
+}
+
+function isSinglePoker(combo){
+  // Efek intense HANYA saat kartu tunggal angka 2 (poker single)
+  if(!combo)return false;
+  return combo.type==='single' && combo.cards.length===1 && combo.cards[0].val===2;
 }
 
 function triggerPokerBombEnd(pokerIdx,bombIdx,bombCombo){
@@ -2719,6 +2976,7 @@ function triggerPokerBombEnd(pokerIdx,bombIdx,bombCombo){
   feltStackedCards.push({cards:bombCombo.cards,playerName:G.players[bombIdx].name,isMyPlay:bombIdx===G.mySlot});
   const bombNm=G.players[bombIdx].name;
   const pokerNm=G.players[pokerIdx].name;
+  deactivatePokerIntense(); // intense hilang — bomb meledak
   SFX.pokerBombed();
   triggerBombEffect(true);
   showNotif(`💣 ${bombNm} BOMB! ${pokerNm} LANGSUNG KALAH!`,true);
@@ -2767,9 +3025,14 @@ function applyPlay(pidx,combo){
     showNotif(`🎉 ${nm} selesai!`);
     showPositionAnnounce(rank,nm,pidx===G.mySlot);
     SFX.playerFinish();
+    // Deactivate intense if player who played poker finished
+    deactivatePokerIntense();
   }else{
     setGStat(`${nm} mainkan ${comboLabel(combo)}`);
     if(isBomb(combo)){showNotif(`💣 ${nm}: ${comboLabel(combo)}!`,true);SFX.bomb();triggerBombEffect(false);}
+    // Activate intense HANYA jika poker tunggal (satu kartu angka 2)
+    if(isSinglePoker(combo)) activatePokerIntense();
+    else deactivatePokerIntense();
   }
 
   checkEnd();
@@ -2796,6 +3059,7 @@ function applySkip(pidx){
     feltStackedCards=[]; // clear stacked cards for new round
     lastComboId='_clear_'; // force re-render
     SFX.newRound();
+    deactivatePokerIntense(); // ← round baru, intense hilang
     setGStat(`${G.players[G.current].name} berhak main lagi!`);
     if(isHost)bcastState();
     renderGame();
