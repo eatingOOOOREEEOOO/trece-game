@@ -1599,7 +1599,14 @@ const isBomb=c=>c&&BOMBS.has(c.type);
 function comboBeats(cur,played){
   if(!cur)return!!played;if(!played)return false;
   const bp=isBomb(played),bc=isBomb(cur);
-  if(bp&&!bc)return true;if(!bp&&bc)return false;
+  // Bomb hanya bisa mengalahkan poker SINGLE (satu kartu angka 2)
+  // Double/triple angka 2 TIDAK bisa dilawan Bomb
+  if(bp&&!bc){
+    if(isSinglePoker(cur))return true;   // Bomb menang lawan poker single ✅
+    if(isPokerCombo(cur))return false;   // Bomb kalah/tidak bisa lawan poker double/triple ❌
+    return true;                          // Bomb menang lawan combo biasa ✅
+  }
+  if(!bp&&bc)return false;
   if(bp&&bc){
     if(played.type===cur.type)return played.rank>cur.rank;
     return played.type==='bomb_seri'&&cur.type==='bomb_polo';
@@ -1954,9 +1961,14 @@ function botDecide(hand, curCombo, isFirstTurn, firstCard, G, myIdx){
   }
 
   if(isPokerCombo(curCombo)){
-    const bomb=findBestBomb(h,curCombo);
-    if(bomb)return bomb;
-    return null;
+    // Bomb hanya bisa melawan poker SINGLE
+    if(isSinglePoker(curCombo)){
+      const bomb=findBestBomb(h,curCombo);
+      if(bomb)return bomb;
+      return null; // tidak ada bomb, skip
+    }
+    // Poker double/triple: Bomb tidak boleh dipakai, tapi combo normal tetap bisa melawan
+    // Lanjut ke logic normal di bawah (filter cands pakai comboBeats yang sudah diblock bombnya)
   }
 
   const allCombos=getAllCombos(h);
@@ -3001,10 +3013,10 @@ function applyPlay(pidx,combo){
   const ids=new Set(combo.cards.map(c=>c.id));
   G.hands[pidx]=G.hands[pidx].filter(c=>!ids.has(c.id));
 
-  // POKER vs BOMB: jika combo sebelumnya adalah Poker (angka 2) dan sekarang Bomb
-  const prevWasPoker=G.currentCombo&&isPokerCombo(G.currentCombo);
+  // POKER vs BOMB: game berakhir HANYA jika poker SINGLE (satu kartu angka 2) dilawan Bomb
+  const prevWasSinglePoker=G.currentCombo&&isSinglePoker(G.currentCombo);
   const curIsBomb=isBomb(combo);
-  if(prevWasPoker&&curIsBomb){
+  if(prevWasSinglePoker&&curIsBomb){
     triggerPokerBombEnd(G.lastPlayedBy,pidx,combo);
     return;
   }
