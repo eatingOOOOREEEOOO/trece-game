@@ -492,12 +492,44 @@ button,input{touch-action:manipulation;cursor:pointer;}
 .game-layer,#gameWrap{position:relative;z-index:1;display:flex;flex-direction:column;height:100%;overflow-x:hidden;overflow-y:hidden;}
 
 /* Opponents — 3 shown, fixed height */
-#oppBar{flex:0 0 96px;display:flex;gap:5px;padding:6px 6px 3px;background:rgba(0,0,0,0.2);border-bottom:1px solid rgba(212,168,67,0.07);}
-.opp{flex:1;min-width:0;background:rgba(0,0,0,0.3);border:1px solid rgba(212,168,67,0.1);border-radius:9px;padding:5px 7px;display:flex;flex-direction:column;align-items:center;gap:3px;transition:border-color 0.3s,box-shadow 0.3s;overflow:hidden;}
+#oppBar{
+  flex:0 0 auto;
+  display:flex;
+  gap:6px;
+  padding:8px 10px 6px;
+  background:rgba(0,0,0,0.18);
+  border-bottom:1px solid rgba(212,168,67,0.07);
+  justify-content:center;
+}
+.opp{
+  flex:1;min-width:0;max-width:160px;
+  background:rgba(0,0,0,0.35);
+  border:1px solid rgba(212,168,67,0.12);
+  border-radius:10px;
+  padding:6px 10px;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  gap:3px;
+  transition:border-color 0.3s,box-shadow 0.3s;
+  overflow:hidden;
+}
 .opp.my-go{border-color:var(--neon);box-shadow:0 0 14px rgba(0,255,136,0.2);}
 .opp.done{opacity:0.45;}
-.opp-nm{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--gold2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;text-align:center;}
-.opp-backs{display:flex;flex-wrap:wrap;gap:2px;justify-content:center;overflow:hidden;max-height:44px;}
+.opp-nm{
+  font-family:'JetBrains Mono',monospace;
+  font-size:9px;color:var(--gold2);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  max-width:100%;text-align:center;
+}
+.opp-ct{
+  font-family:'Cinzel Decorative',serif;
+  font-size:20px;font-weight:700;
+  color:var(--gold);line-height:1;
+  text-shadow:0 0 12px rgba(212,168,67,0.4);
+}
+/* hide old cback system globally */
+.opp-backs{display:none;}
+.cback{display:none;}
 .cback{
   width:15px;height:23px;
   background:
@@ -621,7 +653,7 @@ button,input{touch-action:manipulation;cursor:pointer;}
 .card{
   width:60px;height:88px;
   background:linear-gradient(160deg,#fffdf5 0%,#fdf8e8 60%,#faf0d0 100%);
-  border:1.5px solid #c8b890;border-radius:8px;position:relative;cursor:pointer;
+  border:1.5px solid #c8b890;border-radius:6px;position:relative;cursor:pointer;
   display:flex;flex-direction:column;justify-content:space-between;padding:3px;
   flex-shrink:0;font-family:'Crimson Pro',serif;
   box-shadow:0 5px 14px rgba(0,0,0,0.75),0 1px 3px rgba(0,0,0,0.5),inset 0 1px 0 rgba(255,255,255,0.9);
@@ -795,29 +827,44 @@ button,input{touch-action:manipulation;cursor:pointer;}
    ══════════════════════════════════════════ */
 @media (max-width: 600px) {
 
-  /* ── Opponent bar: lebih tipis ── */
+  /* ── Opponent bar: compact horizontal ── */
   #oppBar{
-    flex:0 0 72px;
-    padding:4px 4px 2px;
-    gap:3px;
+    flex:0 0 auto;
+    padding:8px 12px 6px;
+    gap:6px;
   }
-  .opp{padding:3px 4px;border-radius:7px;gap:2px;}
+  .opp{
+    padding:5px 6px;
+    border-radius:8px;
+    gap:2px;
+  }
   .opp-nm{font-size:8px;}
-  .opp-backs{max-height:34px;gap:1px;}
-  .cback{width:10px;height:16px;border-radius:2px;}
+  .opp-ct{font-size:18px;}
 
-  /* ── Center area: lebih kecil ── */
-  #center{gap:3px;padding:2px 4px;}
+  /* ── Hand wrap ── */
+  #handWrap{
+    overflow:visible!important;
+    overflow-x:visible!important;
+    padding:32px 12px 6px;
+    width:100%;
+  }
+
+  /* ── Center area ── */
+  #center{
+    gap:4px;
+    padding:4px 12px;
+    justify-content:center;
+  }
   #tdots{gap:8px;}
   .tdot{font-size:9px;gap:3px;}
   .tdot-pip{width:6px;height:6px;}
 
-  /* ── Felt: lebih pendek di mobile ── */
+  /* ── Felt: centered, dengan margin kiri kanan ── */
   #felt{
     min-height:130px;
-    max-height:150px;
+    max-height:148px;
     border-radius:14px;
-    width:99vw;
+    width:100%;
   }
   #feltCards{height:130px;}
   .felt-stack-card .card,
@@ -832,32 +879,27 @@ button,input{touch-action:manipulation;cursor:pointer;}
   #comboBadge{font-size:8px;padding:2px 7px;bottom:5px;right:6px;}
 
   /* ── Timer ── */
-  #timerWrap{height:3px;width:99vw;}
+  #timerWrap{height:3px;width:100%;}
 
   /* ── Status text ── */
   #gstat{font-size:9px;min-height:12px;}
 
-  /* ── Player area: compact ── */
-  #playerArea{gap:3px;padding:3px 0 6px;}
+  /* ── Ghost row ── */
+  #ghostRow{padding:0 4px;}
+
+  /* ── Player area: compact, padding kiri kanan ── */
+  #playerArea{gap:3px;padding:3px 12px 8px;}
   #comboHint{font-size:9px;min-height:12px;}
 
   /* ── ACTION BUTTONS ── */
-  #actRow{gap:6px;}
+  #actRow{gap:6px;width:100%;}
   .abtn{padding:9px 0;font-size:11px;border-radius:8px;flex:1;}
 
-  /* ── Nameplate ── */
+  /* ── Nameplate + chip bar ── */
   #myplate{font-size:8px;padding:2px 10px;}
+  #chipBar{width:100%;justify-content:center;}
 
-  /* ══ HAND: fan overlap layout ══
-     Kartu ditumpuk dengan overlap — tidak perlu scroll,
-     semua 13 kartu muat di layar HP
-  */
-  #handWrap{
-    overflow:visible!important;
-    overflow-x:visible!important;
-    padding:32px 0 6px;
-    width:100%;
-  }
+  /* ══ HAND: fan overlap layout ══ */
   #handInner{
     position:relative;
     display:flex!important;
@@ -872,7 +914,7 @@ button,input{touch-action:manipulation;cursor:pointer;}
   #handInner .card{
     width:46px!important;
     height:70px!important;
-    border-radius:7px!important;
+    border-radius:5px!important;
     margin-left:-18px!important;
     flex-shrink:0!important;
     transition:transform 0.18s cubic-bezier(0.34,1.56,0.64,1),
@@ -925,6 +967,7 @@ button,input{touch-action:manipulation;cursor:pointer;}
   #handInner .card{
     width:40px!important;
     height:62px!important;
+    border-radius:4px!important;
     margin-left:-16px!important;
   }
   #handInner .card.sel{
@@ -933,7 +976,7 @@ button,input{touch-action:manipulation;cursor:pointer;}
   }
   #felt{min-height:115px;max-height:130px;}
   #feltCards{height:115px;}
-  #oppBar{flex:0 0 64px;}
+  #oppBar{flex:0 0 auto;padding:5px 6px 4px;}
 }
 
 .card-img-wrap {
@@ -3173,6 +3216,14 @@ function receiveState(state){
   lastComboId=''; // force felt re-render with synced stack
   renderGame();
 
+  // ── Poker Intense: sync efek berdasarkan state dari host ──
+  if(G.phase==='play'||G.phase==='bid'){
+    if(isSinglePoker(G.currentCombo)) activatePokerIntense();
+    else deactivatePokerIntense();
+  } else {
+    deactivatePokerIntense();
+  }
+
   const isBidToPlayTransition = wasBid && G.phase==='play';
 
   if(G.phase==='end'){
@@ -3438,8 +3489,8 @@ function renderGame(){
     const medals=['🥇','🥈','🥉','💀'];
     const badge=done?medals[Math.min(finRank,3)]:(active?'▶':'');
     return `<div class="opp${active?' my-go':''}${done?' done':''}">
-      <div class="opp-nm">${badge} ${p.name} (${hand.length})</div>
-      <div class="opp-backs">${hand.slice(0,16).map(()=>'<div class="cback"></div>').join('')}</div>
+      <div class="opp-nm">${badge} ${p.name}</div>
+      <div class="opp-ct">${hand.length}</div>
     </div>`;
   }).join('');
 
