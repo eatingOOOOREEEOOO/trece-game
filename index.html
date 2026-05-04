@@ -476,14 +476,26 @@ button,input{touch-action:manipulation;cursor:pointer;}
 
 /* 4-slot grid */
 .pslots{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:12px 0;}
-.pslot{background:rgba(0,0,0,0.25);border:1px solid rgba(212,168,67,0.15);border-radius:8px;padding:9px 11px;display:flex;align-items:center;gap:8px;min-height:52px;}
+.pslot{
+  background:rgba(0,0,0,0.25);border:1px solid rgba(212,168,67,0.15);border-radius:8px;
+  padding:7px 9px;display:flex;align-items:center;gap:7px;min-height:52px;
+  overflow:hidden;min-width:0;
+}
 .pslot.filled{border-color:rgba(0,255,136,0.35);background:rgba(0,255,136,0.04);}
 .pslot.ready{border-color:var(--neon);background:rgba(0,255,136,0.08);box-shadow:0 0 10px rgba(0,255,136,0.15);}
-.slot-ready-badge{font-size:8px;color:var(--neon);font-family:'JetBrains Mono',monospace;letter-spacing:1px;}
-.slot-av{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;background:rgba(212,168,67,0.1);color:var(--gold);border:1px solid rgba(212,168,67,0.22);flex-shrink:0;font-family:'JetBrains Mono',monospace;}
-.slot-nm{font-size:12px;color:var(--gold3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.slot-you{font-size:9px;color:var(--neon);font-family:'JetBrains Mono',monospace;}
+.slot-ready-badge{
+  font-size:7px;color:var(--neon);font-family:'JetBrains Mono',monospace;letter-spacing:0.5px;
+  flex-shrink:0;white-space:nowrap;
+  background:rgba(0,255,136,0.1);border:1px solid rgba(0,255,136,0.25);
+  border-radius:4px;padding:2px 4px;line-height:1;
+}
+.slot-av{width:28px;height:28px;min-width:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;background:rgba(212,168,67,0.1);color:var(--gold);border:1px solid rgba(212,168,67,0.22);flex-shrink:0;font-family:'JetBrains Mono',monospace;}
+/* text column: takes remaining space, clips name */
+.slot-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;overflow:hidden;}
+.slot-nm{font-size:11px;color:var(--gold3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.2;}
+.slot-you{font-size:8px;color:var(--neon);font-family:'JetBrains Mono',monospace;line-height:1;}
 .slot-bot{color:rgba(212,168,67,0.3);font-style:italic;}
+.slot-chips{font-size:8px;color:rgba(212,168,67,0.45);font-family:'JetBrains Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 
 /* ══ GAME ══ */
 #game{position:fixed;inset:0;display:none;flex-direction:column;overflow:hidden;}
@@ -2341,13 +2353,13 @@ function renderSlots(){
       : '';
     return `<div class="pslot${!p.isBot?' filled':''}${readyCls}">
       <div class="slot-av">${p.isBot?'🤖':p.name[0].toUpperCase()}</div>
-      <div style="flex:1;min-width:0;">
+      <div class="slot-info">
         <div class="slot-nm${p.isBot?' slot-bot':''}">${p.name}</div>
         ${p.id===myId?'<div class="slot-you">KAMU</div>':''}
-        ${p.isBot?'<div style="font-size:8px;color:rgba(212,168,67,0.25)">bot</div>':''}
+        ${p.isBot?'<div style="font-size:7px;color:rgba(212,168,67,0.25);font-family:\'JetBrains Mono\',monospace">bot</div>':''}
         ${chipHtml}
       </div>
-      ${gameHasStarted?`<div class="slot-ready-badge">${isReadyP?'✓ SIAP':''}</div>`:''}
+      ${gameHasStarted&&isReadyP?'<div class="slot-ready-badge">✓ SIAP</div>':''}
     </div>`;
   }).join('');
 }
