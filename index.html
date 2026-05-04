@@ -3162,7 +3162,10 @@ function applyPlay(pidx,combo){
   // POKER vs BOMB: game berakhir HANYA jika poker SINGLE (satu kartu angka 2) dilawan Bomb
   const prevWasSinglePoker=G.currentCombo&&isSinglePoker(G.currentCombo);
   const curIsBomb=isBomb(combo);
-  if(prevWasSinglePoker&&curIsBomb){
+  // Guard: jika poker player sudah ada di G.finished (kartu terakhirnya = instant win),
+  // Bomb TIDAK bisa meng-counter — kemenangan sudah ditentukan saat kartu habis.
+  const pokerPlayerAlreadyFinished=prevWasSinglePoker&&G.finished.includes(G.lastPlayedBy);
+  if(prevWasSinglePoker&&curIsBomb&&!pokerPlayerAlreadyFinished){
     triggerPokerBombEnd(G.lastPlayedBy,pidx,combo);
     return;
   }
