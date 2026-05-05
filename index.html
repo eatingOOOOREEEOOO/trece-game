@@ -809,11 +809,89 @@ button,input{touch-action:manipulation;cursor:pointer;}
 @keyframes winTextOut{0%{opacity:1;transform:scale(1);}100%{opacity:0;transform:scale(1.12) translateY(-50px);}}
 
 /* ══ DRAG REORDER ══ */
-.card.dragging{opacity:0.4;transform:scale(0.95)!important;cursor:grabbing!important;}
+.card.dragging{opacity:0.35;transform:scale(0.92)!important;cursor:grabbing!important;pointer-events:none;}
 .card.drag-over{transform:translateY(-14px) scale(1.02)!important;border-color:var(--gold2)!important;box-shadow:0 0 0 2px var(--gold2),0 12px 24px rgba(0,0,0,0.6)!important;}
 #handInner.drag-active .card:not(.dragging){transition:transform 0.15s ease,margin 0.15s ease;}
 
-/* ══ FELT STACKING ══ */
+/* ══ TOUCH DRAG GHOST ══ */
+#touchDragGhost{
+  position:fixed;pointer-events:none;z-index:9998;
+  width:52px;height:76px;border-radius:7px;
+  border:2px solid var(--gold);
+  box-shadow:0 0 0 2px var(--gold),0 20px 40px rgba(0,0,0,0.8),0 0 20px rgba(212,168,67,0.4);
+  transform:translate(-50%,-60%) rotate(-6deg) scale(1.12);
+  transition:none;
+  display:none;
+  overflow:hidden;
+}
+
+/* Long-press ripple indicator */
+.card.touch-holding::after{
+  content:'';position:absolute;inset:-4px;border-radius:9px;
+  border:2.5px solid var(--gold2);
+  animation:holdRipple 0.35s ease-out forwards;
+  pointer-events:none;z-index:20;
+}
+@keyframes holdRipple{
+  0%{opacity:0;transform:scale(0.9);}
+  50%{opacity:0.8;}
+  100%{opacity:0;transform:scale(1.15);}
+}
+
+/* Drop insertion indicator */
+.card.touch-drop-target{
+  border-color:var(--neon)!important;
+  box-shadow:0 0 0 2px var(--neon),0 0 18px rgba(0,255,136,0.4)!important;
+}
+#touchDropLine{
+  position:absolute;top:0;bottom:0;width:3px;
+  background:var(--neon);border-radius:2px;
+  box-shadow:0 0 10px rgba(0,255,136,0.8);
+  pointer-events:none;z-index:9997;
+  display:none;
+}
+
+/* Reorder buttons (mobile only) */
+#reorderBtnRow{
+  display:none;
+  align-items:center;justify-content:center;
+  gap:12px;margin-top:2px;
+}
+.rbtn{
+  width:32px;height:32px;border-radius:50%;
+  border:1px solid rgba(212,168,67,0.35);
+  background:rgba(0,0,0,0.5);
+  color:var(--gold);font-size:16px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:all 0.15s;
+  -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
+}
+.rbtn:active{background:rgba(212,168,67,0.15);transform:scale(0.92);}
+#reorderLabel{font-size:9px;font-family:'JetBrains Mono',monospace;color:rgba(212,168,67,0.4);letter-spacing:1px;}
+@media(max-width:600px){
+  #reorderBtnRow{display:flex;}
+}
+
+/* ══ TOUCH DRAG GHOST COLORS ══ */
+#touchDragGhost{
+  position:fixed;pointer-events:none;z-index:9998;
+  width:52px;height:76px;border-radius:7px;
+  box-shadow:0 0 0 2px var(--gold),0 20px 40px rgba(0,0,0,0.8),0 0 20px rgba(212,168,67,0.4);
+  transform:translate(-50%,-60%) rotate(-6deg) scale(1.12);
+  transition:none;
+  display:none;
+  overflow:hidden;
+  font-family:'Crimson Pro',serif;
+}
+#touchDragGhost .card-img-wrap img{width:100%;height:100%;object-fit:cover;}
+#touchDragGhost .cv{font-size:11px;font-weight:700;line-height:1;}
+#touchDragGhost .cs{font-size:9px;line-height:1;}
+#touchDragGhost .cc{font-size:20px;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);}
+#touchDragGhost .ct{display:flex;flex-direction:column;align-items:flex-start;padding:3px;}
+#touchDragGhost .cb2{display:flex;flex-direction:column;align-items:flex-end;transform:rotate(180deg);padding:3px;}
+.desktop-drag-hint{display:block;}
+@media(max-width:600px){.desktop-drag-hint{display:none!important;}}
 .felt-stack-card{
   position:absolute;
   width:60px;height:88px;
@@ -1458,13 +1536,18 @@ button,input{touch-action:manipulation;cursor:pointer;}
           <span class="cp-win" id="chipBarWin">+300</span>
         </div>
       </div>
-      <div id="handWrap"><div id="handInner"></div></div>
+      <div id="handWrap" style="position:relative;"><div id="handInner"></div><div id="touchDropLine"></div></div>
+      <div id="reorderBtnRow">
+        <button class="rbtn" id="rbtnLeft" onclick="reorderCardLeft()" title="Geser kiri">&#8249;</button>
+        <span id="reorderLabel">GESER KARTU</span>
+        <button class="rbtn" id="rbtnRight" onclick="reorderCardRight()" title="Geser kanan">&#8250;</button>
+      </div>
       <div id="actRow">
         <button class="abtn abtn-play" id="btnPlay" onclick="playerPlay()" disabled>MAIN</button>
         <button class="abtn abtn-skip" id="btnSkip" onclick="playerSkip()" disabled>SKIP</button>
       </div>
       <div id="myplate">—</div>
-      <div style="font-size:8px;font-family:'JetBrains Mono',monospace;color:rgba(212,168,67,0.2);text-align:center;margin-top:2px;">drag kartu untuk ubah urutan</div>
+      <div style="font-size:8px;font-family:'JetBrains Mono',monospace;color:rgba(212,168,67,0.2);text-align:center;margin-top:2px;" class="desktop-drag-hint">drag kartu untuk ubah urutan</div>
     </div>
   </div>
 </div>
@@ -1523,6 +1606,7 @@ button,input{touch-action:manipulation;cursor:pointer;}
   </div>
 </div>
 
+<div id="touchDragGhost"></div>
 <script>
 'use strict';
 const CARD_IMAGES = {
@@ -3472,19 +3556,24 @@ function mkCardHTML(c,idx,selectable,selected,dimmed=false){
   const nhCls=(!selectable||dimmed)?'nh':'';
   const dimStyle=dimmed?'opacity:0.35;filter:grayscale(0.6);':'';
   const fcCls='';
-  const click=selectable&&!dimmed?`onclick="toggleCard(${idx})"` :'';
+  // On touch devices, click is handled by _initTouchDrag addEventListener
+  // On desktop, use onclick attribute
+  const isTouch='ontouchstart' in window;
+  const click=(!isTouch&&selectable&&!dimmed)?`onclick="toggleCard(${idx})"` :'';
   const zStyle=selected?`style="z-index:${50+idx};${dimStyle}"`:`style="z-index:${idx+1};${dimStyle}"`;
   const imgKey=`${c.val}_${c.suit}`;
   const imgSrc=CARD_IMAGES[imgKey]||'';
   const imgHtml=imgSrc?`<div class="card-img-wrap"><img src="${imgSrc}" alt="${v}${sym}"></div>`:'';
   const hasCls=imgSrc?' has-img':'';
-  return `<div class="card ${col} ${selCls} ${nhCls} ${fcCls}${hasCls}" ${click} ${zStyle}
-    draggable="true"
-    data-idx="${idx}"
+  // draggable only on desktop
+  const dragAttrs=isTouch?'':`draggable="true"
     ondragstart="handleCardDragStart(event,${idx})"
     ondragover="handleCardDragOver(event,${idx})"
     ondragend="handleCardDragEnd(event)"
-    ondrop="handleCardDrop(event,${idx})"
+    ondrop="handleCardDrop(event,${idx})"`;
+  return `<div class="card ${col} ${selCls} ${nhCls} ${fcCls}${hasCls}" ${click} ${zStyle}
+    ${dragAttrs}
+    data-idx="${idx}"
     title="${v}${sym}">
     ${imgHtml}
     <div class="ct"><span class="cv">${v}</span><span class="cs">${sym}</span></div>
@@ -3639,6 +3728,8 @@ function renderGame(){
       const sel=G.selected&&G.selected.includes(i);
       return mkCardHTML(c,i,canSelect&&!isBidBlocked,sel,isBidBlocked);
     }).join('');
+  // Init touch drag on mobile after every render
+  if('ontouchstart' in window) _initTouchDrag();
 
   // ── Nameplate ──
   const np=document.getElementById('myplate');
@@ -3683,6 +3774,7 @@ function toggleCard(idx){
   if(i>=0){G.selected.splice(i,1);SFX.cardDeselect();}else{G.selected.push(idx);SFX.cardSelect();}
   document.getElementById('handInner').innerHTML=
     hand.map((c,i)=>mkCardHTML(c,i,true,G.selected.includes(i))).join('');
+  if('ontouchstart' in window) _initTouchDrag();
   updateComboHint();
 }
 
@@ -3870,13 +3962,14 @@ function startBgCanvas(){
   draw();
 }
 
-// ══ CARD DRAG REORDER ══
+// ══ CARD DRAG REORDER — Desktop (HTML5) + Mobile (Touch) ══
+
+// ── Desktop drag ──
 let dragSrcIdx=null;
-let dragClickThreshold=false;
 
 function handleCardDragStart(e,idx){
+  if('ontouchstart' in window)return; // touch devices: use touch system instead
   dragSrcIdx=idx;
-  dragClickThreshold=true;
   e.dataTransfer.effectAllowed='move';
   e.dataTransfer.setData('text/plain',String(idx));
   setTimeout(()=>{
@@ -3888,42 +3981,25 @@ function handleCardDragStart(e,idx){
 }
 
 function handleCardDragOver(e,idx){
+  if('ontouchstart' in window)return;
   e.preventDefault();
   e.dataTransfer.dropEffect='move';
-  // Highlight target
-  document.querySelectorAll('#handInner .card').forEach(el=>{
-    el.classList.remove('drag-over');
-  });
+  document.querySelectorAll('#handInner .card').forEach(el=>el.classList.remove('drag-over'));
   if(dragSrcIdx!==null&&dragSrcIdx!==idx){
     e.target.closest('.card')?.classList.add('drag-over');
   }
 }
 
 function handleCardDrop(e,toIdx){
+  if('ontouchstart' in window)return;
   e.preventDefault();
   if(dragSrcIdx===null||dragSrcIdx===toIdx)return;
-  if(!G)return;
-  const ms=G.mySlot;
-  const hand=G.hands[ms];
-
-  // Save selected card ids before reorder
-  const selIds=new Set((G.selected||[]).map(i=>hand[i]?hand[i].id:null).filter(Boolean));
-
-  // Reorder hand
-  const moved=hand.splice(dragSrcIdx,1)[0];
-  hand.splice(toIdx,0,moved);
-
-  // Remap selected indices based on card identity
-  G.selected=hand.reduce((acc,c,i)=>{if(selIds.has(c.id))acc.push(i);return acc;},[]);
-
+  _doReorder(dragSrcIdx,toIdx);
   dragSrcIdx=null;
-  const isMyTurn=G.current===ms&&G.phase!=='end';
-  document.getElementById('handInner').innerHTML=
-    hand.map((c,i)=>mkCardHTML(c,i,isMyTurn,G.selected.includes(i))).join('');
-  if(isMyTurn)updateComboHint();
 }
 
 function handleCardDragEnd(e){
+  if('ontouchstart' in window)return;
   dragSrcIdx=null;
   document.querySelectorAll('#handInner .card').forEach(el=>{
     el.classList.remove('dragging','drag-over');
@@ -3932,18 +4008,217 @@ function handleCardDragEnd(e){
   if(inner)inner.classList.remove('drag-active');
 }
 
-// ══ DRAG SCROLL (only when not dragging a card) ══
+// Shared reorder logic
+function _doReorder(fromIdx,toIdx){
+  if(!G||fromIdx===toIdx||fromIdx===null)return;
+  const ms=G.mySlot;
+  const hand=G.hands[ms];
+  const selIds=new Set((G.selected||[]).map(i=>hand[i]?hand[i].id:null).filter(Boolean));
+  const moved=hand.splice(fromIdx,1)[0];
+  hand.splice(toIdx,0,moved);
+  G.selected=hand.reduce((acc,c,i)=>{if(selIds.has(c.id))acc.push(i);return acc;},[]);
+  const isMyTurn=G.current===ms&&G.phase!=='end';
+  document.getElementById('handInner').innerHTML=
+    hand.map((c,i)=>mkCardHTML(c,i,isMyTurn,G.selected.includes(i))).join('');
+  if(isMyTurn)updateComboHint();
+  _initTouchDrag(); // re-bind touch handlers after re-render
+}
+
+// ── Reorder buttons (mobile ‹ ›) ──
+function reorderCardLeft(){
+  if(!G||!G.selected||G.selected.length!==1)return;
+  const idx=G.selected[0];
+  if(idx<=0)return;
+  _doReorder(idx,idx-1);
+}
+function reorderCardRight(){
+  if(!G||!G.selected||G.selected.length!==1)return;
+  const idx=G.selected[0];
+  const hand=G.hands[G.mySlot];
+  if(idx>=hand.length-1)return;
+  _doReorder(idx,idx+1);
+}
+
+// ── Touch drag system (mobile) ──
+// Long-press 340ms → drag mode. Tap/swipe → normal select.
+let _td={
+  active:false,      // drag in progress
+  srcIdx:null,       // index of card being dragged
+  ghost:null,        // ghost DOM element
+  holdTimer:null,    // long-press timer
+  startX:0,startY:0,// initial touch coords
+  moved:false,       // did finger move?
+  lastDropIdx:null   // last hovered drop index
+};
+
+function _initTouchDrag(){
+  const inner=document.getElementById('handInner');
+  if(!inner)return;
+
+  inner.querySelectorAll('.card').forEach((cardEl,idx)=>{
+    // Remove old handlers (clone trick)
+    const fresh=cardEl.cloneNode(true);
+    inner.replaceChild(fresh,cardEl);
+
+    // Re-attach click for select (only if not in drag)
+    fresh.addEventListener('click',e=>{
+      if(_td.moved)return; // was a drag move, suppress click
+      // delegate to original toggleCard
+      const i=parseInt(fresh.dataset.idx);
+      if(!isNaN(i))toggleCard(i);
+    });
+
+    // Long-press to enter drag
+    fresh.addEventListener('touchstart',e=>{
+      if(e.touches.length!==1)return;
+      const t=e.touches[0];
+      _td.startX=t.clientX; _td.startY=t.clientY;
+      _td.moved=false;
+      _td.srcIdx=parseInt(fresh.dataset.idx);
+
+      // Start long-press timer
+      _td.holdTimer=setTimeout(()=>{
+        _startTouchDrag(fresh,_td.srcIdx,t.clientX,t.clientY);
+      },340);
+    },{passive:true});
+
+    fresh.addEventListener('touchmove',e=>{
+      const t=e.touches[0];
+      const dx=t.clientX-_td.startX;
+      const dy=t.clientY-_td.startY;
+      // If moved more than 8px, cancel long-press
+      if(Math.abs(dx)+Math.abs(dy)>8&&!_td.active){
+        clearTimeout(_td.holdTimer);_td.holdTimer=null;
+        _td.moved=true;
+      }
+      if(_td.active){
+        e.preventDefault();
+        _updateTouchDrag(t.clientX,t.clientY);
+      }
+    },{passive:false});
+
+    fresh.addEventListener('touchend',e=>{
+      clearTimeout(_td.holdTimer);_td.holdTimer=null;
+      if(_td.active){
+        e.preventDefault();
+        _endTouchDrag();
+      }
+    });
+
+    fresh.addEventListener('touchcancel',()=>{
+      clearTimeout(_td.holdTimer);_td.holdTimer=null;
+      if(_td.active)_cancelTouchDrag();
+    });
+  });
+}
+
+function _startTouchDrag(cardEl,idx,cx,cy){
+  if(!G)return;
+  SFX.shuffle();
+  _td.active=true;
+  _td.srcIdx=idx;
+
+  // Build ghost from card inner HTML
+  const ghost=document.getElementById('touchDragGhost');
+  ghost.innerHTML=cardEl.innerHTML;
+  ghost.className='';
+  // Copy color class
+  if(cardEl.classList.contains('r'))ghost.classList.add('touch-ghost-r');
+  if(cardEl.classList.contains('b'))ghost.classList.add('touch-ghost-b');
+  ghost.style.cssText=`
+    display:block;
+    left:${cx}px;top:${cy}px;
+    background:${cardEl.classList.contains('r')?'linear-gradient(160deg,#fffdf5,#fde8e8)':'linear-gradient(160deg,#fffdf5,#fdf8e8)'};
+    border:2px solid ${cardEl.classList.contains('r')?'#c41830':'#1a1a2e'};
+  `;
+  _td.ghost=ghost;
+
+  // Dim original
+  cardEl.classList.add('dragging');
+  cardEl.style.opacity='0.25';
+
+  const inner=document.getElementById('handInner');
+  if(inner)inner.classList.add('drag-active');
+}
+
+function _updateTouchDrag(cx,cy){
+  const ghost=_td.ghost;
+  if(!ghost)return;
+  ghost.style.left=cx+'px';
+  ghost.style.top=cy+'px';
+
+  // Find which card is under the finger
+  ghost.style.display='none';
+  const el=document.elementFromPoint(cx,cy);
+  ghost.style.display='block';
+
+  const dropCard=el?.closest('#handInner .card');
+  const dropLine=document.getElementById('touchDropLine');
+
+  // Clear prev highlights
+  document.querySelectorAll('#handInner .card').forEach(c=>c.classList.remove('touch-drop-target'));
+
+  if(dropCard){
+    const dropIdx=parseInt(dropCard.dataset.idx);
+    if(!isNaN(dropIdx)&&dropIdx!==_td.srcIdx){
+      dropCard.classList.add('touch-drop-target');
+      _td.lastDropIdx=dropIdx;
+      // Show drop line between cards
+      const rect=dropCard.getBoundingClientRect();
+      const wrapRect=document.getElementById('handWrap').getBoundingClientRect();
+      const insertLeft=dropIdx<_td.srcIdx;
+      dropLine.style.display='block';
+      dropLine.style.left=(insertLeft?rect.left-wrapRect.left:rect.right-wrapRect.left-2)+'px';
+      dropLine.style.top=(rect.top-wrapRect.top)+'px';
+      dropLine.style.height=rect.height+'px';
+    }else{
+      _td.lastDropIdx=null;
+      dropLine.style.display='none';
+    }
+  }else{
+    _td.lastDropIdx=null;
+    document.getElementById('touchDropLine').style.display='none';
+  }
+}
+
+function _endTouchDrag(){
+  const toIdx=_td.lastDropIdx;
+  const fromIdx=_td.srcIdx;
+  _cleanupTouchDrag();
+  if(toIdx!==null&&fromIdx!==null&&toIdx!==fromIdx){
+    _doReorder(fromIdx,toIdx);
+  }
+}
+
+function _cancelTouchDrag(){
+  _cleanupTouchDrag();
+}
+
+function _cleanupTouchDrag(){
+  _td.active=false;
+  _td.srcIdx=null;
+  _td.lastDropIdx=null;
+  const ghost=document.getElementById('touchDragGhost');
+  if(ghost)ghost.style.display='none';
+  document.getElementById('touchDropLine').style.display='none';
+  document.querySelectorAll('#handInner .card').forEach(c=>{
+    c.classList.remove('dragging','touch-drop-target');
+    c.style.opacity='';
+  });
+  const inner=document.getElementById('handInner');
+  if(inner)inner.classList.remove('drag-active');
+}
+
+// ── Scroll (desktop only — touch scroll handled by browser naturally) ──
 (function(){
   let drag=false,sx=0,ss=0;
   const w=document.getElementById('handWrap');
   w.addEventListener('mousedown',e=>{
-    if(e.target.closest('.card'))return; // let card handle its own drag
+    if(e.target.closest('.card'))return;
     drag=true;sx=e.pageX;ss=w.scrollLeft;w.style.cursor='grabbing';
   });
   document.addEventListener('mousemove',e=>{if(drag)w.scrollLeft=ss-(e.pageX-sx);});
-  document.addEventListener('mouseup',()=>{drag=false;w.style.cursor='grab';});
-  w.addEventListener('touchstart',e=>{if(e.target.closest('.card'))return;sx=e.touches[0].pageX;ss=w.scrollLeft;},{passive:true});
-  w.addEventListener('touchmove',e=>{w.scrollLeft=ss-(e.touches[0].pageX-sx);},{passive:true});
+  document.addEventListener('mouseup',()=>{drag=false;w.style.cursor='';});
 })();
 
 document.getElementById('joinCode').addEventListener('input',function(){this.value=this.value.toUpperCase();});
