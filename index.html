@@ -1363,6 +1363,191 @@ button,input{touch-action:manipulation;cursor:pointer;}
   97%{transform:translate(0.5px, 0.5px);}
 }
 
+/* ══ POWER SHOP ══ */
+/* Tombol shop di lobby */
+.btn-shop{background:transparent;color:#cc44ff;border:1px solid rgba(204,68,255,0.35);font-family:'Cinzel Decorative',serif;font-size:12px;letter-spacing:1px;}
+.btn-shop:hover{border-color:#cc44ff;background:rgba(204,68,255,0.08);}
+
+/* Modal shop */
+#shopModal{
+  position:fixed;inset:0;z-index:90;display:none;
+  align-items:center;justify-content:center;
+  background:rgba(0,0,0,0.82);
+}
+#shopModal.open{display:flex;}
+.shop-box{
+  background:linear-gradient(150deg,rgba(18,8,30,0.99),rgba(6,13,16,0.99));
+  border:1px solid rgba(204,68,255,0.4);border-radius:20px;
+  padding:0;width:min(500px,96vw);max-height:92vh;
+  overflow:hidden;display:flex;flex-direction:column;
+  box-shadow:0 0 0 1px rgba(204,68,255,0.1),0 0 60px rgba(204,68,255,0.08),0 24px 80px rgba(0,0,0,0.95);
+}
+.shop-header{
+  padding:20px 24px 14px;
+  border-bottom:1px solid rgba(204,68,255,0.15);
+  flex-shrink:0;
+}
+.shop-title-row{display:flex;align-items:center;justify-content:space-between;}
+.shop-title-txt{
+  font-family:'Cinzel Decorative',serif;font-size:16px;
+  background:linear-gradient(135deg,#cc44ff,#aa22dd,#ee88ff,#cc44ff);
+  background-size:200% auto;
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  letter-spacing:4px;
+  animation:shopShimmer 3s linear infinite;
+}
+@keyframes shopShimmer{0%{background-position:0%}100%{background-position:200%}}
+.shop-chips-disp{
+  font-family:'JetBrains Mono',monospace;font-size:12px;
+  color:var(--gold2);background:rgba(0,0,0,0.4);
+  border:1px solid rgba(212,168,67,0.25);border-radius:14px;
+  padding:3px 11px;
+}
+.shop-close{
+  background:none;border:none;color:rgba(204,68,255,0.5);
+  font-size:20px;cursor:pointer;padding:0 4px;line-height:1;
+  transition:color 0.15s;
+}
+.shop-close:hover{color:#cc44ff;}
+.shop-sub-hdr{font-size:10px;font-family:'JetBrains Mono',monospace;color:rgba(204,68,255,0.35);letter-spacing:2px;margin-top:6px;}
+.shop-body{overflow-y:auto;padding:14px 16px 20px;flex:1;scrollbar-width:thin;scrollbar-color:rgba(204,68,255,0.15) transparent;}
+.shop-body::-webkit-scrollbar{width:3px;}
+.shop-body::-webkit-scrollbar-thumb{background:rgba(204,68,255,0.15);border-radius:2px;}
+
+/* Category tabs */
+.shop-tabs{display:flex;gap:4px;margin-bottom:14px;flex-wrap:wrap;}
+.stab{
+  font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1px;
+  padding:4px 10px;border-radius:12px;border:1px solid rgba(204,68,255,0.2);
+  background:transparent;color:rgba(204,68,255,0.5);cursor:pointer;
+  transition:all 0.15s;-webkit-tap-highlight-color:transparent;
+}
+.stab:hover{border-color:rgba(204,68,255,0.5);color:#cc44ff;}
+.stab.active{background:rgba(204,68,255,0.15);border-color:#cc44ff;color:#ee88ff;}
+
+/* Power card items */
+.pitem{
+  background:rgba(0,0,0,0.35);border:1px solid rgba(204,68,255,0.15);
+  border-radius:12px;padding:12px 14px;margin-bottom:8px;
+  display:flex;gap:12px;align-items:flex-start;
+  transition:border-color 0.15s;
+}
+.pitem:hover{border-color:rgba(204,68,255,0.35);}
+.pitem-icon{
+  width:40px;height:40px;border-radius:10px;
+  background:rgba(204,68,255,0.12);border:1px solid rgba(204,68,255,0.25);
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;flex-shrink:0;
+}
+.pitem-body{flex:1;min-width:0;}
+.pitem-name{font-family:'Cinzel Decorative',serif;font-size:11px;color:#ee88ff;letter-spacing:1px;margin-bottom:3px;display:flex;align-items:center;gap:6px;}
+.pitem-rarity{font-size:9px;font-family:'JetBrains Mono',monospace;padding:1px 6px;border-radius:8px;}
+.r-common{background:rgba(136,135,128,0.25);color:#B4B2A9;}
+.r-rare{background:rgba(55,138,221,0.2);color:#85B7EB;}
+.r-epic{background:rgba(127,119,221,0.2);color:#AFA9EC;}
+.r-legendary{background:rgba(239,159,39,0.2);color:#FAC775;}
+.pitem-desc{font-size:11px;color:rgba(255,255,255,0.45);line-height:1.55;margin-bottom:6px;}
+.pitem-mechanic{font-size:9px;font-family:'JetBrains Mono',monospace;color:rgba(204,68,255,0.4);letter-spacing:0.5px;margin-bottom:8px;}
+.pitem-footer{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.pitem-price{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--gold2);}
+.pitem-owned{font-size:10px;font-family:'JetBrains Mono',monospace;color:rgba(0,255,136,0.6);}
+.pbuy-btn{
+  font-family:'Cinzel Decorative',serif;font-size:9px;letter-spacing:1px;
+  padding:5px 14px;border-radius:8px;border:1px solid rgba(204,68,255,0.4);
+  background:rgba(204,68,255,0.1);color:#cc44ff;cursor:pointer;
+  transition:all 0.15s;-webkit-tap-highlight-color:transparent;
+  white-space:nowrap;
+}
+.pbuy-btn:hover{background:rgba(204,68,255,0.22);border-color:#cc44ff;}
+.pbuy-btn:disabled{opacity:0.3;cursor:not-allowed;}
+.pbuy-btn.owned{background:rgba(0,255,136,0.08);border-color:rgba(0,255,136,0.3);color:rgba(0,255,136,0.6);}
+
+/* In-game: tombol shop floating kiri */
+#shopBtn{
+  position:fixed;left:12px;bottom:140px;z-index:50;
+  width:42px;height:42px;border-radius:50%;border:1px solid rgba(204,68,255,0.45);
+  background:rgba(6,13,16,0.88);color:#cc44ff;font-size:20px;
+  cursor:pointer;display:none;align-items:center;justify-content:center;
+  box-shadow:0 2px 12px rgba(0,0,0,0.6);
+  transition:transform 0.15s,background 0.15s;
+  -webkit-tap-highlight-color:transparent;
+}
+#shopBtn:hover{background:rgba(20,8,35,0.95);transform:scale(1.1);}
+#shopBtn.game-open{display:flex;}
+/* Badge jumlah power card yang dimiliki */
+#shopBtnBadge{
+  position:absolute;top:-3px;right:-3px;
+  width:16px;height:16px;border-radius:50%;
+  background:#cc44ff;color:#fff;
+  font-size:9px;font-family:'JetBrains Mono',monospace;font-weight:700;
+  display:none;align-items:center;justify-content:center;
+}
+#shopBtnBadge.show{display:flex;}
+
+/* In-game power bar — kartu yang dimiliki, muncul di atas tangan */
+#powerBar{
+  display:none;flex-wrap:wrap;gap:5px;
+  justify-content:center;padding:4px 12px 2px;
+}
+#powerBar.show{display:flex;}
+.power-chip{
+  display:flex;align-items:center;gap:4px;
+  background:rgba(204,68,255,0.1);border:1px solid rgba(204,68,255,0.35);
+  border-radius:20px;padding:3px 10px;cursor:pointer;
+  font-size:10px;font-family:'JetBrains Mono',monospace;color:#cc44ff;
+  transition:all 0.15s;-webkit-tap-highlight-color:transparent;
+  white-space:nowrap;
+}
+.power-chip:hover{background:rgba(204,68,255,0.2);border-color:#cc44ff;}
+.power-chip.active{background:rgba(204,68,255,0.3);border-color:#ee88ff;color:#fff;
+  box-shadow:0 0 10px rgba(204,68,255,0.4);}
+.power-chip .pc-icon{font-size:14px;}
+.power-chip .pc-name{font-size:9px;letter-spacing:0.5px;}
+.power-chip .pc-qty{
+  background:rgba(204,68,255,0.3);border-radius:8px;
+  padding:0px 5px;font-size:8px;
+}
+
+/* Target picker overlay — pilih target player saat pakai Zap/Spy/Swap */
+#targetPicker{
+  position:fixed;inset:0;z-index:85;display:none;
+  align-items:center;justify-content:center;
+  background:rgba(0,0,0,0.7);
+}
+#targetPicker.open{display:flex;}
+.target-box{
+  background:linear-gradient(150deg,rgba(18,8,30,0.99),rgba(6,13,16,0.99));
+  border:1px solid rgba(204,68,255,0.45);border-radius:18px;
+  padding:24px 28px;width:min(320px,92vw);text-align:center;
+  box-shadow:0 0 40px rgba(204,68,255,0.12),0 20px 60px rgba(0,0,0,0.9);
+}
+.target-title{font-family:'Cinzel Decorative',serif;font-size:12px;color:#cc44ff;letter-spacing:2px;margin-bottom:6px;}
+.target-sub{font-size:10px;font-family:'JetBrains Mono',monospace;color:rgba(204,68,255,0.45);margin-bottom:16px;}
+.target-btns{display:flex;flex-direction:column;gap:7px;}
+.target-btn{
+  background:rgba(0,0,0,0.4);border:1px solid rgba(204,68,255,0.25);
+  border-radius:10px;padding:10px 14px;cursor:pointer;
+  font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--gold3);
+  transition:all 0.15s;-webkit-tap-highlight-color:transparent;
+  display:flex;align-items:center;gap:8px;
+}
+.target-btn:hover{background:rgba(204,68,255,0.1);border-color:#cc44ff;color:#fff;}
+.target-cancel{
+  margin-top:10px;font-size:11px;color:rgba(204,68,255,0.4);
+  cursor:pointer;font-family:'JetBrains Mono',monospace;
+  background:none;border:none;transition:color 0.15s;
+}
+.target-cancel:hover{color:#cc44ff;}
+
+/* Notif power card */
+.npill.power{border-color:#cc44ff;color:#ee88ff;box-shadow:0 0 16px rgba(204,68,255,0.25);}
+
+/* Blackout effect — kartu lawan tampil nilai "?" */
+.card.blacked .cv,.card.blacked .cb2 .cv{color:rgba(180,150,220,0.7)!important;}
+.card.blacked .cv::after{content:'?';position:absolute;left:0;right:0;text-align:center;}
+.card-val-hidden{opacity:0!important;}
+.card.blacked .card-img-wrap{filter:brightness(0.15) saturate(0) hue-rotate(260deg)!important;}
+
 </style>
 </head>
 <body>
@@ -1408,6 +1593,7 @@ button,input{touch-action:manipulation;cursor:pointer;}
     <!-- Ready button (shown to all after first game or while waiting) -->
     <button class="btn btn-ready" id="btnReady" onclick="toggleReady()" style="display:none;">✓ SIAP MAIN</button>
     <button class="btn btn-gold" id="btnStart" onclick="hostStart()" style="display:none;">▶ MULAI GAME</button>
+    <button class="btn btn-shop" onclick="openShop()">🏪 TOKO KEKUATAN</button>
     <button class="btn btn-red" onclick="doLeave()">✕ Keluar Room</button>
   </div>
 </div>
@@ -1447,6 +1633,8 @@ button,input{touch-action:manipulation;cursor:pointer;}
     </div>
     <div id="playerArea">
       <div id="comboHint">Pilih kartu untuk dimainkan</div>
+      <!-- Power bar — kartu kekuatan yang dimiliki -->
+      <div id="powerBar"></div>
       <!-- Chip bar — compact pill, satu baris dengan myplate -->
       <div id="chipBar">
         <div class="chip-pill">
@@ -1471,6 +1659,46 @@ button,input{touch-action:manipulation;cursor:pointer;}
 <div id="notif"></div>
 <div id="endModal"></div>
 <div id="posAnnounce"></div>
+
+<!-- SHOP FLOATING BTN (in-game) -->
+<button id="shopBtn" onclick="openShop()">
+  <span style="font-size:20px;">🏪</span>
+  <div id="shopBtnBadge"></div>
+</button>
+
+<!-- SHOP MODAL -->
+<div id="shopModal">
+  <div class="shop-box">
+    <div class="shop-header">
+      <div class="shop-title-row">
+        <div class="shop-title-txt">🏪 TOKO KEKUATAN</div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div class="shop-chips-disp">💰 <span id="shopChipDisp">0</span></div>
+          <button class="shop-close" onclick="closeShop()">✕</button>
+        </div>
+      </div>
+      <div class="shop-sub-hdr">Beli kartu kekuatan — aktifkan saat bermain</div>
+      <div class="shop-tabs" id="shopTabs">
+        <button class="stab active" onclick="filterShop('all')">SEMUA</button>
+        <button class="stab" onclick="filterShop('def')">🛡 DEFENSIF</button>
+        <button class="stab" onclick="filterShop('off')">⚡ OFENSIF</button>
+        <button class="stab" onclick="filterShop('util')">✨ UTILITAS</button>
+        <button class="stab" onclick="filterShop('dis')">🌀 GANGGUAN</button>
+      </div>
+    </div>
+    <div class="shop-body" id="shopBody"></div>
+  </div>
+</div>
+
+<!-- TARGET PICKER -->
+<div id="targetPicker">
+  <div class="target-box">
+    <div class="target-title" id="targetTitle">PILIH TARGET</div>
+    <div class="target-sub" id="targetSub">Pilih pemain yang ingin diserang</div>
+    <div class="target-btns" id="targetBtns"></div>
+    <button class="target-cancel" onclick="closeTargetPicker()">✕ Batal</button>
+  </div>
+</div>
 <div id="winCelebration"><div class="win-wrap"><div class="win-text">MENANG!</div><div class="win-sub">KAMU JUARA 🏆</div></div></div>
 
 <!-- BET MODAL -->
@@ -3467,29 +3695,48 @@ const sc=s=>(s===0||s===2)?'r':'b';
 const vd=v=>String(v);
 
 function mkCardHTML(c,idx,selectable,selected,dimmed=false){
+  // Joker card special display
+  if(c.isJoker){
+    const selCls=selected?'sel':'';
+    const nhCls=(!selectable||dimmed)?'nh':'';
+    const isTouch='ontouchstart' in window;
+    const click=(!isTouch&&selectable&&!dimmed)?`onclick="toggleCard(${idx})"` :'';
+    const zStyle=selected?`style="z-index:${50+idx}"`:`style="z-index:${idx+1}"`;
+    const dragAttrs=isTouch?'':`draggable="true" ondragstart="handleCardDragStart(event,${idx})" ondragover="handleCardDragOver(event,${idx})" ondragend="handleCardDragEnd(event)" ondrop="handleCardDrop(event,${idx})"`;
+    return `<div class="card b ${selCls} ${nhCls}" ${click} ${zStyle} ${dragAttrs} data-idx="${idx}" title="Joker">
+      <div class="ct"><span class="cv" style="color:#cc44ff">★</span><span class="cs" style="color:#cc44ff">J</span></div>
+      <span class="cc" style="color:#cc44ff;font-size:22px;">✨</span>
+      <div class="cb2"><span class="cv" style="color:#cc44ff">★</span><span class="cs" style="color:#cc44ff">J</span></div>
+    </div>`;
+  }
   const col=sc(c.suit),sym=SUITS[c.suit],v=vd(c.val);
   const selCls=selected?'sel':'';
   const nhCls=(!selectable||dimmed)?'nh':'';
   const dimStyle=dimmed?'opacity:0.35;filter:grayscale(0.6);':'';
-  const fcCls='';
-  const click=selectable&&!dimmed?`onclick="toggleCard(${idx})"` :'';
+  const isTouch='ontouchstart' in window;
+  const click=(!isTouch&&selectable&&!dimmed)?`onclick="toggleCard(${idx})"` :'';
   const zStyle=selected?`style="z-index:${50+idx};${dimStyle}"`:`style="z-index:${idx+1};${dimStyle}"`;
   const imgKey=`${c.val}_${c.suit}`;
   const imgSrc=CARD_IMAGES[imgKey]||'';
-  const imgHtml=imgSrc?`<div class="card-img-wrap"><img src="${imgSrc}" alt="${v}${sym}"></div>`:'';
-  const hasCls=imgSrc?' has-img':'';
-  return `<div class="card ${col} ${selCls} ${nhCls} ${fcCls}${hasCls}" ${click} ${zStyle}
-    draggable="true"
-    data-idx="${idx}"
+  // Blackout: sembunyikan nilai kartu, suit tetap kelihatan
+  const isBlacked = (typeof activePowers!=='undefined') && activePowers && activePowers.blackout;
+  const imgHtml = (imgSrc && !isBlacked)
+    ? `<div class="card-img-wrap"><img src="${imgSrc}" alt="${v}${sym}"></div>` : '';
+  const hasCls = (imgSrc && !isBlacked) ? ' has-img' : '';
+  const displayV = isBlacked ? '?' : v;
+  const dragAttrs=isTouch?'':`draggable="true"
     ondragstart="handleCardDragStart(event,${idx})"
     ondragover="handleCardDragOver(event,${idx})"
     ondragend="handleCardDragEnd(event)"
-    ondrop="handleCardDrop(event,${idx})"
-    title="${v}${sym}">
+    ondrop="handleCardDrop(event,${idx})"`;
+  return `<div class="card ${col} ${selCls} ${nhCls}${hasCls}" ${click} ${zStyle}
+    ${dragAttrs}
+    data-idx="${idx}"
+    title="${isBlacked?sym:v+sym}">
     ${imgHtml}
-    <div class="ct"><span class="cv">${v}</span><span class="cs">${sym}</span></div>
+    <div class="ct"><span class="cv">${displayV}</span><span class="cs">${sym}</span></div>
     <span class="cc">${sym}</span>
-    <div class="cb2"><span class="cv">${v}</span><span class="cs">${sym}</span></div>
+    <div class="cb2"><span class="cv">${displayV}</span><span class="cs">${sym}</span></div>
   </div>`;
 }
 
@@ -4328,16 +4575,628 @@ const _origBeginGame = beginGame;
 window.beginGame = function(opts){
   _origBeginGame(opts);
   document.getElementById('emoteBtn').classList.add('game-open');
+  document.getElementById('shopBtn').classList.add('game-open');
+  renderPowerBar();
 };
 const _origReturnToLobby = returnToLobby;
 window.returnToLobby = function(){
   _origReturnToLobby();
   document.getElementById('emoteBtn').classList.remove('game-open');
   document.getElementById('emotePicker').classList.remove('open');
+  document.getElementById('shopBtn').classList.remove('game-open');
+  document.getElementById('powerBar').classList.remove('show');
   const bar = document.getElementById('chipBar');
   if(bar) bar.classList.remove('show');
   renderSlots();
 };
+
+// ══════════════════════════════════════════
+//  POWER SHOP SYSTEM
+// ══════════════════════════════════════════
+
+// Katalog semua kartu kekuatan
+const POWER_CATALOG = [
+  {
+    id:'shield', name:'Shield', icon:'🛡️', cat:'def', rarity:'rare',
+    price:150, maxOwn:2,
+    desc:'Saat kamu pasang Poker (angka 2) dan dilawan Bomb — Shield aktif otomatis. Kamu tidak langsung kalah, permainan berlanjut normal.',
+    mechanic:'Sekali pakai · auto-trigger saat di-Bomb'
+  },
+  {
+    id:'mirror', name:'Mirror', icon:'🪞', cat:'def', rarity:'epic',
+    price:300, maxOwn:1,
+    desc:'Ketika kamu di-Bomb, efek Bomb berbalik ke pemain yang menyerang. Pemain itu yang langsung ke posisi terakhir.',
+    mechanic:'Sekali pakai · auto-trigger saat di-Bomb'
+  },
+  {
+    id:'ghost', name:'Ghost', icon:'👻', cat:'def', rarity:'common',
+    price:100, maxOwn:3,
+    desc:'Aktifkan di giliranmu untuk skip satu putaran tanpa dihitung sebagai "skip". Meja tetap terbuka untukmu setelah putaran.',
+    mechanic:'Sekali pakai · aktifkan manual saat giliranmu'
+  },
+  {
+    id:'zap', name:'Zap', icon:'⚡', cat:'off', rarity:'rare',
+    price:200, maxOwn:2,
+    desc:'Paksa salah satu pemain lain untuk skip giliran mereka berikutnya. Cocok dipakai saat lawan hampir habis kartu.',
+    mechanic:'Sekali pakai · pilih target pemain'
+  },
+  {
+    id:'spy', name:'Spy', icon:'🔍', cat:'off', rarity:'common',
+    price:120, maxOwn:3,
+    desc:'Intip tangan kartu salah satu pemain lain selama 4 detik. Hanya kamu yang bisa melihat.',
+    mechanic:'Sekali pakai · pilih target pemain'
+  },
+  {
+    id:'swap', name:'Swap', icon:'🔀', cat:'off', rarity:'rare',
+    price:180, maxOwn:2,
+    desc:'Tukar 1 kartu acak dari tanganmu dengan 1 kartu acak dari tangan pemain lain.',
+    mechanic:'Sekali pakai · pilih target pemain'
+  },
+  {
+    id:'timewarp', name:'Time Warp', icon:'⏱️', cat:'util', rarity:'common',
+    price:80, maxOwn:3,
+    desc:'Tambah 15 detik ekstra ke timer giliranmu satu kali. Berguna saat perlu waktu menyusun strategi combo.',
+    mechanic:'Sekali pakai · aktifkan saat giliranmu'
+  },
+  {
+    id:'wilddraw', name:'Wild Draw', icon:'🃏', cat:'util', rarity:'common',
+    price:90, maxOwn:2,
+    desc:'Ambil 2 kartu acak dari sisa dek. Risiko: bisa dapat kartu bagus atau jelek.',
+    mechanic:'Sekali pakai · aktifkan kapan saja saat giliranmu'
+  },
+  {
+    id:'joker', name:'Joker', icon:'✨', cat:'util', rarity:'legendary',
+    price:350, maxOwn:1,
+    desc:'Kartu liar yang bisa menggantikan satu slot dalam combo (pair, triple, atau sequence) sebagai nilai apa saja.',
+    mechanic:'Kartu tambahan di tangan · sekali pakai'
+  },
+  {
+    id:'chaos', name:'Chaos', icon:'🌀', cat:'dis', rarity:'epic',
+    price:250, maxOwn:1,
+    desc:'Kocok ulang kartu di tangan semua pemain secara acak. Posisi giliran tidak berubah, hanya kartu yang bertukar.',
+    mechanic:'Sekali pakai · efek semua pemain'
+  },
+  {
+    id:'blackout', name:'Blackout', icon:'🌑', cat:'dis', rarity:'epic',
+    price:280, maxOwn:1,
+    desc:'Semua pemain lain tidak bisa melihat nilai kartu mereka (tampil "?") selama 1 putaran penuh. Kamu tetap bisa melihat tanganmu normal.',
+    mechanic:'Sekali pakai · efek 1 putaran penuh'
+  },
+  {
+    id:'rewind', name:'Rewind', icon:'⏪', cat:'dis', rarity:'rare',
+    price:160, maxOwn:2,
+    desc:'Balikkan urutan giliran selama 2 putaran — yang tadinya searah jarum jam jadi berlawanan, lalu kembali normal.',
+    mechanic:'Sekali pakai · aktifkan kapan saja saat giliranmu'
+  }
+];
+
+const RARITY_LABEL = {common:'Biasa', rare:'Langka', epic:'Epik', legendary:'Legendaris'};
+
+// State power untuk player ini (persisten selama sesi)
+// Format: { [cardId]: qty }
+let myPowers = {};
+// State efek aktif di game
+let activePowers = {
+  blackout: false,       // apakah blackout sedang aktif
+  blackoutRounds: 0,     // sisa putaran blackout
+  zapTarget: -1,         // slot pemain yang kena zap (skip next turn)
+  rewindActive: false,   // urutan giliran terbalik
+  rewindRounds: 0,       // sisa putaran rewind
+  ghostActive: false,    // ghost aktif untuk giliran ini
+};
+let _shopFilter = 'all';
+let _pendingPower = null; // power yang sedang menunggu target
+
+// ── Hitung chip saat ini milik player ──
+function getMyChips(){
+  if(!G||!myId) return chipSession[myId]?.chips ?? 1000;
+  const me = G.players[G.mySlot];
+  return chipSession[me?.id]?.chips ?? chipSession[myId]?.chips ?? 1000;
+}
+
+// ── Buka/tutup shop ──
+function openShop(){
+  renderShopBody();
+  document.getElementById('shopChipDisp').textContent = getMyChips().toLocaleString();
+  document.getElementById('shopModal').classList.add('open');
+}
+function closeShop(){
+  document.getElementById('shopModal').classList.remove('open');
+}
+
+// ── Filter tab ──
+function filterShop(cat){
+  _shopFilter = cat;
+  document.querySelectorAll('.stab').forEach(t=>{
+    t.classList.toggle('active', t.textContent.toLowerCase().includes(
+      cat==='all'?'semua':cat==='def'?'defensif':cat==='off'?'ofensif':cat==='util'?'utilitas':'gangguan'
+    ));
+  });
+  renderShopBody();
+}
+
+// ── Render isi shop ──
+function renderShopBody(){
+  const chips = getMyChips();
+  const list = _shopFilter==='all' ? POWER_CATALOG : POWER_CATALOG.filter(p=>p.cat===_shopFilter);
+  document.getElementById('shopBody').innerHTML = list.map(p=>{
+    const owned = myPowers[p.id]||0;
+    const canBuy = chips >= p.price && owned < p.maxOwn;
+    const maxed = owned >= p.maxOwn;
+    return `<div class="pitem">
+      <div class="pitem-icon">${p.icon}</div>
+      <div class="pitem-body">
+        <div class="pitem-name">
+          ${p.name}
+          <span class="pitem-rarity r-${p.rarity}">${RARITY_LABEL[p.rarity]}</span>
+        </div>
+        <div class="pitem-desc">${p.desc}</div>
+        <div class="pitem-mechanic">${p.mechanic}</div>
+        <div class="pitem-footer">
+          <span class="pitem-price">💰 ${p.price} chip</span>
+          <div style="display:flex;align-items:center;gap:6px;">
+            ${owned>0?`<span class="pitem-owned">Punya: ${owned}/${p.maxOwn}</span>`:''}
+            <button class="pbuy-btn ${maxed?'owned':''}" onclick="buyPower('${p.id}')"
+              ${(!canBuy&&!maxed)||maxed?'disabled':''}>
+              ${maxed?'PENUH':canBuy?'BELI':'KURANG'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── Beli power ──
+function buyPower(id){
+  const p = POWER_CATALOG.find(x=>x.id===id);
+  if(!p) return;
+  const chips = getMyChips();
+  const owned = myPowers[id]||0;
+  if(chips < p.price || owned >= p.maxOwn) return;
+
+  // Kurangi chip
+  const pid = G ? G.players[G.mySlot]?.id : myId;
+  if(chipSession[pid]) chipSession[pid].chips -= p.price;
+  else if(chipSession[myId]) chipSession[myId].chips -= p.price;
+
+  myPowers[id] = (myPowers[id]||0) + 1;
+  SFX.ready();
+  showNotif(`${p.icon} ${p.name} dibeli!`, false);
+  document.getElementById('shopChipDisp').textContent = getMyChips().toLocaleString();
+  updateChipHud();
+  renderShopBody();
+  renderPowerBar();
+  updateShopBadge();
+}
+
+// ── Render power bar di in-game ──
+function renderPowerBar(){
+  const bar = document.getElementById('powerBar');
+  if(!bar) return;
+  const owned = POWER_CATALOG.filter(p=>(myPowers[p.id]||0)>0);
+  if(!owned.length){ bar.classList.remove('show'); return; }
+  bar.classList.add('show');
+  bar.innerHTML = owned.map(p=>`
+    <div class="power-chip" onclick="activatePower('${p.id}')" title="${p.desc}">
+      <span class="pc-icon">${p.icon}</span>
+      <span class="pc-name">${p.name.toUpperCase()}</span>
+      <span class="pc-qty">${myPowers[p.id]}</span>
+    </div>`).join('');
+}
+
+// ── Badge angka di shopBtn ──
+function updateShopBadge(){
+  const total = Object.values(myPowers).reduce((a,b)=>a+b,0);
+  const badge = document.getElementById('shopBtnBadge');
+  if(!badge) return;
+  if(total>0){ badge.textContent=total; badge.classList.add('show'); }
+  else badge.classList.remove('show');
+}
+
+// ── Aktifkan power card ──
+function activatePower(id){
+  if(!G||G.phase==='end') return;
+  const p = POWER_CATALOG.find(x=>x.id===id);
+  if(!p || !(myPowers[id]>0)) return;
+
+  // Power yang butuh giliran sendiri
+  const needsMyTurn = ['ghost','timewarp','wilddraw','rewind','chaos','blackout'];
+  if(needsMyTurn.includes(id) && G.current !== G.mySlot){
+    showNotif('⚠ Hanya bisa dipakai saat giliranmu!'); return;
+  }
+
+  // Power yang butuh target
+  const needsTarget = ['zap','spy','swap'];
+  if(needsTarget.includes(id)){
+    openTargetPicker(id); return;
+  }
+
+  // Langsung aktif
+  _usePower(id, -1);
+}
+
+// ── Target picker ──
+let _targetCallback = null;
+function openTargetPicker(powerId){
+  if(!G) return;
+  _pendingPower = powerId;
+  const p = POWER_CATALOG.find(x=>x.id===powerId);
+  document.getElementById('targetTitle').textContent = `${p.icon} GUNAKAN ${p.name.toUpperCase()}`;
+  document.getElementById('targetSub').textContent = 'Pilih pemain target';
+  const btns = document.getElementById('targetBtns');
+  const others = [0,1,2,3].filter(i=>i!==G.mySlot && !G.finished.includes(i));
+  btns.innerHTML = others.map(i=>`
+    <button class="target-btn" onclick="confirmTarget(${i})">
+      <span style="font-size:16px;">${G.players[i].isBot?'🤖':'👤'}</span>
+      <span>${G.players[i].name}</span>
+      <span style="font-size:10px;color:rgba(204,68,255,0.5);margin-left:auto;">${G.hands[i].length} kartu</span>
+    </button>`).join('');
+  document.getElementById('targetPicker').classList.add('open');
+}
+function closeTargetPicker(){
+  _pendingPower = null;
+  document.getElementById('targetPicker').classList.remove('open');
+}
+function confirmTarget(slot){
+  closeTargetPicker();
+  if(_pendingPower) _usePower(_pendingPower, slot);
+}
+
+// ── Eksekusi power ──
+function _usePower(id, targetSlot){
+  if(!(myPowers[id]>0)) return;
+  myPowers[id]--;
+  if(myPowers[id]<=0) delete myPowers[id];
+  renderPowerBar();
+  updateShopBadge();
+
+  const ms = G.mySlot;
+  const myName = G.players[ms].name;
+
+  switch(id){
+
+    case 'shield':
+      // Shield dipasang otomatis — ditandai di state
+      activePowers.shieldActive = true;
+      showNotif('🛡️ Shield aktif! Kamu terlindungi dari Bomb sekali.',false);
+      if(chan) chan.publish('m', JSON.stringify({type:'power_use',power:'shield',from:myId,fromSlot:ms}));
+      break;
+
+    case 'mirror':
+      activePowers.mirrorActive = true;
+      showNotif('🪞 Mirror siap! Bomb berikutnya akan berbalik.',false);
+      if(chan) chan.publish('m', JSON.stringify({type:'power_use',power:'mirror',from:myId,fromSlot:ms}));
+      break;
+
+    case 'ghost':
+      activePowers.ghostActive = true;
+      showNotif('👻 Ghost aktif! Skip giliran ini tidak terhitung.',false);
+      // Auto-skip untuk giliran ini
+      if(G.current===ms) playerSkip();
+      break;
+
+    case 'timewarp':
+      extendTimer(15);
+      showNotif('⏱️ +15 detik waktu tambahan!',false);
+      break;
+
+    case 'wilddraw':{
+      // Ambil 2 kartu acak dari "sisa dek" — simulasi: kartu acak dari nilai yang belum ada di tangan
+      const allVals = [3,4,5,6,7,8,9,10,11,12,13,1,2];
+      const allSuits = [0,1,2,3];
+      const myHand = G.hands[ms];
+      const myIds = new Set(myHand.map(c=>`${c.val}_${c.suit}`));
+      const pool = [];
+      allVals.forEach(v=>allSuits.forEach(s=>{
+        const k=`${v}_${s}`;
+        if(!myIds.has(k)) pool.push({val:v,suit:s,id:`wild_${v}_${s}_${Date.now()}`});
+      }));
+      for(let i=0;i<2&&pool.length;i++){
+        const idx=Math.floor(Math.random()*pool.length);
+        const card=pool.splice(idx,1)[0];
+        G.hands[ms].push(card);
+      }
+      renderGame();
+      showNotif('🃏 2 kartu baru ditambahkan ke tanganmu!',false);
+      break;
+    }
+
+    case 'chaos':
+      // Kocok ulang kartu semua pemain
+      if(isHost){
+        _applyChaosShuffle();
+        if(chan) chan.publish('m', JSON.stringify({type:'power_chaos',from:myId,fromSlot:ms,hands:G.hands}));
+      } else {
+        if(chan) chan.publish('m', JSON.stringify({type:'power_req',power:'chaos',from:myId,fromSlot:ms}));
+      }
+      showNotif('🌀 CHAOS! Semua kartu dikocok ulang!',true);
+      break;
+
+    case 'blackout':
+      activePowers.blackout = true;
+      activePowers.blackoutRounds = 1;
+      applyBlackoutEffect(true);
+      showNotif('🌑 BLACKOUT! Pemain lain tidak bisa melihat nilai kartunya!',true);
+      if(chan) chan.publish('m', JSON.stringify({type:'power_use',power:'blackout',from:myId,fromSlot:ms}));
+      break;
+
+    case 'rewind':
+      activePowers.rewindActive = true;
+      activePowers.rewindRounds = 2;
+      showNotif('⏪ REWIND! Urutan giliran terbalik selama 2 putaran!',true);
+      if(chan) chan.publish('m', JSON.stringify({type:'power_use',power:'rewind',from:myId,fromSlot:ms}));
+      break;
+
+    case 'zap':
+      activePowers.zapTarget = targetSlot;
+      showNotif(`⚡ ZAP! ${G.players[targetSlot].name} akan di-skip giliran berikutnya!`,false);
+      if(chan) chan.publish('m', JSON.stringify({type:'power_use',power:'zap',from:myId,fromSlot:ms,target:targetSlot}));
+      break;
+
+    case 'spy':{
+      // Tampilkan kartu target selama 4 detik
+      const tHand = G.hands[targetSlot];
+      const tName = G.players[targetSlot].name;
+      _showSpyOverlay(tName, tHand);
+      showNotif(`🔍 Mengintip tangan ${tName}...`,false);
+      break;
+    }
+
+    case 'swap':{
+      if(!isHost){
+        if(chan) chan.publish('m', JSON.stringify({type:'power_req',power:'swap',from:myId,fromSlot:ms,target:targetSlot}));
+      } else {
+        _applySwap(ms, targetSlot);
+      }
+      showNotif(`🔀 SWAP! 1 kartu ditukar dengan ${G.players[targetSlot].name}!`,false);
+      break;
+    }
+
+    case 'joker':{
+      // Tambah 1 kartu joker ke tangan
+      const jokerCard = {val:99, suit:0, id:'joker_'+Date.now(), isJoker:true};
+      G.hands[ms].push(jokerCard);
+      renderGame();
+      showNotif('✨ Kartu Joker ditambahkan ke tanganmu!',false);
+      break;
+    }
+  }
+
+  SFX.bomb && id==='chaos' ? SFX.bomb() : SFX.cardPlay();
+}
+
+// ── Chaos shuffle ──
+function _applyChaosShuffle(){
+  if(!G||!isHost) return;
+  // Kumpulkan semua kartu lalu bagi ulang secara acak
+  const allCards = [];
+  const counts = G.hands.map(h=>h.length);
+  G.hands.forEach(h=>allCards.push(...h));
+  // Fisher-Yates shuffle
+  for(let i=allCards.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [allCards[i],allCards[j]]=[allCards[j],allCards[i]];
+  }
+  let idx=0;
+  G.hands.forEach((h,i)=>{ G.hands[i]=allCards.slice(idx,idx+counts[i]); idx+=counts[i]; });
+  bcastState();
+  renderGame();
+}
+
+// ── Swap kartu ──
+function _applySwap(fromSlot, toSlot){
+  if(!G||!isHost) return;
+  const fHand = G.hands[fromSlot];
+  const tHand = G.hands[toSlot];
+  if(!fHand.length||!tHand.length) return;
+  const fi = Math.floor(Math.random()*fHand.length);
+  const ti = Math.floor(Math.random()*tHand.length);
+  const tmp = fHand[fi];
+  fHand[fi] = tHand[ti];
+  tHand[ti] = tmp;
+  bcastState();
+  renderGame();
+}
+
+// ── Spy overlay ──
+function _showSpyOverlay(name, hand){
+  const ov = document.createElement('div');
+  ov.style.cssText=`position:fixed;inset:0;z-index:300;background:rgba(0,0,0,0.88);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;
+    pointer-events:none;animation:fadeIn 0.3s ease;`;
+  ov.innerHTML=`
+    <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:3px;color:#cc44ff;margin-bottom:4px;">
+      🔍 TANGAN ${name.toUpperCase()}
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;max-width:320px;">
+      ${hand.map(c=>{
+        const col=(c.suit===0||c.suit===2)?'r':'b';
+        const sym=SUITS[c.suit];
+        const imgKey=`${c.val}_${c.suit}`;
+        const imgSrc=CARD_IMAGES[imgKey]||'';
+        const imgHtml=imgSrc?`<div class="card-img-wrap"><img src="${imgSrc}" alt="${c.val}${sym}"></div>`:'';
+        return `<div class="card ${col} nh${imgSrc?' has-img':''}" style="width:46px;height:68px;pointer-events:none;">
+          ${imgHtml}
+          <div class="ct"><span class="cv">${c.val}</span><span class="cs">${sym}</span></div>
+          <span class="cc">${sym}</span>
+        </div>`;
+      }).join('')}
+    </div>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(204,68,255,0.4);margin-top:6px;">
+      Menghilang dalam 4 detik...
+    </div>`;
+  document.body.appendChild(ov);
+  setTimeout(()=>ov.remove(), 4000);
+}
+
+// ── Blackout effect: sembunyikan nilai kartu lawan ──
+function applyBlackoutEffect(active){
+  activePowers.blackout = active;
+  // Di client lawan: kartu mereka sendiri tampil normal, tapi kita render ulang
+  // Ini dihandle di mkCardHTML via flag global
+  renderGame();
+}
+
+// ── Intercept advanceTurn untuk handle rewind + zap + blackout countdown ──
+const _origAdvanceTurn = advanceTurn;
+window.advanceTurn = function(){
+  if(!G||G.phase==='end') return;
+
+  // Rewind: balik arah giliran
+  if(activePowers.rewindActive){
+    let prev = (G.current - 1 + 4) % 4;
+    let tries = 0;
+    while(G.finished.includes(prev) && tries<4){ prev=(prev-1+4)%4; tries++; }
+    if(!G.finished.includes(prev)){
+      G.current = prev;
+      // Cek apakah satu putaran selesai (kembali ke lastPlayedBy atau semua sudah jalan)
+      proceedTurn();
+      return;
+    }
+  }
+
+  // Zap: skip giliran pemain yang kena zap
+  if(activePowers.zapTarget >= 0){
+    const next = _getNextPlayer(G.current);
+    if(next === activePowers.zapTarget){
+      activePowers.zapTarget = -1;
+      showNotif(`⚡ ${G.players[next].name} di-ZAP! Skip giliran!`);
+      G.skipped[next] = true;
+      G.current = next;
+      // langsung advance lagi
+      _origAdvanceTurn();
+      return;
+    }
+  }
+
+  _origAdvanceTurn();
+};
+
+function _getNextPlayer(cur){
+  let next=(cur+1)%4, tries=0;
+  while(G.finished.includes(next)&&tries<4){next=(next+1)%4;tries++;}
+  return next;
+}
+
+// ── Intercept applySkip untuk handle Ghost ──
+const _origApplySkip = applySkip;
+window.applySkip = function(pidx){
+  if(pidx === G.mySlot && activePowers.ghostActive){
+    activePowers.ghostActive = false;
+    // Skip tidak dihitung — tidak set G.skipped[pidx], langsung advance
+    showNotif('👻 Ghost! Skip tidak terhitung.');
+    advanceTurn();
+    if(isHost) bcastState();
+    renderGame();
+    return;
+  }
+  _origApplySkip(pidx);
+};
+
+// ── Intercept triggerPokerBombEnd untuk Shield & Mirror ──
+const _origTriggerPokerBombEnd = triggerPokerBombEnd;
+window.triggerPokerBombEnd = function(pokerIdx, bombIdx, bombCombo){
+  // Shield: melindungi poker player dari Bomb
+  if(pokerIdx === G.mySlot && activePowers.shieldActive){
+    activePowers.shieldActive = false;
+    showNotif('🛡️ SHIELD! Bomb diblokir — permainan berlanjut!', true);
+    // Reset poker intense, clear combo, lanjut
+    G.currentCombo = null;
+    G.prevCombo = null;
+    G.skipped = [false,false,false,false];
+    G.lastPlayedBy = -1;
+    feltStackedCards = [];
+    deactivatePokerIntense();
+    if(isHost){ bcastState(); advanceTurn(); }
+    renderGame();
+    return;
+  }
+  // Mirror: balik bomb ke penyerang
+  if(pokerIdx === G.mySlot && activePowers.mirrorActive){
+    activePowers.mirrorActive = false;
+    showNotif('🪞 MIRROR! Bomb berbalik — ' + G.players[bombIdx].name + ' yang kalah!', true);
+    // Swap: bomb player jadi kalah duluan
+    _origTriggerPokerBombEnd(bombIdx, pokerIdx, bombCombo);
+    return;
+  }
+  _origTriggerPokerBombEnd(pokerIdx, bombIdx, bombCombo);
+};
+
+// ── Handle pesan power dari network ──
+const _origHandleMsgForPower = window.handleMsg;
+window.handleMsg = function(msg){
+  let d;
+  try{ d=JSON.parse(msg.data); }catch{ return; }
+
+  if(d.type==='power_use'){
+    // Notifikasi ke semua client tentang power yang dipakai
+    const pDef = POWER_CATALOG.find(x=>x.id===d.power);
+    if(!pDef) { _origHandleMsgForPower(msg); return; }
+    if(d.from !== myId){
+      showNotif(`${pDef.icon} ${G?.players[d.fromSlot]?.name||'Pemain'} menggunakan ${pDef.name}!`);
+      // Sync efek ke semua client
+      if(d.power==='blackout'){
+        activePowers.blackout=true; activePowers.blackoutRounds=1; renderGame();
+      }
+      if(d.power==='rewind'){
+        activePowers.rewindActive=true; activePowers.rewindRounds=2;
+      }
+      if(d.power==='zap' && d.target===G?.mySlot){
+        showNotif('⚡ Kamu kena ZAP! Giliran berikutmu di-skip!');
+        activePowers.zapTarget = d.target;
+      }
+    }
+    return;
+  }
+
+  if(d.type==='power_chaos' && d.from!==myId){
+    // Terima state tangan baru dari host
+    if(d.hands && G){ G.hands=d.hands; renderGame(); }
+    showNotif('🌀 CHAOS! Kartu semua pemain dikocok ulang!', true);
+    return;
+  }
+
+  if(d.type==='power_req' && isHost){
+    if(d.power==='chaos') _applyChaosShuffle();
+    if(d.power==='swap') _applySwap(d.fromSlot, d.target);
+    return;
+  }
+
+  _origHandleMsgForPower(msg);
+};
+
+// ── Blackout countdown: kurangi sisa putaran setiap round selesai ──
+const _origApplyPlay_power = applyPlay;
+window.applyPlay = function(pidx, combo){
+  _origApplyPlay_power(pidx, combo);
+  // Setiap kali giliran penuh selesai (lastPlayedBy = pidx dan semua sudah melalui)
+  // Cek countdown blackout
+  if(activePowers.blackout && activePowers.blackoutRounds <= 0){
+    activePowers.blackout = false;
+    showNotif('🌑 Blackout selesai — kartu kembali normal.');
+    renderGame();
+  }
+};
+
+// ── Timer extend (Time Warp) ──
+function extendTimer(extraSeconds){
+  // Akses timer yang sedang berjalan dan tambah waktu
+  if(typeof _timerEnd !== 'undefined') _timerEnd += extraSeconds * 1000;
+}
+
+// ── Reset power state saat game baru ──
+const _origBeginGamePower = window.beginGame || function(){};
+window.beginGame = function(opts){
+  _origBeginGamePower(opts);
+  activePowers = {shieldActive:false, mirrorActive:false, blackout:false,
+    blackoutRounds:0, zapTarget:-1, rewindActive:false, rewindRounds:0, ghostActive:false};
+  document.getElementById('shopBtn').classList.add('game-open');
+  renderPowerBar();
+  updateShopBadge();
+};
+
+
 </script>
 </body>
 </html>
