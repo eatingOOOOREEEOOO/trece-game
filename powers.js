@@ -374,9 +374,16 @@ function _usePower(id, targetSlot){
       break;
 
     case 'zap':
+      // Set lokal (berlaku jika kita host)
       activePowers.zapTarget = targetSlot;
       showNotif(`⚡ ZAP! ${G.players[targetSlot].name} akan di-skip giliran berikutnya!`,false);
-      if(chan) chan.publish('m', JSON.stringify({type:'power_use',power:'zap',from:myId,fromSlot:ms,target:targetSlot}));
+      if(isHost){
+        // Host langsung set, broadcast notif ke semua client
+        if(chan) chan.publish('m', JSON.stringify({type:'power_use',power:'zap',from:myId,fromSlot:ms,target:targetSlot}));
+      } else {
+        // Non-host: minta host set zapTarget di sisinya (host yang jalankan advanceTurn)
+        if(chan) chan.publish('m', JSON.stringify({type:'power_req',power:'zap',from:myId,fromSlot:ms,target:targetSlot}));
+      }
       break;
 
     case 'spy':{
@@ -460,17 +467,22 @@ function _applySwap(fromSlot, toSlot){
   bcastState();
   renderGame();
 
-  // Broadcast notif swap ke semua client dengan info kartu
+  // FIX SWAP: broadcast power_use dulu agar semua client tahu swap terjadi
+  if(chan) chan.publish('m', JSON.stringify({
+    type:'power_use', power:'swap',
+    from: G.players[fromSlot].id, fromSlot
+  }));
+
+  // Broadcast notif swap ke semua client dengan info kartu personal
   if(chan) chan.publish('m', JSON.stringify({
     type:'power_swap_result',
     fromSlot, toSlot,
     fromName, toName,
-    // Hanya beritahu masing-masing pemain kartu yang mereka terima
-    cardReceivedByFrom: {val: cardTo.val, suit: cardTo.suit},   // fromSlot menerima ini
-    cardReceivedByTo:   {val: cardFrom.val, suit: cardFrom.suit} // toSlot menerima ini
+    cardReceivedByFrom: {val: cardTo.val, suit: cardTo.suit},
+    cardReceivedByTo:   {val: cardFrom.val, suit: cardFrom.suit}
   }));
 
-  // Notif lokal untuk host (yang bisa saja adalah fromSlot atau bukan)
+  // Notif lokal untuk host
   if(G.mySlot === fromSlot){
     showNotif(`🔀 SWAP berhasil! Kamu dapat ${vTo} dari ${toName}!`, false);
   } else if(G.mySlot === toSlot){
@@ -691,19 +703,29 @@ window.handleMsg = function(msg){
 
   if(d.type==='power_req' && isHost){
     if(d.power==='chaos') _applyChaosShuffle();
+
+    // FIX ZAP: host set zapTarget di sisinya agar advanceTurn bisa skip
+    if(d.power==='zap'){
+      activePowers.zapTarget = d.target;
+      // Broadcast notif power_use ke semua client (termasuk target)
+      if(chan) chan.publish('m', JSON.stringify({
+        type:'power_use', power:'zap',
+        from:d.from, fromSlot:d.fromSlot, target:d.target
+      }));
+    }
+
     if(d.power==='swap') _applySwap(d.fromSlot, d.target);
+
     if(d.power==='spy'){
-      // Host kirim data tangan target HANYA ke pemain yang request (via broadcast + filter di client)
       const targetHand = G ? G.hands[d.target] : [];
       const targetName = G ? G.players[d.target].name : '';
       if(chan) chan.publish('m', JSON.stringify({
         type:'power_spy_result',
-        to: d.from,          // hanya penerima yang boleh lihat
+        to: d.from,
         toSlot: d.fromSlot,
         targetName,
         hand: targetHand
       }));
-      // Notif ke semua bahwa spy digunakan
       if(chan) chan.publish('m', JSON.stringify({
         type:'power_use', power:'spy',
         from:d.from, fromSlot:d.fromSlot
@@ -723,7 +745,7 @@ window.handleMsg = function(msg){
 
   // Terima hasil swap (notif personal)
   if(d.type==='power_swap_result'){
-    if(!G) { _origHandleMsgForPower(msg); return; }
+    if(!G) return;
     if(G.mySlot === d.fromSlot){
       const c = d.cardReceivedByFrom;
       showNotif(`🔀 SWAP berhasil! Kamu dapat ${vd(c.val)}${SUITS[c.suit]} dari ${d.toName}!`, false);
@@ -761,7 +783,7 @@ window.beginGame = function(opts){
     blackoutCasterSlot:-1, _blackoutTimer:null,
     zapTarget:-1, rewindActive:false, rewindRounds:0, ghostActive:false};
   myPowersBought = 0; // Reset kuota pembelian per game
-  document.getElementById('shopBtn').classList.add('game-open');
+  // shopBtn tidak ditampilkan di in-game (dikelola di chips.js)
   renderPowerBar();
   updateShopBadge();
 };
