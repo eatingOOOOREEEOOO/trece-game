@@ -374,23 +374,22 @@ function _usePower(id, targetSlot){
       break;
 
     case 'zap':
-      // Set lokal (berlaku jika kita host)
       activePowers.zapTarget = targetSlot;
       showNotif(`⚡ ZAP! ${G.players[targetSlot].name} akan di-skip giliran berikutnya!`,false);
-      if(isHost){
-        // Host langsung set, broadcast notif ke semua client
-        if(chan) chan.publish('m', JSON.stringify({type:'power_use',power:'zap',from:myId,fromSlot:ms,target:targetSlot}));
-      } else {
-        // Non-host: minta host set zapTarget di sisinya (host yang jalankan advanceTurn)
-        if(chan) chan.publish('m', JSON.stringify({type:'power_req',power:'zap',from:myId,fromSlot:ms,target:targetSlot}));
-      }
+      if(chan) chan.publish('m', JSON.stringify({type:'power_use',power:'zap',from:myId,fromSlot:ms,target:targetSlot}));
       break;
 
     case 'spy':{
       const tNameSpy = G.players[targetSlot].name;
       showNotif(`🔍 Mengintip tangan ${tNameSpy}...`,false);
       if(isHost){
-        _showSpyOverlay(tNameSpy, G.hands[targetSlot]);
+        // Host langsung akses tangan target dari state game
+        const targetHand = G.hands[targetSlot] || [];
+        if(!targetHand.length){
+          showNotif('🔍 Tidak ada kartu untuk diintip.', false);
+        } else {
+          _showSpyOverlay(tNameSpy, targetHand);
+        }
       } else {
         if(chan) chan.publish('m', JSON.stringify({
           type:'power_req', power:'spy',
@@ -467,22 +466,17 @@ function _applySwap(fromSlot, toSlot){
   bcastState();
   renderGame();
 
-  // FIX SWAP: broadcast power_use dulu agar semua client tahu swap terjadi
-  if(chan) chan.publish('m', JSON.stringify({
-    type:'power_use', power:'swap',
-    from: G.players[fromSlot].id, fromSlot
-  }));
-
-  // Broadcast notif swap ke semua client dengan info kartu personal
+  // Broadcast notif swap ke semua client dengan info kartu
   if(chan) chan.publish('m', JSON.stringify({
     type:'power_swap_result',
     fromSlot, toSlot,
     fromName, toName,
-    cardReceivedByFrom: {val: cardTo.val, suit: cardTo.suit},
-    cardReceivedByTo:   {val: cardFrom.val, suit: cardFrom.suit}
+    // Hanya beritahu masing-masing pemain kartu yang mereka terima
+    cardReceivedByFrom: {val: cardTo.val, suit: cardTo.suit},   // fromSlot menerima ini
+    cardReceivedByTo:   {val: cardFrom.val, suit: cardFrom.suit} // toSlot menerima ini
   }));
 
-  // Notif lokal untuk host
+  // Notif lokal untuk host (yang bisa saja adalah fromSlot atau bukan)
   if(G.mySlot === fromSlot){
     showNotif(`🔀 SWAP berhasil! Kamu dapat ${vTo} dari ${toName}!`, false);
   } else if(G.mySlot === toSlot){
@@ -498,6 +492,17 @@ function _showSpyOverlay(name, hand){
   const old = document.getElementById('spyOverlay');
   if(old) old.remove();
 
+  // Guard: pastikan hand valid
+  if(!hand || !hand.length){
+    showNotif('🔍 Spy gagal — data kartu tidak tersedia.', false);
+    return;
+  }
+
+  // Gunakan SUITS dan vd dari scope global (didefinisikan di cards.js / ui.js)
+  const _suits = (typeof SUITS !== 'undefined') ? SUITS : ['♦','♣','♥','♠'];
+  const _vd = (typeof vd === 'function') ? vd : (v=>String(v));
+  const _cardImages = (typeof CARD_IMAGES !== 'undefined') ? CARD_IMAGES : {};
+
   const ov = document.createElement('div');
   ov.id = 'spyOverlay';
   ov.style.cssText=`position:fixed;inset:0;z-index:300;background:rgba(0,0,0,0.88);
@@ -510,10 +515,10 @@ function _showSpyOverlay(name, hand){
     <div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;max-width:360px;padding:0 12px;">
       ${hand.map(c=>{
         const col=(c.suit===0||c.suit===2)?'r':'b';
-        const sym=SUITS[c.suit];
-        const v=vd(c.val);
+        const sym=_suits[c.suit]||'?';
+        const v=_vd(c.val);
         const imgKey=`${c.val}_${c.suit}`;
-        const imgSrc=CARD_IMAGES[imgKey]||'';
+        const imgSrc=_cardImages[imgKey]||'';
         const imgHtml=imgSrc?`<div class="card-img-wrap"><img src="${imgSrc}" alt="${v}${sym}"></div>`:'';
         return `<div class="card ${col} nh${imgSrc?' has-img':''}" style="width:46px;height:68px;pointer-events:none;flex-shrink:0;">
           ${imgHtml}
@@ -703,29 +708,19 @@ window.handleMsg = function(msg){
 
   if(d.type==='power_req' && isHost){
     if(d.power==='chaos') _applyChaosShuffle();
-
-    // FIX ZAP: host set zapTarget di sisinya agar advanceTurn bisa skip
-    if(d.power==='zap'){
-      activePowers.zapTarget = d.target;
-      // Broadcast notif power_use ke semua client (termasuk target)
-      if(chan) chan.publish('m', JSON.stringify({
-        type:'power_use', power:'zap',
-        from:d.from, fromSlot:d.fromSlot, target:d.target
-      }));
-    }
-
     if(d.power==='swap') _applySwap(d.fromSlot, d.target);
-
     if(d.power==='spy'){
+      // Host kirim data tangan target HANYA ke pemain yang request (via broadcast + filter di client)
       const targetHand = G ? G.hands[d.target] : [];
       const targetName = G ? G.players[d.target].name : '';
       if(chan) chan.publish('m', JSON.stringify({
         type:'power_spy_result',
-        to: d.from,
+        to: d.from,          // hanya penerima yang boleh lihat
         toSlot: d.fromSlot,
         targetName,
         hand: targetHand
       }));
+      // Notif ke semua bahwa spy digunakan
       if(chan) chan.publish('m', JSON.stringify({
         type:'power_use', power:'spy',
         from:d.from, fromSlot:d.fromSlot
@@ -745,7 +740,7 @@ window.handleMsg = function(msg){
 
   // Terima hasil swap (notif personal)
   if(d.type==='power_swap_result'){
-    if(!G) return;
+    if(!G) { _origHandleMsgForPower(msg); return; }
     if(G.mySlot === d.fromSlot){
       const c = d.cardReceivedByFrom;
       showNotif(`🔀 SWAP berhasil! Kamu dapat ${vd(c.val)}${SUITS[c.suit]} dari ${d.toName}!`, false);
@@ -783,7 +778,7 @@ window.beginGame = function(opts){
     blackoutCasterSlot:-1, _blackoutTimer:null,
     zapTarget:-1, rewindActive:false, rewindRounds:0, ghostActive:false};
   myPowersBought = 0; // Reset kuota pembelian per game
-  // shopBtn tidak ditampilkan di in-game (dikelola di chips.js)
+  // shopBtn tidak ditampilkan di in-game
   renderPowerBar();
   updateShopBadge();
 };
