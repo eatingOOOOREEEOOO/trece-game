@@ -14,7 +14,7 @@ function mkCardHTML(c,idx,selectable,selected,dimmed=false){
     const selCls=selected?'sel':'';
     const nhCls=(!selectable||dimmed)?'nh':'';
     const isTouch='ontouchstart' in window;
-    const click=(!isTouch&&selectable&&!dimmed)?`onclick="toggleCard(${idx})"` :'';
+    const click=(selectable&&!dimmed)?`onclick="toggleCard(${idx})"` :'';
     const zStyle=selected?`style="z-index:${50+idx}"`:`style="z-index:${idx+1}"`;
     const dragAttrs=isTouch?'':`draggable="true" ondragstart="handleCardDragStart(event,${idx})" ondragover="handleCardDragOver(event,${idx})" ondragend="handleCardDragEnd(event)" ondrop="handleCardDrop(event,${idx})"`;
     return `<div class="card b ${selCls} ${nhCls}" ${click} ${zStyle} ${dragAttrs} data-idx="${idx}" title="Joker">
@@ -28,7 +28,8 @@ function mkCardHTML(c,idx,selectable,selected,dimmed=false){
   const nhCls=(!selectable||dimmed)?'nh':'';
   const dimStyle=dimmed?'opacity:0.35;filter:grayscale(0.6);':'';
   const isTouch='ontouchstart' in window;
-  const click=(!isTouch&&selectable&&!dimmed)?`onclick="toggleCard(${idx})"` :'';
+  // Fix: always attach onclick on both touch & desktop — touch devices need it for card selection
+  const click=(selectable&&!dimmed)?`onclick="toggleCard(${idx})"` :'';
   const zStyle=selected?`style="z-index:${50+idx};${dimStyle}"`:`style="z-index:${idx+1};${dimStyle}"`;
   const imgKey=`${c.val}_${c.suit}`;
   const imgSrc=CARD_IMAGES[imgKey]||'';
@@ -40,6 +41,7 @@ function mkCardHTML(c,idx,selectable,selected,dimmed=false){
     ? `<div class="card-img-wrap"><img src="${imgSrc}" alt="${v}${sym}"></div>` : '';
   const hasCls = (imgSrc && !isBlacked) ? ' has-img' : '';
   const displayV = isBlacked ? '?' : v;
+  // Drag-to-reorder hanya di desktop; touch device pakai tap-to-select
   const dragAttrs=isTouch?'':`draggable="true"
     ondragstart="handleCardDragStart(event,${idx})"
     ondragover="handleCardDragOver(event,${idx})"
@@ -222,8 +224,14 @@ function renderGame(){
   }
 }
 
+let _toggleCardLastIdx=-1,_toggleCardLastTime=0;
 function toggleCard(idx){
   if(!G||G.phase==='end')return;
+  // Debounce: cegah double-fire dari onclick + touchend pada device tertentu
+  const now=Date.now();
+  if(idx===_toggleCardLastIdx&&now-_toggleCardLastTime<300)return;
+  _toggleCardLastIdx=idx;_toggleCardLastTime=now;
+
   if(!G.selected)G.selected=[];
   const hand=G.hands[G.mySlot]||[];
   const card=hand[idx];
@@ -480,10 +488,21 @@ function handleCardDrop(e,toIdx){
   G.selected=hand.reduce((acc,c,i)=>{if(selIds.has(c.id))acc.push(i);return acc;},[]);
 
   dragSrcIdx=null;
+
+  // Re-render respecting bid phase and current turn state
+  const isBidPhase=G.phase==='bid';
+  const myBidDone=isBidPhase&&G.bidDone&&G.bidDone[ms];
+  const canSelectBid=isBidPhase&&!myBidDone;
   const isMyTurn=G.current===ms&&G.phase!=='end';
+  const canSelect=isMyTurn||canSelectBid;
+
   document.getElementById('handInner').innerHTML=
-    hand.map((c,i)=>mkCardHTML(c,i,isMyTurn,G.selected.includes(i))).join('');
-  if(isMyTurn)updateComboHint();
+    hand.map((c,i)=>{
+      const isBidBlocked=isBidPhase&&c.val!==3;
+      const sel=G.selected.includes(i);
+      return mkCardHTML(c,i,canSelect&&!isBidBlocked,sel,isBidBlocked);
+    }).join('');
+  if(canSelect)updateComboHint();
 }
 
 function handleCardDragEnd(e){
@@ -507,6 +526,33 @@ function handleCardDragEnd(e){
   document.addEventListener('mouseup',()=>{drag=false;w.style.cursor='grab';});
   w.addEventListener('touchstart',e=>{if(e.target.closest('.card'))return;sx=e.touches[0].pageX;ss=w.scrollLeft;},{passive:true});
   w.addEventListener('touchmove',e=>{w.scrollLeft=ss-(e.touches[0].pageX-sx);},{passive:true});
+})();
+
+// ══ TOUCH TAP HANDLER — kartu di smartphone ══
+// Beberapa browser iOS tidak fire onclick dengan benar pada elemen dalam scroll container.
+// Solusi: pasang touchend listener di handInner untuk deteksi tap (bukan swipe).
+(function(){
+  const inner=document.getElementById('handInner');
+  let _tx=0,_ty=0;
+  inner.addEventListener('touchstart',e=>{
+    const t=e.touches[0];
+    _tx=t.clientX;_ty=t.clientY;
+  },{passive:true});
+  inner.addEventListener('touchend',e=>{
+    const t=e.changedTouches[0];
+    const dx=Math.abs(t.clientX-_tx);
+    const dy=Math.abs(t.clientY-_ty);
+    // Hanya proses jika ini benar-benar tap (bukan swipe)
+    if(dx>10||dy>10)return;
+    const cardEl=e.target.closest('.card[data-idx]');
+    if(!cardEl)return;
+    const idx=parseInt(cardEl.getAttribute('data-idx'),10);
+    if(!isNaN(idx)){
+      // Cegah onclick duplicate yang mungkin juga terpicu
+      e.preventDefault();
+      toggleCard(idx);
+    }
+  });
 })();
 
 document.getElementById('joinCode').addEventListener('input',function(){this.value=this.value.toUpperCase();});
