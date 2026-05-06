@@ -383,13 +383,7 @@ function _usePower(id, targetSlot){
       const tNameSpy = G.players[targetSlot].name;
       showNotif(`🔍 Mengintip tangan ${tNameSpy}...`,false);
       if(isHost){
-        // Host langsung akses tangan target dari state game
-        const targetHand = G.hands[targetSlot] || [];
-        if(!targetHand.length){
-          showNotif('🔍 Tidak ada kartu untuk diintip.', false);
-        } else {
-          _showSpyOverlay(tNameSpy, targetHand);
-        }
+        _showSpyOverlay(tNameSpy, G.hands[targetSlot]);
       } else {
         if(chan) chan.publish('m', JSON.stringify({
           type:'power_req', power:'spy',
@@ -492,17 +486,6 @@ function _showSpyOverlay(name, hand){
   const old = document.getElementById('spyOverlay');
   if(old) old.remove();
 
-  // Guard: pastikan hand valid
-  if(!hand || !hand.length){
-    showNotif('🔍 Spy gagal — data kartu tidak tersedia.', false);
-    return;
-  }
-
-  // Gunakan SUITS dan vd dari scope global (didefinisikan di cards.js / ui.js)
-  const _suits = (typeof SUITS !== 'undefined') ? SUITS : ['♦','♣','♥','♠'];
-  const _vd = (typeof vd === 'function') ? vd : (v=>String(v));
-  const _cardImages = (typeof CARD_IMAGES !== 'undefined') ? CARD_IMAGES : {};
-
   const ov = document.createElement('div');
   ov.id = 'spyOverlay';
   ov.style.cssText=`position:fixed;inset:0;z-index:300;background:rgba(0,0,0,0.88);
@@ -515,10 +498,10 @@ function _showSpyOverlay(name, hand){
     <div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;max-width:360px;padding:0 12px;">
       ${hand.map(c=>{
         const col=(c.suit===0||c.suit===2)?'r':'b';
-        const sym=_suits[c.suit]||'?';
-        const v=_vd(c.val);
+        const sym=SUITS[c.suit];
+        const v=vd(c.val);
         const imgKey=`${c.val}_${c.suit}`;
-        const imgSrc=_cardImages[imgKey]||'';
+        const imgSrc=CARD_IMAGES[imgKey]||'';
         const imgHtml=imgSrc?`<div class="card-img-wrap"><img src="${imgSrc}" alt="${v}${sym}"></div>`:'';
         return `<div class="card ${col} nh${imgSrc?' has-img':''}" style="width:46px;height:68px;pointer-events:none;flex-shrink:0;">
           ${imgHtml}
@@ -767,6 +750,14 @@ function extendTimer(extraSeconds){
   // Akses timer yang sedang berjalan dan tambah waktu
   if(typeof _timerEnd !== 'undefined') _timerEnd += extraSeconds * 1000;
 }
+
+// ── Patch returnToLobby untuk bersihkan powerBar ──
+const _origReturnToLobbyPower = window.returnToLobby || function(){};
+window.returnToLobby = function(){
+  _origReturnToLobbyPower();
+  const pb = document.getElementById('powerBar');
+  if(pb) pb.classList.remove('show');
+};
 
 // ── Reset power state saat game baru ──
 const _origBeginGamePower = window.beginGame || function(){};
