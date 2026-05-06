@@ -217,19 +217,17 @@ function renderGame(){
   const canSkip=!gameOver&&isMyTurn&&(!!G.currentCombo)&&!isBidPhase;
   document.getElementById('btnSkip').disabled=!canSkip;
 
-  // Reorder mode: reset jika bukan giliran player & bukan bid phase
-  const canReorder=(isMyTurn||canSelectBid||G.phase==='play')&&!gameOver;
-  if(!canReorder&&_reorderMode){
+  // Tombol ⇄ tampil kapan saja selama game belum end
+  const btnReorder=document.getElementById('btnReorder');
+  if(btnReorder)btnReorder.style.display=gameOver?'none':'flex';
+  // Reset reorder mode jika game over
+  if(gameOver&&_reorderMode){
     _reorderMode=false;_reorderSel=-1;
     const arrowRow=document.getElementById('arrowRow');
     if(arrowRow)arrowRow.style.display='none';
-    const btn=document.getElementById('btnReorder');
-    if(btn){btn.textContent='⇄';btn.classList.remove('active');}
+    if(btnReorder){btnReorder.textContent='⇄';btnReorder.classList.remove('active');}
   }
-  // Sync reorder button visibility — hanya tampil saat fase play/bid
-  const btnReorder=document.getElementById('btnReorder');
-  if(btnReorder)btnReorder.style.display=(!gameOver)?'flex':'none';
-  // Sync arrow row
+  // Sync arrowRow visibility
   const arrowRow=document.getElementById('arrowRow');
   if(arrowRow)arrowRow.style.display=_reorderMode?'flex':'none';
 
@@ -457,40 +455,41 @@ function startBgCanvas(){
   draw();
 }
 
-// ══ CARD DRAG REORDER ══
-let dragSrcIdx=null;
-let dragClickThreshold=false;
-
-// ══ MOBILE REORDER MODE (Opsi B+C) ══
-let _reorderMode=false;   // apakah mode atur aktif
-let _reorderSel=-1;       // index kartu yang sedang "diangkat" untuk di-swap
-
-function isReorderMode(){return _reorderMode;}
+// ══ MOBILE REORDER MODE (Opsi B+C: tap-to-swap + arrow buttons) ══
+let _reorderMode=false;
+let _reorderSel=-1;
 
 function toggleReorderMode(){
   _reorderMode=!_reorderMode;
   _reorderSel=-1;
-  _renderReorderUI();
+  _syncReorderUI();
 }
 
-function _renderReorderUI(){
+function _syncReorderUI(){
   const btn=document.getElementById('btnReorder');
   const arrowRow=document.getElementById('arrowRow');
-  if(!btn)return;
-  if(_reorderMode){
-    btn.textContent='✓ SELESAI';
-    btn.classList.add('active');
-    if(arrowRow)arrowRow.style.display='flex';
-  }else{
-    btn.textContent='⇄';
-    btn.classList.remove('active');
-    if(arrowRow)arrowRow.style.display='none';
-    _reorderSel=-1;
+  if(btn){
+    if(_reorderMode){btn.textContent='✓ SELESAI';btn.classList.add('active');}
+    else{btn.textContent='⇄';btn.classList.remove('active');}
   }
-  // Re-render hand dengan visual reorder state
-  if(G){
-    const ms=G.mySlot;
-    const hand=G.hands[ms]||[];
+  if(arrowRow)arrowRow.style.display=_reorderMode?'flex':'none';
+  _renderReorderHand();
+}
+
+function _renderReorderHand(){
+  if(!G)return;
+  const ms=G.mySlot;
+  const hand=G.hands[ms]||[];
+  const hint=document.getElementById('comboHint');
+  if(_reorderMode){
+    document.getElementById('handInner').innerHTML=
+      hand.map((c,i)=>_mkReorderCardHTML(c,i,i===_reorderSel)).join('');
+    if(hint){
+      if(_reorderSel<0){hint.textContent='Tap kartu untuk angkat — tap lagi untuk tukar';hint.style.color='rgba(212,168,67,0.6)';}
+      else{hint.textContent='Tap kartu lain untuk tukar, atau pakai ◀ ▶';hint.style.color='var(--neon2)';}
+    }
+  } else {
+    // Kembalikan render normal
     const isBidPhase=G.phase==='bid';
     const myBidDone=isBidPhase&&G.bidDone&&G.bidDone[ms];
     const canSelectBid=isBidPhase&&!myBidDone;
@@ -498,38 +497,24 @@ function _renderReorderUI(){
     const canSelect=isMyTurn||canSelectBid;
     document.getElementById('handInner').innerHTML=
       hand.map((c,i)=>{
-        if(_reorderMode){
-          const isLifted=i===_reorderSel;
-          return mkCardHTMLReorder(c,i,isLifted);
-        }
         const isBidBlocked=isBidPhase&&c.val!==3;
         const sel=G.selected&&G.selected.includes(i);
         return mkCardHTML(c,i,canSelect&&!isBidBlocked,sel,isBidBlocked);
       }).join('');
-  }
-  // Update hint
-  const hint=document.getElementById('comboHint');
-  if(_reorderMode&&hint){
-    if(_reorderSel<0){
-      hint.textContent='Tap kartu untuk angkat, tap lagi untuk tukar posisi';
-      hint.style.color='rgba(212,168,67,0.6)';
-    }else{
-      hint.textContent='Tap kartu lain untuk tukar, atau pakai ◀ ▶';
-      hint.style.color='var(--neon2)';
-    }
+    if(hint&&!canSelect){hint.textContent='';hint.style.color='rgba(212,168,67,0.35)';}
+    else if(hint&&canSelect)updateComboHint();
   }
 }
 
-function mkCardHTMLReorder(c,idx,isLifted){
-  // Versi card khusus reorder mode — semua kartu bisa di-tap, tidak ada dimming
+function _mkReorderCardHTML(c,idx,isLifted){
   const col=sc(c.suit),sym=SUITS[c.suit],v=vd(c.val);
   const imgKey=`${c.val}_${c.suit}`;
   const imgSrc=CARD_IMAGES[imgKey]||'';
   const imgHtml=imgSrc?`<div class="card-img-wrap"><img src="${imgSrc}" alt="${v}${sym}"></div>`:'';
   const hasCls=imgSrc?' has-img':'';
   const liftCls=isLifted?' reorder-lifted':'';
-  const zStyle=isLifted?`style="z-index:60"`:`style="z-index:${idx+1}"`;
-  return `<div class="card ${col}${hasCls}${liftCls}" onclick="reorderTapCard(${idx})" ${zStyle} data-idx="${idx}" title="${v}${sym}">
+  const zStyle=isLifted?'z-index:60':`z-index:${idx+1}`;
+  return `<div class="card ${col}${hasCls}${liftCls}" onclick="reorderTapCard(${idx})" style="${zStyle}" data-idx="${idx}">
     ${imgHtml}
     <div class="ct"><span class="cv">${v}</span><span class="cs">${sym}</span></div>
     <span class="cc">${sym}</span>
@@ -539,56 +524,34 @@ function mkCardHTMLReorder(c,idx,isLifted){
 
 function reorderTapCard(idx){
   if(!_reorderMode||!G)return;
-  const ms=G.mySlot;
-  const hand=G.hands[ms];
+  const hand=G.hands[G.mySlot];
   if(_reorderSel<0){
-    // Angkat kartu ini
-    _reorderSel=idx;
-    SFX.cardSelect();
+    _reorderSel=idx;SFX.cardSelect();
   }else if(_reorderSel===idx){
-    // Tap kartu yang sama → turunkan
-    _reorderSel=-1;
-    SFX.cardDeselect();
+    _reorderSel=-1;SFX.cardDeselect();
   }else{
-    // Swap posisi
-    const tmp=hand[_reorderSel];
-    hand[_reorderSel]=hand[idx];
-    hand[idx]=tmp;
-    // Remap selected indices
-    if(G.selected){
-      G.selected=G.selected.map(si=>{
-        if(si===_reorderSel)return idx;
-        if(si===idx)return _reorderSel;
-        return si;
-      });
-    }
-    _reorderSel=-1;
-    SFX.cardPlay();
+    // Swap
+    const tmp=hand[_reorderSel];hand[_reorderSel]=hand[idx];hand[idx]=tmp;
+    if(G.selected){G.selected=G.selected.map(si=>{if(si===_reorderSel)return idx;if(si===idx)return _reorderSel;return si;});}
+    _reorderSel=-1;SFX.cardPlay();
   }
-  _renderReorderUI();
+  _syncReorderUI();
 }
 
 function reorderMoveCard(dir){
-  // Geser kartu yang sedang diangkat satu posisi (◀ -1 / ▶ +1)
   if(!_reorderMode||!G||_reorderSel<0)return;
-  const ms=G.mySlot;
-  const hand=G.hands[ms];
+  const hand=G.hands[G.mySlot];
   const newIdx=_reorderSel+dir;
   if(newIdx<0||newIdx>=hand.length)return;
-  const tmp=hand[_reorderSel];
-  hand[_reorderSel]=hand[newIdx];
-  hand[newIdx]=tmp;
-  if(G.selected){
-    G.selected=G.selected.map(si=>{
-      if(si===_reorderSel)return newIdx;
-      if(si===newIdx)return _reorderSel;
-      return si;
-    });
-  }
-  _reorderSel=newIdx;
-  SFX.cardSelect();
-  _renderReorderUI();
+  const tmp=hand[_reorderSel];hand[_reorderSel]=hand[newIdx];hand[newIdx]=tmp;
+  if(G.selected){G.selected=G.selected.map(si=>{if(si===_reorderSel)return newIdx;if(si===newIdx)return _reorderSel;return si;});}
+  _reorderSel=newIdx;SFX.cardSelect();
+  _syncReorderUI();
 }
+
+// ══ CARD DRAG REORDER ══
+let dragSrcIdx=null;
+let dragClickThreshold=false;
 
 function handleCardDragStart(e,idx){
   dragSrcIdx=idx;
@@ -687,14 +650,12 @@ function handleCardDragEnd(e){
     const t=e.changedTouches[0];
     const dx=Math.abs(t.clientX-_tx);
     const dy=Math.abs(t.clientY-_ty);
-    // Hanya proses jika ini benar-benar tap (bukan swipe)
     if(dx>10||dy>10)return;
     const cardEl=e.target.closest('.card[data-idx]');
     if(!cardEl)return;
     const idx=parseInt(cardEl.getAttribute('data-idx'),10);
     if(!isNaN(idx)){
       e.preventDefault();
-      // Reorder mode: delegasi ke reorderTapCard
       if(_reorderMode){reorderTapCard(idx);return;}
       toggleCard(idx);
     }
