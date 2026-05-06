@@ -271,6 +271,34 @@ function buildChipRecap(finished, players, deltas, mySlot){
 }
 
 
+// ══ EMOTE SOUND SYSTEM ══
+// File mp3 diletakkan di folder sounds/ di repo
+const EMOTE_SOUNDS = {
+  'Saya akan lawan': 'sounds/Saya_akan_lawan.mp3',
+  'UH kaget':        'sounds/UH_kaget.mp3',
+  'What the dog doin':'sounds/what_the_dog_doin.mp3',
+  'Faaah':           'sounds/faaah.mp3',
+  'LOL':             'sounds/LOL.mp3',
+  'Pepek pepek':     'sounds/Pepek_pepek.mp3',
+};
+
+// Cache Audio objects agar tidak re-create setiap kali
+const _emoteSoundCache = {};
+
+function sendEmoteSound(key){
+  const src = EMOTE_SOUNDS[key];
+  if(!src) return;
+  try{
+    if(!_emoteSoundCache[key]){
+      _emoteSoundCache[key] = new Audio(src);
+      _emoteSoundCache[key].volume = 0.8;
+    }
+    const audio = _emoteSoundCache[key];
+    audio.currentTime = 0;
+    audio.play().catch(()=>{}); // abaikan error autoplay policy
+  }catch(e){}
+}
+
 // ══ EMOTE SYSTEM ══
 const EMOTE_COOLDOWN_MS = 4000;
 let _emoteCooldown = false;
@@ -291,12 +319,15 @@ document.addEventListener('click', e => {
   }
 });
 
-function sendEmote(emoji, text){
+function sendEmote(emoji, text, sound){
   if(_emoteCooldown) return;
   _emotePickerOpen = false;
   document.getElementById('emotePicker').classList.remove('open');
 
-  const payload = { type:'emote', id:myId, name:myName, emoji, text: text||null };
+  // Play audio lokal dulu (langsung, tidak tunggu network)
+  if(sound) sendEmoteSound(sound);
+
+  const payload = { type:'emote', id:myId, name:myName, emoji, text: text||null, sound: sound||null };
   showEmoteBubble(myName, emoji, text, true);
   if(chan) chan.publish('m', JSON.stringify(payload));
 
@@ -347,19 +378,22 @@ function showEmoteBubble(name, emoji, text, isMe){
     let d;
     try{ d = JSON.parse(msg.data); }catch{ return; }
     if(d.type === 'emote'){
-      if(d.id !== myId) showEmoteBubble(d.name, d.emoji||null, d.text||null, false);
+      if(d.id !== myId){
+        showEmoteBubble(d.name, d.emoji||null, d.text||null, false);
+        if(d.sound) sendEmoteSound(d.sound); // play audio di sisi penerima
+      }
       return;
     }
     orig(msg);
   };
 })();
 
-// Show/hide emote button (shop only in lobby)
+// Show/hide emote & shop button
 const _origBeginGame = beginGame;
 window.beginGame = function(opts){
   _origBeginGame(opts);
   document.getElementById('emoteBtn').classList.add('game-open');
-  // shopBtn intentionally NOT shown in-game — shop is lobby-only
+  document.getElementById('shopBtn').classList.add('game-open');
   renderPowerBar();
 };
 const _origReturnToLobby = returnToLobby;
@@ -367,6 +401,7 @@ window.returnToLobby = function(){
   _origReturnToLobby();
   document.getElementById('emoteBtn').classList.remove('game-open');
   document.getElementById('emotePicker').classList.remove('open');
+  document.getElementById('shopBtn').classList.remove('game-open');
   document.getElementById('powerBar').classList.remove('show');
   const bar = document.getElementById('chipBar');
   if(bar) bar.classList.remove('show');
