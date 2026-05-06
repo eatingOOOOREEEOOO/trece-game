@@ -253,12 +253,8 @@ function renderSlots(){
     const chipHtml = (chipData && !p.isBot)
       ? (() => {
           const chips = chipData.chips;
-          const debt  = chipData.debt || 0;
-          const chipColor = chips < 0 ? 'style="color:#e74c3c"' : '';
-          const debtHtml  = debt > 0
-            ? `<div class="slot-chips" style="color:#e74c3c;font-size:9px;">🔴 hutang ${debt.toLocaleString()}</div>`
-            : '';
-          return `<div class="slot-chips" ${chipColor}>💰 ${chips.toLocaleString()}</div>${debtHtml}`;
+          const col = chips < 0 ? ' style="color:#e74c3c"' : '';
+          return `<div class="slot-chips"${col}>💰 ${chips.toLocaleString()}</div>`;
         })()
       : '';
     return `<div class="pslot${!p.isBot?' filled':''}${readyCls}">
@@ -349,13 +345,7 @@ function handleMsg(msg){
         gameHasStarted=true;
         readyPlayers=new Set(d.readyIds||[]);
         rebuildLobby(d.realPlayers||[]);
-        if(d.chipSession){
-          // Merge dengan preserve debt
-          Object.entries(d.chipSession).forEach(([pid, data])=>{
-            chipSession[pid] = data;
-            if(chipSession[pid].debt === undefined) chipSession[pid].debt = 0;
-          });
-        }
+        if(d.chipSession) chipSession = d.chipSession;
         // Simpan rematch state dari host
         if(d.prevWinnerSlot !== undefined) _prevRoundWinnerSlot = d.prevWinnerSlot;
         if(d.prevPlayerIds  !== undefined) _prevRoundPlayerIds  = d.prevPlayerIds;
@@ -373,13 +363,7 @@ function handleMsg(msg){
     case 'chip_result': {
       // Non-host: receive resolved chip session from host
       if(!isHost){
-        // Merge chipSession — preserve debt field jika tidak dikirim
-        if(d.chipSession){
-          Object.entries(d.chipSession).forEach(([pid, data])=>{
-            chipSession[pid] = data;
-            if(chipSession[pid].debt === undefined) chipSession[pid].debt = 0;
-          });
-        }
+        if(d.chipSession) chipSession = d.chipSession;
         // Show float animation for local player
         if(G && d.finished){
           const myPidx = d.finished.indexOf(G.mySlot);
