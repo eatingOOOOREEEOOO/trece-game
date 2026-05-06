@@ -291,39 +291,12 @@ document.addEventListener('click', e => {
   }
 });
 
-// ── Emote Sound System ──
-const EMOTE_SOUNDS = {
-  'Saya akan lawan':  'sounds/Saya_akan_lawan.mp3',
-  'UH kaget':         'sounds/UH_kaget.mp3',
-  'What the dog doin':'sounds/what_the_dog_doin.mp3',
-  'Faaah':            'sounds/faaah.mp3',
-  'LOL':              'sounds/LOL.mp3',
-  'Pepek pepek':      'sounds/Pepek_pepek.mp3',
-};
-const _emoteSoundCache = {};
-function sendEmoteSound(key){
-  const src = EMOTE_SOUNDS[key];
-  if(!src) return;
-  try{
-    if(!_emoteSoundCache[key]){
-      _emoteSoundCache[key] = new Audio(src);
-      _emoteSoundCache[key].volume = 0.8;
-    }
-    const a = _emoteSoundCache[key];
-    a.currentTime = 0;
-    a.play().catch(()=>{});
-  }catch(e){}
-}
-
-function sendEmote(emoji, text, sound){
+function sendEmote(emoji, text){
   if(_emoteCooldown) return;
   _emotePickerOpen = false;
   document.getElementById('emotePicker').classList.remove('open');
 
-  // Play audio lokal langsung
-  if(sound) sendEmoteSound(sound);
-
-  const payload = { type:'emote', id:myId, name:myName, emoji, text: text||null, sound: sound||null };
+  const payload = { type:'emote', id:myId, name:myName, emoji, text: text||null };
   showEmoteBubble(myName, emoji, text, true);
   if(chan) chan.publish('m', JSON.stringify(payload));
 
@@ -374,30 +347,27 @@ function showEmoteBubble(name, emoji, text, isMe){
     let d;
     try{ d = JSON.parse(msg.data); }catch{ return; }
     if(d.type === 'emote'){
-      if(d.id !== myId){
-        showEmoteBubble(d.name, d.emoji||null, d.text||null, false);
-        if(d.sound) sendEmoteSound(d.sound); // semua pemain dengar audio
-      }
+      if(d.id !== myId) showEmoteBubble(d.name, d.emoji||null, d.text||null, false);
       return;
     }
     orig(msg);
   };
 })();
 
-// Show/hide emote button (shop hanya di lobby)
+// Show/hide emote button saat game
+// Catatan: shopBtn dan renderPowerBar dihandle oleh powers.js (diload setelah chips.js)
 const _origBeginGame = beginGame;
 window.beginGame = function(opts){
   _origBeginGame(opts);
   document.getElementById('emoteBtn').classList.add('game-open');
-  // shopBtn tidak ditampilkan di in-game — shop lobby only
-  renderPowerBar();
+  // shopBtn dan renderPowerBar dihandle powers.js — jangan dipanggil di sini
 };
 const _origReturnToLobby = returnToLobby;
 window.returnToLobby = function(){
   _origReturnToLobby();
   document.getElementById('emoteBtn').classList.remove('game-open');
   document.getElementById('emotePicker').classList.remove('open');
-  document.getElementById('powerBar').classList.remove('show');
+  // shopBtn dihandle powers.js
   const bar = document.getElementById('chipBar');
   if(bar) bar.classList.remove('show');
   renderSlots();
