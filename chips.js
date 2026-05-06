@@ -354,12 +354,12 @@ function showEmoteBubble(name, emoji, text, isMe){
   };
 })();
 
-// Show/hide emote & shop button
+// Show/hide emote button (shop only in lobby)
 const _origBeginGame = beginGame;
 window.beginGame = function(opts){
   _origBeginGame(opts);
   document.getElementById('emoteBtn').classList.add('game-open');
-  document.getElementById('shopBtn').classList.add('game-open');
+  // shopBtn intentionally NOT shown in-game — shop is lobby-only
   renderPowerBar();
 };
 const _origReturnToLobby = returnToLobby;
@@ -367,7 +367,6 @@ window.returnToLobby = function(){
   _origReturnToLobby();
   document.getElementById('emoteBtn').classList.remove('game-open');
   document.getElementById('emotePicker').classList.remove('open');
-  document.getElementById('shopBtn').classList.remove('game-open');
   document.getElementById('powerBar').classList.remove('show');
   const bar = document.getElementById('chipBar');
   if(bar) bar.classList.remove('show');
