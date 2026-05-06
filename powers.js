@@ -12,73 +12,73 @@
 const POWER_CATALOG = [
   {
     id:'shield', name:'Shield', icon:'🛡️', cat:'def', rarity:'rare',
-    price:8500, maxOwn:2,
+    price:1500, maxOwn:2,
     desc:'Saat kamu pasang Poker (angka 2) dan dilawan Bomb — Shield aktif otomatis. Kamu tidak langsung kalah, permainan berlanjut normal.',
     mechanic:'Sekali pakai · auto-trigger saat di-Bomb'
   },
   {
     id:'mirror', name:'Mirror', icon:'🪞', cat:'def', rarity:'epic',
-    price:12000, maxOwn:1,
+    price:2500, maxOwn:1,
     desc:'Ketika kamu di-Bomb, efek Bomb berbalik ke pemain yang menyerang. Pemain itu yang langsung ke posisi terakhir.',
     mechanic:'Sekali pakai · auto-trigger saat di-Bomb'
   },
   {
     id:'ghost', name:'Ghost', icon:'👻', cat:'def', rarity:'common',
-    price:5500, maxOwn:3,
+    price:1200, maxOwn:3,
     desc:'Aktifkan di giliranmu untuk skip satu putaran tanpa dihitung sebagai "skip". Meja tetap terbuka untukmu setelah putaran.',
     mechanic:'Sekali pakai · aktifkan manual saat giliranmu'
   },
   {
     id:'zap', name:'Zap', icon:'⚡', cat:'off', rarity:'rare',
-    price:9000, maxOwn:2,
+    price:1800, maxOwn:2,
     desc:'Paksa salah satu pemain lain untuk skip giliran mereka berikutnya. Cocok dipakai saat lawan hampir habis kartu.',
     mechanic:'Sekali pakai · pilih target pemain'
   },
   {
     id:'spy', name:'Spy', icon:'🔍', cat:'off', rarity:'common',
-    price:6000, maxOwn:3,
+    price:1100, maxOwn:3,
     desc:'Intip tangan kartu salah satu pemain lain selama 4 detik. Hanya kamu yang bisa melihat.',
     mechanic:'Sekali pakai · pilih target pemain'
   },
   {
     id:'swap', name:'Swap', icon:'🔀', cat:'off', rarity:'rare',
-    price:7500, maxOwn:2,
+    price:1600, maxOwn:2,
     desc:'Tukar 1 kartu acak dari tanganmu dengan 1 kartu acak dari tangan pemain lain.',
     mechanic:'Sekali pakai · pilih target pemain'
   },
   {
     id:'timewarp', name:'Time Warp', icon:'⏱️', cat:'util', rarity:'common',
-    price:5200, maxOwn:3,
+    price:1050, maxOwn:3,
     desc:'Tambah 15 detik ekstra ke timer giliranmu satu kali. Berguna saat perlu waktu menyusun strategi combo.',
     mechanic:'Sekali pakai · aktifkan saat giliranmu'
   },
   {
     id:'wilddraw', name:'Wild Draw', icon:'🃏', cat:'util', rarity:'common',
-    price:6500, maxOwn:2,
+    price:1300, maxOwn:2,
     desc:'Ambil 2 kartu acak dari sisa dek. Risiko: bisa dapat kartu bagus atau jelek.',
     mechanic:'Sekali pakai · aktifkan kapan saja saat giliranmu'
   },
   {
     id:'joker', name:'Joker', icon:'✨', cat:'util', rarity:'legendary',
-    price:18000, maxOwn:1,
+    price:4000, maxOwn:1,
     desc:'Kartu liar yang bisa menggantikan satu slot dalam combo (pair, triple, atau sequence) sebagai nilai apa saja.',
     mechanic:'Kartu tambahan di tangan · sekali pakai'
   },
   {
     id:'chaos', name:'Chaos', icon:'🌀', cat:'dis', rarity:'epic',
-    price:11000, maxOwn:1,
+    price:2200, maxOwn:1,
     desc:'Kocok ulang kartu di tangan semua pemain secara acak. Posisi giliran tidak berubah, hanya kartu yang bertukar.',
     mechanic:'Sekali pakai · efek semua pemain'
   },
   {
     id:'blackout', name:'Blackout', icon:'🌑', cat:'dis', rarity:'epic',
-    price:13000, maxOwn:1,
+    price:2800, maxOwn:1,
     desc:'Semua pemain lain tidak bisa melihat nilai kartu mereka (tampil "?") selama 1 putaran penuh. Kamu tetap bisa melihat tanganmu normal.',
     mechanic:'Sekali pakai · efek 1 putaran penuh'
   },
   {
     id:'rewind', name:'Rewind', icon:'⏪', cat:'dis', rarity:'rare',
-    price:7000, maxOwn:2,
+    price:1400, maxOwn:2,
     desc:'Balikkan urutan giliran selama 2 putaran — yang tadinya searah jarum jam jadi berlawanan, lalu kembali normal.',
     mechanic:'Sekali pakai · aktifkan kapan saja saat giliranmu'
   }
