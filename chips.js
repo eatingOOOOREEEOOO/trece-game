@@ -271,34 +271,6 @@ function buildChipRecap(finished, players, deltas, mySlot){
 }
 
 
-// ══ EMOTE SOUND SYSTEM ══
-// File mp3 diletakkan di folder sounds/ di repo
-const EMOTE_SOUNDS = {
-  'Saya akan lawan': 'sounds/Saya_akan_lawan.mp3',
-  'UH kaget':        'sounds/UH_kaget.mp3',
-  'What the dog doin':'sounds/what_the_dog_doin.mp3',
-  'Faaah':           'sounds/faaah.mp3',
-  'LOL':             'sounds/LOL.mp3',
-  'Pepek pepek':     'sounds/Pepek_pepek.mp3',
-};
-
-// Cache Audio objects agar tidak re-create setiap kali
-const _emoteSoundCache = {};
-
-function sendEmoteSound(key){
-  const src = EMOTE_SOUNDS[key];
-  if(!src) return;
-  try{
-    if(!_emoteSoundCache[key]){
-      _emoteSoundCache[key] = new Audio(src);
-      _emoteSoundCache[key].volume = 0.8;
-    }
-    const audio = _emoteSoundCache[key];
-    audio.currentTime = 0;
-    audio.play().catch(()=>{}); // abaikan error autoplay policy
-  }catch(e){}
-}
-
 // ══ EMOTE SYSTEM ══
 const EMOTE_COOLDOWN_MS = 4000;
 let _emoteCooldown = false;
@@ -319,12 +291,36 @@ document.addEventListener('click', e => {
   }
 });
 
+// ── Emote Sound System ──
+const EMOTE_SOUNDS = {
+  'Saya akan lawan':  'sounds/Saya_akan_lawan.mp3',
+  'UH kaget':         'sounds/UH_kaget.mp3',
+  'What the dog doin':'sounds/what_the_dog_doin.mp3',
+  'Faaah':            'sounds/faaah.mp3',
+  'LOL':              'sounds/LOL.mp3',
+  'Pepek pepek':      'sounds/Pepek_pepek.mp3',
+};
+const _emoteSoundCache = {};
+function sendEmoteSound(key){
+  const src = EMOTE_SOUNDS[key];
+  if(!src) return;
+  try{
+    if(!_emoteSoundCache[key]){
+      _emoteSoundCache[key] = new Audio(src);
+      _emoteSoundCache[key].volume = 0.8;
+    }
+    const a = _emoteSoundCache[key];
+    a.currentTime = 0;
+    a.play().catch(()=>{});
+  }catch(e){}
+}
+
 function sendEmote(emoji, text, sound){
   if(_emoteCooldown) return;
   _emotePickerOpen = false;
   document.getElementById('emotePicker').classList.remove('open');
 
-  // Play audio lokal dulu (langsung, tidak tunggu network)
+  // Play audio lokal langsung
   if(sound) sendEmoteSound(sound);
 
   const payload = { type:'emote', id:myId, name:myName, emoji, text: text||null, sound: sound||null };
@@ -380,7 +376,7 @@ function showEmoteBubble(name, emoji, text, isMe){
     if(d.type === 'emote'){
       if(d.id !== myId){
         showEmoteBubble(d.name, d.emoji||null, d.text||null, false);
-        if(d.sound) sendEmoteSound(d.sound); // play audio di sisi penerima
+        if(d.sound) sendEmoteSound(d.sound); // semua pemain dengar audio
       }
       return;
     }
@@ -388,12 +384,12 @@ function showEmoteBubble(name, emoji, text, isMe){
   };
 })();
 
-// Show/hide emote & shop button
+// Show/hide emote button (shop hanya di lobby)
 const _origBeginGame = beginGame;
 window.beginGame = function(opts){
   _origBeginGame(opts);
   document.getElementById('emoteBtn').classList.add('game-open');
-  document.getElementById('shopBtn').classList.add('game-open');
+  // shopBtn tidak ditampilkan di in-game — shop lobby only
   renderPowerBar();
 };
 const _origReturnToLobby = returnToLobby;
@@ -401,7 +397,6 @@ window.returnToLobby = function(){
   _origReturnToLobby();
   document.getElementById('emoteBtn').classList.remove('game-open');
   document.getElementById('emotePicker').classList.remove('open');
-  document.getElementById('shopBtn').classList.remove('game-open');
   document.getElementById('powerBar').classList.remove('show');
   const bar = document.getElementById('chipBar');
   if(bar) bar.classList.remove('show');
