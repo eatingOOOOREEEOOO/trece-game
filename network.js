@@ -251,7 +251,15 @@ function renderSlots(){
     const readyCls=(gameHasStarted&&isReadyP)?' ready':'';
     const chipData = chipSession[p.id];
     const chipHtml = (chipData && !p.isBot)
-      ? `<div class="slot-chips">💰 ${chipData.chips.toLocaleString()}</div>`
+      ? (() => {
+          const chips = chipData.chips;
+          const debt  = chipData.debt || 0;
+          const chipColor = chips < 0 ? 'style="color:#e74c3c"' : '';
+          const debtHtml  = debt > 0
+            ? `<div class="slot-chips" style="color:#e74c3c;font-size:9px;">🔴 hutang ${debt.toLocaleString()}</div>`
+            : '';
+          return `<div class="slot-chips" ${chipColor}>💰 ${chips.toLocaleString()}</div>${debtHtml}`;
+        })()
       : '';
     return `<div class="pslot${!p.isBot?' filled':''}${readyCls}">
       <div class="slot-av">${p.isBot?'🤖':p.name[0].toUpperCase()}</div>
@@ -341,7 +349,13 @@ function handleMsg(msg){
         gameHasStarted=true;
         readyPlayers=new Set(d.readyIds||[]);
         rebuildLobby(d.realPlayers||[]);
-        if(d.chipSession) chipSession=d.chipSession;
+        if(d.chipSession){
+          // Merge dengan preserve debt
+          Object.entries(d.chipSession).forEach(([pid, data])=>{
+            chipSession[pid] = data;
+            if(chipSession[pid].debt === undefined) chipSession[pid].debt = 0;
+          });
+        }
         // Simpan rematch state dari host
         if(d.prevWinnerSlot !== undefined) _prevRoundWinnerSlot = d.prevWinnerSlot;
         if(d.prevPlayerIds  !== undefined) _prevRoundPlayerIds  = d.prevPlayerIds;
@@ -359,7 +373,13 @@ function handleMsg(msg){
     case 'chip_result': {
       // Non-host: receive resolved chip session from host
       if(!isHost){
-        chipSession = d.chipSession;
+        // Merge chipSession — preserve debt field jika tidak dikirim
+        if(d.chipSession){
+          Object.entries(d.chipSession).forEach(([pid, data])=>{
+            chipSession[pid] = data;
+            if(chipSession[pid].debt === undefined) chipSession[pid].debt = 0;
+          });
+        }
         // Show float animation for local player
         if(G && d.finished){
           const myPidx = d.finished.indexOf(G.mySlot);
