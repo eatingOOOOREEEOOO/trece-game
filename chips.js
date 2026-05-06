@@ -28,11 +28,30 @@ function initChipSession(players){
     if(chipSession[p.id]){
       next[p.id] = chipSession[p.id];
       next[p.id].name = p.name; // update nama
+      if(next[p.id].debt === undefined) next[p.id].debt = 0;
     } else {
-      next[p.id] = {name: p.name, chips: CHIP_START, isBot: p.isBot};
+      next[p.id] = {name: p.name, chips: CHIP_START, debt: 0, isBot: p.isBot};
     }
   });
   chipSession = next;
+}
+
+// Terapkan hutang jika chip tidak cukup untuk bid — izinkan saldo negatif
+function applyDebtIfNeeded(players, bet){
+  players.forEach(p=>{
+    if(p.isBot) return;
+    const session = chipSession[p.id];
+    if(!session) return;
+    if(session.chips < bet){
+      const shortfall = bet - Math.max(0, session.chips);
+      session.debt = (session.debt || 0) + shortfall;
+    }
+  });
+}
+
+// Ambil total hutang player
+function getPlayerDebt(pid){
+  return chipSession[pid]?.debt ?? 0;
 }
 
 // Hitung delta chip dari hasil game
@@ -44,7 +63,8 @@ function resolveChips(finished, players, bet){
     deltas[pidx] = delta;
     const p = players[pidx];
     if(p && chipSession[p.id]){
-      chipSession[p.id].chips = Math.max(0, chipSession[p.id].chips + delta);
+      // Izinkan saldo negatif (hutang) — tidak ada floor di 0
+      chipSession[p.id].chips = chipSession[p.id].chips + delta;
     }
   });
   return deltas;
@@ -69,7 +89,24 @@ function updateChipHud(){
 
   bar.classList.add('show');
   const chips = chipSession[me.id].chips;
-  document.getElementById('chipBarVal').textContent = chips.toLocaleString();
+  const debt  = chipSession[me.id].debt || 0;
+  const chipValEl = document.getElementById('chipBarVal');
+  chipValEl.textContent = chips.toLocaleString();
+  // Tandai merah jika saldo negatif (hutang)
+  chipValEl.style.color = chips < 0 ? 'var(--red, #e74c3c)' : '';
+  // Tampilkan badge hutang jika ada
+  let debtBadge = document.getElementById('chipBarDebt');
+  if(debt > 0){
+    if(!debtBadge){
+      debtBadge = document.createElement('span');
+      debtBadge.id = 'chipBarDebt';
+      debtBadge.className = 'cp-debt';
+      document.querySelector('.chip-pill')?.appendChild(debtBadge);
+    }
+    debtBadge.textContent = '🔴 hutang ' + debt.toLocaleString();
+  } else if(debtBadge){
+    debtBadge.remove();
+  }
 
   if(currentBet){
     document.getElementById('chipBarBet').textContent = currentBet + ' chip';
@@ -91,10 +128,17 @@ function showBetModal(){
   const list = document.getElementById('betPlayerList');
   list.innerHTML = realPlayers.map(p=>{
     const c = chipSession[p.id]?.chips ?? CHIP_START;
+    const debt = chipSession[p.id]?.debt ?? 0;
     const low = c < currentBet;
+    const debtHtml = debt > 0
+      ? `<span class="bet-pdebt">🔴 Hutang: ${debt.toLocaleString()}</span>`
+      : '';
     return `<div class="bet-player-row">
       <span class="bet-pname">${p.name}${p.id===myId?' (Kamu)':''}</span>
-      <span class="bet-pchips${low?' low':''}">💰 ${c.toLocaleString()}</span>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;">
+        <span class="bet-pchips${low?' low':''}">💰 ${c.toLocaleString()}</span>
+        ${debtHtml}
+      </div>
     </div>`;
   }).join('');
 
@@ -119,11 +163,11 @@ function setBetDisplay(val){
   document.querySelectorAll('.bet-preset').forEach(el=>{
     el.classList.toggle('active', parseInt(el.textContent) === val);
   });
-  // warn if any player can't afford it
+  // Info pemain yang chipnya kurang (akan berhutang)
   const realPlayers = lobbyPlayers.filter(p=>!p.isBot);
-  const anyBroke = realPlayers.some(p=> (chipSession[p.id]?.chips??CHIP_START) < val);
-  document.getElementById('betSubLabel').textContent = anyBroke
-    ? '⚠ Ada pemain yang chipnya kurang!'
+  const brokePlayers = realPlayers.filter(p=> (chipSession[p.id]?.chips??CHIP_START) < val);
+  document.getElementById('betSubLabel').textContent = brokePlayers.length > 0
+    ? `⚠ ${brokePlayers.length} pemain chipnya kurang — akan berhutang otomatis`
     : 'Pilih jumlah taruhan per pemain';
 }
 
@@ -139,6 +183,9 @@ function _doBetAndStart(){
   readyPlayers = new Set();
   myReady = false;
   gameHasStarted = true;
+
+  // ── Terapkan hutang untuk player yang chipnya kurang dari bid ──
+  applyDebtIfNeeded(lobbyPlayers, currentBet);
 
   let deck, hands;
   let attempts = 0;
@@ -253,13 +300,18 @@ function buildChipRecap(finished, players, deltas, mySlot){
     const p = players[pidx];
     const delta = deltas[pidx] ?? 0;
     const total = chipSession[p.id]?.chips ?? CHIP_START;
+    const debt  = chipSession[p.id]?.debt ?? 0;
     const isMe = pidx === mySlot;
     const sign = delta>0?'+':'';
     const cls  = delta>0?'pos':delta<0?'neg':'';
+    const debtHtml = debt > 0
+      ? `<span class="chip-recap-debt">🔴 hutang ${debt.toLocaleString()}</span>`
+      : '';
+    const totalCls = total < 0 ? ' style="color:var(--red,#e74c3c)"' : '';
     return `<div class="chip-recap-row${isMe?' me':''}">
       <span class="chip-recap-name">${p.name}${isMe?' ★':''}</span>
       <span class="chip-recap-delta ${cls}">${sign}${delta}</span>
-      <span class="chip-recap-total">= ${total.toLocaleString()}</span>
+      <span class="chip-recap-total"${totalCls}>= ${total.toLocaleString()}${debtHtml}</span>
     </div>`;
   }).join('');
   return `<div class="chip-recap">
