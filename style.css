@@ -1161,6 +1161,7 @@ button,input{touch-action:manipulation;cursor:pointer;}
 #powerBar{
   display:none;flex-wrap:wrap;gap:5px;
   justify-content:center;padding:4px 12px 2px;
+  position:relative;z-index:20;
 }
 #powerBar.show{display:flex;}
 .power-chip{
@@ -1183,7 +1184,7 @@ button,input{touch-action:manipulation;cursor:pointer;}
 
 /* Target picker overlay — pilih target player saat pakai Zap/Spy/Swap */
 #targetPicker{
-  position:fixed;inset:0;z-index:200;display:none;
+  position:fixed;inset:0;z-index:85;display:none;
   align-items:center;justify-content:center;
   background:rgba(0,0,0,0.7);
 }
