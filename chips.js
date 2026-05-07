@@ -271,6 +271,27 @@ function buildChipRecap(finished, players, deltas, mySlot){
 }
 
 
+// ══ EMOTE SOUND SYSTEM ══
+const EMOTE_SOUNDS = {
+  'Saya akan lawan':   'sounds/Saya_akan_lawan.mp3',
+  'UH kaget':          'sounds/UH_kaget.mp3',
+  'What the dog doin': 'sounds/what_the_dog_doin.mp3',
+  'Faaah':             'sounds/faaah.mp3',
+  'LOL':               'sounds/LOL.mp3',
+  'Pepek pepek':       'sounds/Pepek_pepek.mp3',
+};
+const _emoteSoundCache = {};
+function sendEmoteSound(key){
+  const src = EMOTE_SOUNDS[key];
+  if(!src) return;
+  try{
+    if(!_emoteSoundCache[key]) _emoteSoundCache[key] = new Audio(src);
+    const a = _emoteSoundCache[key];
+    a.currentTime = 0;
+    a.play().catch(()=>{});
+  } catch(e){}
+}
+
 // ══ EMOTE SYSTEM ══
 const EMOTE_COOLDOWN_MS = 4000;
 let _emoteCooldown = false;
@@ -291,12 +312,15 @@ document.addEventListener('click', e => {
   }
 });
 
-function sendEmote(emoji, text){
+function sendEmote(emoji, text, sound){
   if(_emoteCooldown) return;
   _emotePickerOpen = false;
   document.getElementById('emotePicker').classList.remove('open');
 
-  const payload = { type:'emote', id:myId, name:myName, emoji, text: text||null };
+  // Play audio lokal langsung
+  if(sound) sendEmoteSound(sound);
+
+  const payload = { type:'emote', id:myId, name:myName, emoji, text: text||null, sound: sound||null };
   showEmoteBubble(myName, emoji, text, true);
   if(chan) chan.publish('m', JSON.stringify(payload));
 
@@ -347,7 +371,10 @@ function showEmoteBubble(name, emoji, text, isMe){
     let d;
     try{ d = JSON.parse(msg.data); }catch{ return; }
     if(d.type === 'emote'){
-      if(d.id !== myId) showEmoteBubble(d.name, d.emoji||null, d.text||null, false);
+      if(d.id !== myId){
+        showEmoteBubble(d.name, d.emoji||null, d.text||null, false);
+        if(d.sound) sendEmoteSound(d.sound);
+      }
       return;
     }
     orig(msg);
