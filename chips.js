@@ -27,7 +27,13 @@ function initChipSession(players){
       next[p.id] = chipSession[p.id];
       next[p.id].name = p.name;
     } else {
-      next[p.id] = {name: p.name, chips: CHIP_START, isBot: p.isBot};
+      // Jika myId sudah punya entry di chipSession (dibeli power di lobby), pakai itu
+      if(p.id === myId && chipSession[myId]){
+        next[p.id] = chipSession[myId];
+        next[p.id].name = p.name;
+      } else {
+        next[p.id] = {name: p.name, chips: CHIP_START, isBot: p.isBot};
+      }
     }
   });
   chipSession = next;
