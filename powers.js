@@ -374,32 +374,55 @@ function _usePower(id, targetSlot){
       break;
 
     case 'zap':
-      activePowers.zapTarget = targetSlot;
-      showNotif(`⚡ ZAP! ${G.players[targetSlot].name} akan di-skip giliran berikutnya!`,false);
-      if(chan) chan.publish('m', JSON.stringify({type:'power_use',power:'zap',from:myId,fromSlot:ms,target:targetSlot}));
+      if(isHost){
+        // Host langsung set zapTarget — akan dieksekusi di proceedTurn
+        activePowers.zapTarget = targetSlot;
+        showNotif(`⚡ ZAP! ${G.players[targetSlot].name} akan di-skip giliran berikutnya!`,false);
+        if(chan) chan.publish('m', JSON.stringify({type:'power_use',power:'zap',from:myId,fromSlot:ms,target:targetSlot}));
+      } else {
+        // Non-host kirim ke host lewat power_req — host yang eksekusi
+        showNotif(`⚡ ZAP dikirim ke ${G.players[targetSlot].name}!`,false);
+        if(chan) chan.publish('m', JSON.stringify({type:'power_req',power:'zap',from:myId,fromSlot:ms,target:targetSlot}));
+      }
       break;
 
     case 'spy':{
       const tNameSpy = G.players[targetSlot].name;
       showNotif(`🔍 Mengintip tangan ${tNameSpy}...`,false);
       if(isHost){
+        // Host langsung tampilkan overlay dan broadcast notif ke semua
         _showSpyOverlay(tNameSpy, G.hands[targetSlot]);
+        if(chan) chan.publish('m', JSON.stringify({
+          type:'power_use', power:'spy',
+          from:myId, fromSlot:ms
+        }));
       } else {
+        // Non-host: tampilkan loading overlay, kirim request ke host
+        _showSpyOverlayLoading(tNameSpy);
         if(chan) chan.publish('m', JSON.stringify({
           type:'power_req', power:'spy',
           from:myId, fromSlot:ms, target:targetSlot
         }));
-        _showSpyOverlayLoading(tNameSpy);
+        // Fallback: jika spy_result tidak datang dalam 8 detik, hapus overlay
+        const spyTimeout = setTimeout(()=>{
+          const ov = document.getElementById('spyOverlay');
+          if(ov) ov.remove();
+          showNotif('⚠ Spy timeout — koneksi lambat?', false);
+        }, 8000);
+        // Simpan timeout agar bisa di-cancel saat spy_result tiba
+        window._spyFallbackTimeout = spyTimeout;
       }
       break;
     }
 
     case 'swap':{
       if(!isHost){
+        showNotif(`🔀 SWAP dikirim — menunggu respons host...`, false);
         if(chan) chan.publish('m', JSON.stringify({type:'power_req',power:'swap',from:myId,fromSlot:ms,target:targetSlot}));
-        // Notif akan muncul saat host broadcast state kembali
       } else {
         _applySwap(ms, targetSlot);
+        // Broadcast power_use agar semua client tahu (host swap)
+        if(chan) chan.publish('m', JSON.stringify({type:'power_use',power:'swap',from:myId,fromSlot:ms}));
       }
       break;
     }
@@ -548,7 +571,8 @@ function applyBlackoutEffect(active, casterSlot){
   renderGame();
 }
 
-// ── Intercept advanceTurn untuk handle rewind + zap + blackout countdown ──
+// ── Intercept advanceTurn untuk handle rewind ──
+// ZAP tidak lagi ditangani di sini — dipindahkan ke proceedTurn (host-only, setelah G.current di-set)
 const _origAdvanceTurn = advanceTurn;
 window.advanceTurn = function(){
   if(!G||G.phase==='end') return;
@@ -560,22 +584,7 @@ window.advanceTurn = function(){
     while(G.finished.includes(prev) && tries<4){ prev=(prev-1+4)%4; tries++; }
     if(!G.finished.includes(prev)){
       G.current = prev;
-      // Cek apakah satu putaran selesai (kembali ke lastPlayedBy atau semua sudah jalan)
       proceedTurn();
-      return;
-    }
-  }
-
-  // Zap: skip giliran pemain yang kena zap
-  if(activePowers.zapTarget >= 0){
-    const next = _getNextPlayer(G.current);
-    if(next === activePowers.zapTarget){
-      activePowers.zapTarget = -1;
-      showNotif(`⚡ ${G.players[next].name} di-ZAP! Skip giliran!`);
-      G.skipped[next] = true;
-      G.current = next;
-      // langsung advance lagi
-      _origAdvanceTurn();
       return;
     }
   }
@@ -588,6 +597,57 @@ function _getNextPlayer(cur){
   while(G.finished.includes(next)&&tries<4){next=(next+1)%4;tries++;}
   return next;
 }
+
+// ── Intercept proceedTurn untuk handle ZAP (host-only) ──
+// ZAP ditangani di sini karena G.current sudah di-set saat proceedTurn dipanggil.
+// Host adalah satu-satunya yang menjalankan logika game — setelah skip zap, host bcastState
+// sehingga semua client (termasuk yang kena zap) mendapat state terbaru.
+const _origProceedTurn = proceedTurn;
+window.proceedTurn = function(){
+  if(!G||G.phase==='end'){ _origProceedTurn(); return; }
+
+  if(isHost && activePowers.zapTarget >= 0){
+    const cur = G.current;
+    if(!G.finished.includes(cur) && cur === activePowers.zapTarget){
+      // Pemain ini kena zap — skip gilirannya
+      activePowers.zapTarget = -1;
+      G.skipped[cur] = true;
+      showNotif(`⚡ ${G.players[cur].name} di-ZAP! Giliran di-skip!`);
+      // Broadcast notif zap-skip ke semua client
+      if(chan) chan.publish('m', JSON.stringify({
+        type:'power_zap_skip',
+        target: cur,
+        targetName: G.players[cur].name
+      }));
+      // Cek apakah zap-skip menyebabkan semua pemain aktif sudah skip (round over)
+      const active = [0,1,2,3].filter(p=>!G.finished.includes(p)&&p!==G.lastPlayedBy);
+      const allSkipped = active.length>0 && active.every(p=>G.skipped[p]);
+      if(allSkipped && G.lastPlayedBy>=0){
+        // Round berakhir — lastPlayedBy berhak main lagi
+        G.prevCombo=null; G.currentCombo=null;
+        G.skipped=[false,false,false,false];
+        G.current=G.lastPlayedBy; G.lastPlayedBy=-1;
+        G.pokerFinishedBy=-1;
+        feltStackedCards=[];
+        lastComboId='_clear_';
+        SFX.newRound && SFX.newRound();
+        deactivatePokerIntense && deactivatePokerIntense();
+        setGStat(`${G.players[G.current].name} berhak main lagi!`);
+        bcastState();
+        renderGame();
+        _origProceedTurn();
+        return;
+      }
+      // Lanjut ke pemain berikutnya
+      _origAdvanceTurn();
+      bcastState();
+      renderGame();
+      return;
+    }
+  }
+
+  _origProceedTurn();
+};
 
 // ── Intercept applySkip untuk handle Ghost ──
 const _origApplySkip = applySkip;
@@ -665,8 +725,8 @@ window.handleMsg = function(msg){
         activePowers.rewindActive=true; activePowers.rewindRounds=2;
       }
       if(d.power==='zap' && d.target===G?.mySlot){
-        showNotif('⚡ Kamu kena ZAP! Giliran berikutmu di-skip!');
-        activePowers.zapTarget = d.target;
+        // Non-host hanya tampilkan notif — logika skip dieksekusi host via proceedTurn
+        showNotif('⚡ Kamu kena ZAP! Giliran berikutmu akan di-skip!');
       }
     }
     return;
@@ -689,21 +749,43 @@ window.handleMsg = function(msg){
     return;
   }
 
+  // Notifikasi zap-skip dari host ke semua client
+  if(d.type==='power_zap_skip'){
+    showNotif(`⚡ ${d.targetName} di-ZAP! Giliran di-skip!`);
+    // Jika saya yang kena zap, tampilkan notif khusus
+    if(G && d.target === G.mySlot){
+      showNotif('⚡ Giliranmu di-SKIP karena ZAP!');
+    }
+    return;
+  }
+
   if(d.type==='power_req' && isHost){
-    if(d.power==='chaos') _applyChaosShuffle();
-    if(d.power==='swap') _applySwap(d.fromSlot, d.target);
+    if(d.power==='chaos'){
+      _applyChaosShuffle();
+      if(chan) chan.publish('m', JSON.stringify({type:'power_use',power:'chaos',from:d.from,fromSlot:d.fromSlot}));
+    }
+    if(d.power==='zap'){
+      // Host set zapTarget — akan dieksekusi saat proceedTurn giliran target
+      activePowers.zapTarget = d.target;
+      if(chan) chan.publish('m', JSON.stringify({type:'power_use',power:'zap',from:d.from,fromSlot:d.fromSlot,target:d.target}));
+    }
+    if(d.power==='swap'){
+      _applySwap(d.fromSlot, d.target);
+      // Broadcast power_use agar semua client tahu swap dipakai
+      if(chan) chan.publish('m', JSON.stringify({type:'power_use',power:'swap',from:d.from,fromSlot:d.fromSlot}));
+    }
     if(d.power==='spy'){
-      // Host kirim data tangan target HANYA ke pemain yang request (via broadcast + filter di client)
+      // Host kirim data tangan target HANYA ke pemain yang request
       const targetHand = G ? G.hands[d.target] : [];
       const targetName = G ? G.players[d.target].name : '';
+      // Kirim spy_result dulu, baru power_use notif
       if(chan) chan.publish('m', JSON.stringify({
         type:'power_spy_result',
-        to: d.from,          // hanya penerima yang boleh lihat
+        to: d.from,
         toSlot: d.fromSlot,
         targetName,
         hand: targetHand
       }));
-      // Notif ke semua bahwa spy digunakan
       if(chan) chan.publish('m', JSON.stringify({
         type:'power_use', power:'spy',
         from:d.from, fromSlot:d.fromSlot
@@ -714,6 +796,11 @@ window.handleMsg = function(msg){
 
   // Terima hasil spy (hanya untuk pemain yang request)
   if(d.type==='power_spy_result' && d.to === myId){
+    // Cancel fallback timeout jika ada
+    if(window._spyFallbackTimeout){
+      clearTimeout(window._spyFallbackTimeout);
+      window._spyFallbackTimeout = null;
+    }
     // Hapus overlay loading dan tampilkan kartu sebenarnya
     const old = document.getElementById('spyOverlay');
     if(old) old.remove();
