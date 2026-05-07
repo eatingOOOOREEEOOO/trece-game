@@ -272,8 +272,9 @@ function closeTargetPicker(){
   document.getElementById('targetPicker').classList.remove('open');
 }
 function confirmTarget(slot){
+  const powerToUse = _pendingPower; // simpan SEBELUM closeTargetPicker() menghapusnya
   closeTargetPicker();
-  if(_pendingPower) _usePower(_pendingPower, slot);
+  if(powerToUse) _usePower(powerToUse, slot);
 }
 
 // ── Eksekusi power ──
