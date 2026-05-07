@@ -229,7 +229,6 @@ function updateShopBadge(){
 
 // ── Aktifkan power card ──
 function activatePower(id){
-  console.log('[POWER] activatePower called:', id, '| G:', !!G, '| phase:', G?.phase, '| myPowers:', JSON.stringify(myPowers));
   if(!G||G.phase==='end') return;
   const p = POWER_CATALOG.find(x=>x.id===id);
   if(!p || !(myPowers[id]>0)) return;
@@ -253,6 +252,7 @@ function activatePower(id){
 // ── Target picker ──
 let _targetCallback = null;
 function openTargetPicker(powerId){
+  console.log('[POWER] openTargetPicker called:', powerId, '| G.mySlot:', G?.mySlot, '| others:', [0,1,2,3].filter(i=>i!==G?.mySlot));
   if(!G) return;
   _pendingPower = powerId;
   const p = POWER_CATALOG.find(x=>x.id===powerId);
@@ -273,6 +273,7 @@ function closeTargetPicker(){
   document.getElementById('targetPicker').classList.remove('open');
 }
 function confirmTarget(slot){
+  console.log('[POWER] confirmTarget called, slot:', slot, '| _pendingPower:', _pendingPower);
   closeTargetPicker();
   if(_pendingPower) _usePower(_pendingPower, slot);
 }
@@ -381,7 +382,7 @@ function _usePower(id, targetSlot){
       break;
 
     case 'spy':{
-      console.log('[POWER] spy triggered, targetSlot:', targetSlot, '| isHost:', isHost, '| hand:', G.hands[targetSlot]?.length);
+      console.log('[POWER] spy triggered, targetSlot:', targetSlot, '| isHost:', isHost, '| hand len:', G.hands[targetSlot]?.length);
       const tNameSpy = G.players[targetSlot].name;
       showNotif(`🔍 Mengintip tangan ${tNameSpy}...`,false);
       if(isHost){
@@ -764,7 +765,6 @@ window.returnToLobby = function(){
 // ── Reset power state saat game baru ──
 const _origBeginGamePower = window.beginGame || function(){};
 window.beginGame = function(opts){
-  console.log('[POWER] beginGame patch called, resetting activePowers');
   _origBeginGamePower(opts);
   // Bersihkan timer blackout sebelumnya jika ada
   if(activePowers && activePowers._blackoutTimer) clearTimeout(activePowers._blackoutTimer);
