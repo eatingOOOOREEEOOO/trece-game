@@ -346,6 +346,11 @@ function handleMsg(msg){
         readyPlayers=new Set(d.readyIds||[]);
         rebuildLobby(d.realPlayers||[]);
         if(d.chipSession) chipSession = d.chipSession;
+        // Reset bet per player untuk ronde baru (tapi pertahankan preferensi sendiri)
+        const myLastBet = playerBets[myId] || currentBet;
+        playerBets = {};
+        playerBets[myId] = myLastBet;
+        _betsReceived = {};
         // Simpan rematch state dari host
         if(d.prevWinnerSlot !== undefined) _prevRoundWinnerSlot = d.prevWinnerSlot;
         if(d.prevPlayerIds  !== undefined) _prevRoundPlayerIds  = d.prevPlayerIds;
@@ -353,8 +358,36 @@ function handleMsg(msg){
       }
       break;
     }
+    case 'bet_ready': {
+      // Non-host memberi tahu bahwa mereka siap mengisi taruhan
+      // (opsional: bisa dipakai untuk menampilkan status)
+      break;
+    }
+    case 'bet_submit': {
+      // Setiap player broadcast taruhan mereka — host kumpulkan
+      if(isHost && d.id !== myId){
+        _betsReceived[d.id] = d.bet;
+        // Update tampilan di bet modal jika masih terbuka
+        _updateBetPlayerStatus(d.id, d.bet);
+        _checkAllBetsReceived();
+      } else if(!isHost && d.id !== myId){
+        // Non-host juga update tampilan status player lain
+        _updateBetPlayerStatus(d.id, d.bet);
+      }
+      break;
+    }
+    case 'bets_collected': {
+      // Host broadcast semua bet sudah terkumpul — non-host sync playerBets
+      if(!isHost){
+        if(d.playerBets) Object.assign(playerBets, d.playerBets);
+        // Tutup bet modal jika masih terbuka
+        document.getElementById('betModal').classList.remove('open');
+        showNotif('Semua taruhan terkumpul — game dimulai!');
+      }
+      break;
+    }
     case 'bet_set': {
-      // Non-host receives the bet amount set by host
+      // Legacy fallback — non-host receives the bet amount set by host
       if(!isHost){
         currentBet = d.bet;
       }
@@ -364,11 +397,14 @@ function handleMsg(msg){
       // Non-host: receive resolved chip session from host
       if(!isHost){
         if(d.chipSession) chipSession = d.chipSession;
+        if(d.playerBets) Object.assign(playerBets, d.playerBets);
         // Show float animation for local player
         if(G && d.finished){
           const myPidx = d.finished.indexOf(G.mySlot);
-          if(myPidx >= 0 && currentBet > 0){
-            const myDelta = CHIP_RANK_DELTA[myPidx] * currentBet;
+          const me = G.players[G.mySlot];
+          const myBet = (d.playerBets && me) ? (d.playerBets[me.id] || currentBet) : currentBet;
+          if(myPidx >= 0 && myBet > 0){
+            const myDelta = CHIP_RANK_DELTA[myPidx] * myBet;
             setTimeout(()=>showChipFloat(myDelta), 400);
             updateChipHud();
           }
@@ -378,7 +414,6 @@ function handleMsg(msg){
             const chipRecapHtml = buildChipRecap(d.finished, G.players, deltas, G.mySlot);
             const modal = document.querySelector('#endModal .modal');
             if(modal){
-              // Inject recap after rlist
               const existing = modal.querySelector('.chip-recap');
               if(!existing){
                 const rlist = modal.querySelector('.rlist');
@@ -395,6 +430,7 @@ function handleMsg(msg){
       break;
     }
     case 'game_start':
+      if(!isHost && d.playerBets) Object.assign(playerBets, d.playerBets);
       receiveStart(d);
       break;
     case 'game_action':
