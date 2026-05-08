@@ -46,22 +46,11 @@ function initChipSession(players){
   chipSession = next;
 }
 
-// ── Kurangi bid dari saldo semua real player saat game dimulai ──
-// Menggunakan taruhan masing-masing player (playerBets), bukan satu nilai global
-// Saldo boleh menjadi negatif — tidak ada pengecekan kecukupan chip
-function deductBidFromAll(players){
-  players.forEach(p=>{
-    if(p.isBot) return;
-    const session = chipSession[p.id];
-    if(!session) return;
-    const bet = playerBets[p.id] || currentBet;
-    session.chips -= bet;
-  });
-}
+// deductBidFromAll dihapus — sistem bandar tidak potong chip di awal ronde
 
-// ── Hitung delta chip dari hasil game dan tambahkan ke saldo ──
-// Setiap player mendapat reward/penalti berdasarkan taruhan MEREKA SENDIRI
-// Bid sudah dipotong di awal (deductBidFromAll), jadi di sini hanya tambah reward
+// ── Hitung dan terapkan hasil chip akhir ronde (sistem bandar) ──
+// Tidak ada potongan di awal — saldo langsung +/− sesuai posisi × taruhan sendiri.
+// 🥇 +2x | 🥈 +1x | 🥉 −1x | 💀 −2x
 function resolveChips(finished, players){
   const deltas = {};
   finished.forEach((pidx, rank)=>{
@@ -104,8 +93,9 @@ function updateChipHud(){
   if(currentBet){
     const myBet = playerBets[me.id] || currentBet;
     document.getElementById('chipBarBet').textContent = myBet + ' chip';
-    const winDelta = CHIP_RANK_DELTA[0] * myBet;
-    document.getElementById('chipBarWin').textContent = '+' + winDelta;
+    const winDelta  = CHIP_RANK_DELTA[0] * myBet;  // +2x
+    const lossDelta = CHIP_RANK_DELTA[3] * myBet;  // −2x
+    document.getElementById('chipBarWin').textContent = '+' + winDelta + ' / ' + lossDelta;
   } else {
     document.getElementById('chipBarBet').textContent = '—';
     document.getElementById('chipBarWin').textContent = '—';
@@ -206,7 +196,7 @@ function setBetDisplay(val){
   // Tampilkan warning jika saldo kurang
   const myChips = chipSession[myId]?.chips ?? CHIP_START;
   document.getElementById('betSubLabel').textContent = myChips < val
-    ? `⚠ Saldo kamu kurang — saldo akan minus jika kalah`
+    ? `⚠ Saldo kamu ${myChips.toLocaleString()} — bisa minus jika kalah`
     : (isHost
         ? 'Tentukan taruhan kamu — semua pemain juga menentukan sendiri'
         : 'Tentukan jumlah taruhan kamu untuk ronde ini');
@@ -252,8 +242,7 @@ function _doBetAndStart(){
   myReady = false;
   gameHasStarted = true;
 
-  // Potong bid dari saldo semua real player sekarang (per-player amount)
-  deductBidFromAll(lobbyPlayers);
+  // Tidak ada potongan chip di awal — reward/penalti dihitung di akhir ronde
 
   let deck, hands;
   let attempts = 0;
@@ -371,8 +360,8 @@ function buildChipRecap(finished, players, deltas, mySlot){
     </div>`;
   }).join('');
   return `<div class="chip-recap">
-    <div class="chip-recap-title">💰 Rekap Taruhan Sesi</div>
-    <div class="chip-recap-legend">🥇+2x &nbsp;🥈+1x &nbsp;🥉−1x &nbsp;💀−2x (×taruhan sendiri)</div>
+    <div class="chip-recap-title">💰 Rekap Ronde</div>
+    <div class="chip-recap-legend">🥇+2x &nbsp;🥈+1x &nbsp;🥉−1x &nbsp;💀−2x taruhan sendiri</div>
     ${rows}
   </div>`;
 }
