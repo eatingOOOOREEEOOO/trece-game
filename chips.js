@@ -114,10 +114,6 @@ function showBetModal(){
   // Set default bet untuk diri sendiri
   if(!playerBets[myId]) playerBets[myId] = currentBet;
 
-  // Render modal: player hanya set taruhan DIRI SENDIRI
-  const myChips = chipSession[myId]?.chips ?? CHIP_START;
-  const isNeg = myChips < 0;
-
   document.getElementById('betSubLabel').textContent = isHost
     ? 'Tentukan taruhan kamu — semua pemain juga menentukan sendiri'
     : 'Tentukan jumlah taruhan kamu untuk ronde ini';
@@ -128,10 +124,9 @@ function showBetModal(){
   setBetDisplay(playerBets[myId] || currentBet);
   document.getElementById('betModal').classList.add('open');
 
-  // Non-host: broadcast bahwa player sudah membuka bet modal
-  // (sehingga host tahu siapa yang aktif)
-  if(!isHost){
-    send({type:'bet_ready', id:myId});
+  // Host: broadcast ke semua non-host agar mereka juga buka bet modal
+  if(isHost){
+    send({type:'show_bet_modal', chipSession});
   }
 }
 
@@ -214,11 +209,12 @@ function confirmBet(){
   _betModalOpen = false;
 
   if(isHost){
+    // Host: catat bet sendiri ke _betsReceived lalu cek apakah semua sudah masuk
     _betsReceived[myId] = myBet;
+    _updateBetPlayerStatus(myId, myBet);
     _checkAllBetsReceived();
-  }
-  // Non-host: tunggu host broadcast 'bets_collected' sebelum game start
-  else {
+  } else {
+    // Non-host: tandai bet sendiri sudah terkirim, tunggu 'bets_collected' dari host
     showNotif(`✓ Taruhanmu ${myBet} chip sudah dikunci! Menunggu pemain lain...`);
   }
 }
@@ -231,7 +227,7 @@ function _checkAllBetsReceived(){
   if(allIn){
     // Copy ke playerBets
     Object.assign(playerBets, _betsReceived);
-    // Broadcast ke semua player bahwa bet terkumpul + mulai game
+    // Broadcast ke semua player bahwa bet terkumpul + data playerBets lengkap
     send({type:'bets_collected', playerBets});
     _doBetAndStart();
   }
