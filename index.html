@@ -178,22 +178,23 @@
 <!-- BET MODAL -->
 <div id="betModal">
   <div class="bet-box">
-    <div class="bet-title">⚔ TARUHAN GAME</div>
-    <div class="bet-sub" id="betSubLabel">Pilih jumlah taruhan per pemain</div>
+    <div class="bet-title">⚔ TARUHAN KAMU</div>
+    <div class="bet-sub" id="betSubLabel">Tentukan jumlah taruhan kamu untuk ronde ini</div>
     <div class="bet-players" id="betPlayerList"></div>
     <div class="bet-amount-wrap">
       <button class="bet-btn" onclick="adjustBet(-50)">−</button>
       <div class="bet-amount-display" id="betAmountDisplay">100</div>
       <button class="bet-btn" onclick="adjustBet(+50)">+</button>
     </div>
-    <div class="bet-chips-label">CHIP PER PEMAIN</div>
+    <div class="bet-chips-label">CHIP TARUHANMU</div>
     <div class="bet-presets">
       <span class="bet-preset" onclick="setBetPreset(50)">50</span>
       <span class="bet-preset active" onclick="setBetPreset(100)">100</span>
       <span class="bet-preset" onclick="setBetPreset(200)">200</span>
       <span class="bet-preset" onclick="setBetPreset(500)">500</span>
     </div>
-    <button class="btn btn-gold" style="font-family:'Cinzel Decorative';font-size:12px;margin-bottom:0;" onclick="confirmBet()">MULAI GAME →</button>
+    <div class="bet-multiplier-info">🥇+2x &nbsp;🥈+1x &nbsp;🥉−1x &nbsp;💀−2x (dari taruhan sendiri)</div>
+    <button class="btn btn-gold" style="font-family:'Cinzel Decorative';font-size:12px;margin-bottom:0;" onclick="confirmBet()">KUNCI TARUHAN →</button>
   </div>
 </div>
 
