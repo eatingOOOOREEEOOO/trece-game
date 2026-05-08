@@ -9,15 +9,22 @@ const CHIP_START   = 1000;  // chip awal per pemain per sesi
 const CHIP_MIN_BET = 50;
 const CHIP_MAX_BET = 500;
 // Multiplier kemenangan per posisi: [1st, 2nd, 3rd, 4th]
-// 1st: net +3x bet  |  2nd: ±0  |  3rd: -1x bet  |  4th: -2x bet
-const CHIP_RANK_DELTA = [3, 0, -1, -2]; // dalam satuan bet
+// 1st: +2x taruhan sendiri  |  2nd: +1x taruhan sendiri
+// 3rd: -1x taruhan sendiri  |  4th: -2x taruhan sendiri
+const CHIP_RANK_DELTA = [2, 1, -1, -2]; // dalam satuan bet MASING-MASING player
 
 // State chip sesi (keyed by player id)
 // Format: { [playerId]: { name, chips, isBot } }
 // chips boleh negatif — tidak ada floor, tidak ada field hutang terpisah
 let chipSession = {};
-let currentBet  = 100;
+let currentBet  = 100;  // default / fallback jika player tidak set
 let _betPending = false;
+
+// Taruhan individual per player: { [playerId]: jumlah }
+let playerBets = {};
+// Tracking siapa sudah submit bet
+let _betsReceived = {};  // { [playerId]: amount } — host only
+let _betModalOpen = false;
 
 // ── Inisialisasi chip sesi ──
 function initChipSession(players){
@@ -40,26 +47,29 @@ function initChipSession(players){
 }
 
 // ── Kurangi bid dari saldo semua real player saat game dimulai ──
+// Menggunakan taruhan masing-masing player (playerBets), bukan satu nilai global
 // Saldo boleh menjadi negatif — tidak ada pengecekan kecukupan chip
-function deductBidFromAll(players, bet){
+function deductBidFromAll(players){
   players.forEach(p=>{
     if(p.isBot) return;
     const session = chipSession[p.id];
     if(!session) return;
+    const bet = playerBets[p.id] || currentBet;
     session.chips -= bet;
   });
 }
 
 // ── Hitung delta chip dari hasil game dan tambahkan ke saldo ──
-// Delta sudah mencakup hasil bersih per posisi (CHIP_RANK_DELTA * bet)
+// Setiap player mendapat reward/penalti berdasarkan taruhan MEREKA SENDIRI
 // Bid sudah dipotong di awal (deductBidFromAll), jadi di sini hanya tambah reward
-function resolveChips(finished, players, bet){
+function resolveChips(finished, players){
   const deltas = {};
   finished.forEach((pidx, rank)=>{
-    // Delta = reward bersih per posisi (bisa positif atau negatif)
+    const p = players[pidx];
+    const bet = playerBets[p.id] || currentBet;
+    // Delta = multiplier posisi × taruhan sendiri
     const delta = CHIP_RANK_DELTA[rank] * bet;
     deltas[pidx] = delta;
-    const p = players[pidx];
     if(p && chipSession[p.id]){
       chipSession[p.id].chips += delta;
     }
@@ -92,8 +102,9 @@ function updateChipHud(){
   chipValEl.style.color = chips < 0 ? 'var(--red, #e74c3c)' : '';
 
   if(currentBet){
-    document.getElementById('chipBarBet').textContent = currentBet + ' chip';
-    const winDelta = CHIP_RANK_DELTA[0] * currentBet;
+    const myBet = playerBets[me.id] || currentBet;
+    document.getElementById('chipBarBet').textContent = myBet + ' chip';
+    const winDelta = CHIP_RANK_DELTA[0] * myBet;
     document.getElementById('chipBarWin').textContent = '+' + winDelta;
   } else {
     document.getElementById('chipBarBet').textContent = '—';
@@ -101,52 +112,139 @@ function updateChipHud(){
   }
 }
 
-// ── Tampilkan modal taruhan (host only) ──
+// ── Tampilkan modal taruhan INDIVIDU — setiap player menentukan bet sendiri ──
 function showBetModal(){
   const realPlayers = lobbyPlayers.filter(p=>!p.isBot);
   initChipSession(lobbyPlayers);
 
+  // Reset per-player bet state
+  _betsReceived = {};
+  _betModalOpen = true;
+
+  // Set default bet untuk diri sendiri
+  if(!playerBets[myId]) playerBets[myId] = currentBet;
+
+  // Render modal: player hanya set taruhan DIRI SENDIRI
+  const myChips = chipSession[myId]?.chips ?? CHIP_START;
+  const isNeg = myChips < 0;
+
+  document.getElementById('betSubLabel').textContent = isHost
+    ? 'Tentukan taruhan kamu — semua pemain juga menentukan sendiri'
+    : 'Tentukan jumlah taruhan kamu untuk ronde ini';
+
+  // Tampilkan daftar semua real player dengan status "menunggu"
+  _renderBetPlayerList(realPlayers);
+
+  setBetDisplay(playerBets[myId] || currentBet);
+  document.getElementById('betModal').classList.add('open');
+
+  // Non-host: broadcast bahwa player sudah membuka bet modal
+  // (sehingga host tahu siapa yang aktif)
+  if(!isHost){
+    send({type:'bet_ready', id:myId});
+  }
+}
+
+// ── Render daftar player di bet modal ──
+function _renderBetPlayerList(realPlayers){
   const list = document.getElementById('betPlayerList');
   list.innerHTML = realPlayers.map(p=>{
     const c = chipSession[p.id]?.chips ?? CHIP_START;
     const isNeg = c < 0;
-    const low = c < currentBet;
+    const isMe = p.id === myId;
+    const betAmt = playerBets[p.id];
+    const hasSubmitted = !!betAmt && p.id !== myId;  // others submitted
+    const statusHtml = isMe
+      ? `<span class="bet-pstatus me">👤 Kamu</span>`
+      : (hasSubmitted
+          ? `<span class="bet-pstatus ready">✓ ${betAmt}</span>`
+          : `<span class="bet-pstatus wait">…</span>`);
     return `<div class="bet-player-row">
-      <span class="bet-pname">${p.name}${p.id===myId?' (Kamu)':''}</span>
-      <span class="bet-pchips${isNeg?' low':low?' low':''}">💰 ${c.toLocaleString()}</span>
+      <span class="bet-pname">${p.name}${isMe?' (Kamu)':''}</span>
+      <span class="bet-pchips${isNeg?' low':''}">💰 ${c.toLocaleString()}</span>
+      ${statusHtml}
     </div>`;
   }).join('');
+}
 
-  setBetDisplay(currentBet);
-  document.getElementById('betModal').classList.add('open');
+// ── Update tampilan bet modal saat player lain submit ──
+function _updateBetPlayerStatus(playerId, amount){
+  playerBets[playerId] = amount;
+  const realPlayers = lobbyPlayers.filter(p=>!p.isBot);
+  _renderBetPlayerList(realPlayers);
+
+  // Cek apakah semua real player sudah submit
+  if(isHost){
+    const allSubmitted = realPlayers.every(p=>!!playerBets[p.id]);
+    if(allSubmitted){
+      // Enable tombol start
+      const confirmBtn = document.querySelector('#betModal .btn-gold');
+      if(confirmBtn){
+        confirmBtn.textContent = 'SEMUA SIAP — MULAI GAME →';
+        confirmBtn.style.background = 'linear-gradient(135deg,#1a6b3a,#0d4a28)';
+      }
+    }
+  }
 }
 
 function adjustBet(delta){
+  const cur = playerBets[myId] || currentBet;
   const newVal = Math.min(CHIP_MAX_BET, Math.max(CHIP_MIN_BET,
-    Math.round((currentBet + delta) / 50) * 50));
+    Math.round((cur + delta) / 50) * 50));
   setBetDisplay(newVal);
 }
 
 function setBetPreset(val){ setBetDisplay(val); }
 
 function setBetDisplay(val){
-  currentBet = val;
+  playerBets[myId] = val;
+  currentBet = val; // local fallback
   document.getElementById('betAmountDisplay').textContent = val;
   document.querySelectorAll('.bet-preset').forEach(el=>{
     el.classList.toggle('active', parseInt(el.textContent) === val);
   });
-  // Info: semua player selalu boleh ikut meski chip kurang
-  const realPlayers = lobbyPlayers.filter(p=>!p.isBot);
-  const brokePlayers = realPlayers.filter(p=> (chipSession[p.id]?.chips ?? CHIP_START) < val);
-  document.getElementById('betSubLabel').textContent = brokePlayers.length > 0
-    ? `⚠ ${brokePlayers.length} pemain saldo kurang — saldo akan minus`
-    : 'Pilih jumlah taruhan per pemain';
+  // Tampilkan warning jika saldo kurang
+  const myChips = chipSession[myId]?.chips ?? CHIP_START;
+  document.getElementById('betSubLabel').textContent = myChips < val
+    ? `⚠ Saldo kamu kurang — saldo akan minus jika kalah`
+    : (isHost
+        ? 'Tentukan taruhan kamu — semua pemain juga menentukan sendiri'
+        : 'Tentukan jumlah taruhan kamu untuk ronde ini');
 }
 
 function confirmBet(){
+  const myBet = playerBets[myId] || currentBet;
+  playerBets[myId] = myBet;
+
+  // Kirim taruhan kita ke semua (host akan kumpulkan)
+  send({type:'bet_submit', id:myId, bet:myBet});
+
+  // Tutup modal untuk player yang sudah submit
   document.getElementById('betModal').classList.remove('open');
-  send({type:'bet_set', bet: currentBet});
-  _doBetAndStart();
+  _betModalOpen = false;
+
+  if(isHost){
+    _betsReceived[myId] = myBet;
+    _checkAllBetsReceived();
+  }
+  // Non-host: tunggu host broadcast 'bets_collected' sebelum game start
+  else {
+    showNotif(`✓ Taruhanmu ${myBet} chip sudah dikunci! Menunggu pemain lain...`);
+  }
+}
+
+// ── Host: cek apakah semua real player sudah submit bet ──
+function _checkAllBetsReceived(){
+  if(!isHost) return;
+  const realPlayers = lobbyPlayers.filter(p=>!p.isBot);
+  const allIn = realPlayers.every(p=>_betsReceived[p.id] !== undefined);
+  if(allIn){
+    // Copy ke playerBets
+    Object.assign(playerBets, _betsReceived);
+    // Broadcast ke semua player bahwa bet terkumpul + mulai game
+    send({type:'bets_collected', playerBets});
+    _doBetAndStart();
+  }
 }
 
 function _doBetAndStart(){
@@ -154,9 +252,8 @@ function _doBetAndStart(){
   myReady = false;
   gameHasStarted = true;
 
-  // Potong bid dari saldo semua real player sekarang
-  // (saldo boleh jadi negatif — tidak ada pengecekan)
-  deductBidFromAll(lobbyPlayers, currentBet);
+  // Potong bid dari saldo semua real player sekarang (per-player amount)
+  deductBidFromAll(lobbyPlayers);
 
   let deck, hands;
   let attempts = 0;
@@ -184,6 +281,7 @@ function _doBetAndStart(){
     handsData: hands.map((h,i)=>({idx:i, cards:h})),
     chipSession,
     currentBet,
+    playerBets,
     skipBid,
     startSlot
   };
@@ -255,23 +353,26 @@ function showChipFloat(delta, x, y){
 
 // ── Rekap chip di end modal ──
 function buildChipRecap(finished, players, deltas, mySlot){
-  if(!currentBet) return '';
+  if(!finished || !finished.length) return '';
   const rows = finished.map((pidx,rank)=>{
     const p = players[pidx];
     const delta = deltas[pidx] ?? 0;
     const total = chipSession[p.id]?.chips ?? CHIP_START;
     const isMe  = pidx === mySlot;
+    const bet   = playerBets[p.id] || currentBet;
     const sign  = delta > 0 ? '+' : '';
     const cls   = delta > 0 ? 'pos' : delta < 0 ? 'neg' : '';
     const totalStyle = total < 0 ? ' style="color:var(--red,#e74c3c)"' : '';
+    const betLabel = p.isBot ? '' : `<span class="chip-recap-bet">(bet ${bet})</span>`;
     return `<div class="chip-recap-row${isMe?' me':''}">
-      <span class="chip-recap-name">${p.name}${isMe?' ★':''}</span>
+      <span class="chip-recap-name">${p.name}${isMe?' ★':''} ${betLabel}</span>
       <span class="chip-recap-delta ${cls}">${sign}${delta}</span>
       <span class="chip-recap-total"${totalStyle}>= ${total.toLocaleString()}</span>
     </div>`;
   }).join('');
   return `<div class="chip-recap">
-    <div class="chip-recap-title">💰 Taruhan ${currentBet} chip — Rekap Sesi</div>
+    <div class="chip-recap-title">💰 Rekap Taruhan Sesi</div>
+    <div class="chip-recap-legend">🥇+2x &nbsp;🥈+1x &nbsp;🥉−1x &nbsp;💀−2x (×taruhan sendiri)</div>
     ${rows}
   </div>`;
 }
