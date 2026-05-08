@@ -347,18 +347,22 @@ function showEndModal(){
 
   // ── Resolve chip bets (host only, once) ──
   let deltas = {};
-  if(isHost && currentBet > 0 && G.finished.length === 4){
-    deltas = resolveChips(G.finished, G.players, currentBet);
+  if(isHost && G.finished.length === 4){
+    deltas = resolveChips(G.finished, G.players);
     // Broadcast updated chip session to all
-    send({type:'chip_result', deltas, chipSession, finished: G.finished});
+    send({type:'chip_result', deltas, chipSession, playerBets, finished: G.finished});
   }
 
   // Show chip float animation for local player
   const myPidx = G.finished.indexOf(ms);
-  if(currentBet > 0 && myPidx >= 0){
-    const myDelta = CHIP_RANK_DELTA[myPidx] * currentBet;
-    setTimeout(()=>showChipFloat(myDelta), 400);
-    updateChipHud();
+  if(myPidx >= 0){
+    const me = G.players[ms];
+    const myBet = playerBets[me?.id] || currentBet;
+    if(myBet > 0){
+      const myDelta = CHIP_RANK_DELTA[myPidx] * myBet;
+      setTimeout(()=>showChipFloat(myDelta), 400);
+      updateChipHud();
+    }
   }
 
   const items=G.finished.map((pidx,rank)=>`
@@ -388,6 +392,12 @@ function hostInitPlayAgain(){
   readyPlayers=new Set();
   myReady=false;
   gameHasStarted=true;
+
+  // Reset bet per player untuk ronde baru (tapi pertahankan preferensi sendiri)
+  const myLastBet = playerBets[myId] || currentBet;
+  playerBets = {};
+  playerBets[myId] = myLastBet;
+  _betsReceived = {};
 
   // ── Simpan data ronde ini untuk logika rematch ──
   // Winner = pemain pertama di G.finished (posisi ke-1)
