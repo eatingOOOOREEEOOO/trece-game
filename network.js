@@ -358,9 +358,27 @@ function handleMsg(msg){
       }
       break;
     }
+    case 'show_bet_modal': {
+      // Host minta semua non-host buka bet modal
+      if(!isHost){
+        // Sync chipSession dari host agar saldo tampil benar
+        if(d.chipSession) chipSession = d.chipSession;
+        // Set default bet jika belum ada
+        if(!playerBets[myId]) playerBets[myId] = currentBet;
+        // Reset state bet
+        _betsReceived = {};
+        _betModalOpen = true;
+        const realPlayers = lobbyPlayers.filter(p=>!p.isBot);
+        document.getElementById('betSubLabel').textContent =
+          'Tentukan jumlah taruhan kamu untuk ronde ini';
+        _renderBetPlayerList(realPlayers);
+        setBetDisplay(playerBets[myId] || currentBet);
+        document.getElementById('betModal').classList.add('open');
+      }
+      break;
+    }
     case 'bet_ready': {
-      // Non-host memberi tahu bahwa mereka siap mengisi taruhan
-      // (opsional: bisa dipakai untuk menampilkan status)
+      // Legacy — tidak dipakai lagi
       break;
     }
     case 'bet_submit': {
@@ -377,12 +395,13 @@ function handleMsg(msg){
       break;
     }
     case 'bets_collected': {
-      // Host broadcast semua bet sudah terkumpul — non-host sync playerBets
+      // Host broadcast semua bet sudah terkumpul
       if(!isHost){
         if(d.playerBets) Object.assign(playerBets, d.playerBets);
-        // Tutup bet modal jika masih terbuka
+        // Tutup bet modal
         document.getElementById('betModal').classList.remove('open');
         showNotif('Semua taruhan terkumpul — game dimulai!');
+        // Non-host tidak memanggil _doBetAndStart — mereka tunggu 'game_start' dari host
       }
       break;
     }
