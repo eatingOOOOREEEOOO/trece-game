@@ -153,26 +153,27 @@ function renderGame(){
 
   // ── Opponents (the 3 others) ──
   const others=[0,1,2,3].filter(i=>i!==ms);
+  const medals=['🥇','🥈','🥉','💀'];
   document.getElementById('oppBar').innerHTML=others.map(pidx=>{
     const p=G.players[pidx],hand=G.hands[pidx];
     const active=G.current===pidx,done=G.finished.includes(pidx);
     const finRank=G.finished.indexOf(pidx);
-    const medals=['🥇','🥈','🥉','💀'];
-    const badge=done?medals[Math.min(finRank,3)]:(active?'▶':'');
-    return `<div class="opp${active?' my-go':''}${done?' done':''}">
-      <div class="opp-nm">${badge} ${p.name}</div>
+    const rankBadge=done?`<span class="opp-rank">${medals[Math.min(finRank,3)]}</span>`:'';
+    const chipData=(typeof chipSession!=='undefined')&&chipSession[p.id];
+    const chipHtml=(!p.isBot&&chipData)
+      ?`<div class="opp-chips"><span class="opp-chips-ico">💰</span>${chipData.chips.toLocaleString()}</div>`
+      :'';
+    return `<div class="opp${active?' my-go':''}${done?' done':''}" style="position:relative;">
+      ${rankBadge}
+      <div class="opp-info">
+        <div class="opp-nm">${p.name}</div>
+        ${chipHtml}
+      </div>
       <div class="opp-ct">${hand.length}</div>
     </div>`;
   }).join('');
 
-  // ── Turn dots (all 4) ──
-  document.getElementById('tdots').innerHTML=[0,1,2,3].map(i=>{
-    const a=G.current===i,d=G.finished.includes(i);
-    return `<div class="tdot${a?' on':''}${d?' dn':''}">
-      <div class="tdot-pip"></div>
-      <span>${G.players[i].name.split(' ')[0]}</span>
-    </div>`;
-  }).join('');
+  // ── Turn dots — hidden ──
 
   // ── Felt (re-render if combo changed or stack changed) ──
   const cid=(G.currentCombo?G.currentCombo.cards.map(c=>c.id).join(','):'')+'|'+feltStackedCards.length;
