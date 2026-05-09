@@ -136,7 +136,7 @@ button,input{touch-action:manipulation;cursor:pointer;}
 
 /* ══ OPPONENTS — NEW PROFILE CARD LAYOUT ══ */
 
-/* Mobile: bar di atas */
+/* ── Mobile default: flex bar di atas ── */
 #oppBar{
   flex:0 0 auto;
   display:flex;
@@ -148,36 +148,45 @@ button,input{touch-action:manipulation;cursor:pointer;}
   align-items:center;
 }
 
-/* Desktop: absolute overlay, tiap .opp di posisi fixed */
+/* ── Desktop: tiap .opp pakai position:fixed langsung ── */
 @media(min-width:700px){
+  /* oppBar jadi nol — tidak ambil flex space sama sekali */
   #oppBar{
-    position:absolute;
-    top:0;left:0;right:0;bottom:0;
+    position:static;
+    flex:0 0 0px;
+    width:0;height:0;
+    padding:0;margin:0;
     background:transparent;
     border:none;
-    padding:0;
+    overflow:visible;
     pointer-events:none;
-    z-index:5;
+    z-index:10;
     display:block;
-    /* #center harus mengisi ruang — oppBar floating di atas */
   }
-  /* Lawan atas (slot 1 dari perspektif player) */
+  /* Semua .opp keluar dari flow, fixed ke viewport */
+  .opp{
+    position:fixed !important;
+    pointer-events:auto;
+    flex:none;
+  }
+  /* Lawan atas: tengah atas viewport */
   .opp:nth-child(1){
-    position:absolute;
-    top:14px;left:50%;transform:translateX(-50%);
-    pointer-events:auto;
+    top:16px;
+    left:50%;
+    transform:translateX(-50%);
   }
-  /* Lawan kiri (slot 2) */
+  /* Lawan kiri: vertikal tengah area bermain */
   .opp:nth-child(2){
-    position:absolute;
-    left:14px;top:50%;transform:translateY(-50%);
-    pointer-events:auto;
+    left:16px;
+    top:50%;
+    transform:translateY(calc(-50% - 110px));
   }
-  /* Lawan kanan (slot 3) */
+  /* Lawan kanan */
   .opp:nth-child(3){
-    position:absolute;
-    right:14px;top:50%;transform:translateY(-50%);
-    pointer-events:auto;
+    right:16px;
+    left:auto;
+    top:50%;
+    transform:translateY(calc(-50% - 110px));
   }
 }
 
@@ -278,12 +287,6 @@ button,input{touch-action:manipulation;cursor:pointer;}
 
 /* Center */
 #center{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:4px 8px;overflow:hidden;position:relative;}
-/* Desktop: oppBar overlays, center fills full flex space */
-@media(min-width:700px){
-  #gameWrap{position:relative;}
-  /* center now gets all the vertical space since oppBar is absolute */
-  #center{flex:1 1 auto;}
-}
 
 /* Turn dots — hidden, replaced by opp card active state */
 #tdots{display:none!important;}
@@ -605,12 +608,10 @@ button,input{touch-action:manipulation;cursor:pointer;}
     gap:6px;
   }
   .opp{
-    padding:5px 6px;
     border-radius:8px;
-    gap:2px;
   }
   .opp-nm{font-size:8px;}
-  .opp-ct{font-size:18px;}
+  .opp-ct{font-size:18px;padding:6px 8px;min-width:32px;}
 
   /* ── Hand wrap ── */
   #handWrap{
