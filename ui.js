@@ -162,10 +162,17 @@ function renderGame(){
     const dimCls=(!active&&!done)?' opp-dim':'';
     const activeCls=active?' opp-active':'';
     const doneCls=done?' done':'';
+    const oppChips=(typeof chipSession!=='undefined'&&chipSession[p.id]?.chips!=null)
+      ?chipSession[p.id].chips
+      :null;
+    const chipsHtml=oppChips!=null
+      ?`<div class="opp-chips">💰 ${oppChips.toLocaleString('id-ID')}</div>`
+      :'';
     return `<div class="opp${activeCls}${dimCls}${doneCls}">
       <div class="opp-left">
         ${finBadge}
         <div class="opp-nm">${p.name}</div>
+        ${chipsHtml}
       </div>
       <div class="opp-ct">${hand.length}</div>
     </div>`;
