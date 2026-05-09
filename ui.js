@@ -4,6 +4,91 @@
 // ═══════════════════════════════════════════════════════
 'use strict';
 
+// ══ SIDEBAR: ACTIVITY LOG & CHAT FEED ══
+const ACT_MAX = 40;
+const CHAT_MAX = 30;
+
+function pushActivityLog(type, who, detail){
+  const log = document.getElementById('activityLog');
+  if(!log) return;
+
+  const item = document.createElement('div');
+  item.className = `act-item act-${type} fresh`;
+
+  let text = '';
+  if(type === 'play')   text = `<span class="act-who">${who}</span> main ${detail}`;
+  else if(type === 'skip')  text = `<span class="act-who">${who}</span> skip`;
+  else if(type === 'bomb')  text = `<span class="act-who">💣 ${who}</span> ${detail}`;
+  else if(type === 'finish')text = `<span class="act-who">🎉 ${who}</span> selesai #${detail}`;
+  else if(type === 'round') text = `<span class="act-who">↩ ${who}</span> berhak main lagi`;
+  else text = `<span class="act-who">${who}</span> ${detail}`;
+
+  item.innerHTML = text;
+  // Insert at top (column-reverse makes it appear at bottom visually)
+  log.prepend(item);
+  // Remove fresh class after animation
+  setTimeout(()=>item.classList.remove('fresh'), 1800);
+  // Trim old entries
+  while(log.children.length > ACT_MAX) log.removeChild(log.lastChild);
+}
+
+function pushChatFeed(name, emoji, text, isMe){
+  const feed = document.getElementById('chatFeed');
+  if(!feed) return;
+
+  const item = document.createElement('div');
+  item.className = 'chat-feed-item';
+
+  const initial = (name||'?')[0].toUpperCase();
+  const content = emoji ? emoji : (text||'');
+  const bubbleCls = isMe ? 'chat-feed-bubble is-me' : 'chat-feed-bubble';
+
+  item.innerHTML = `
+    <div class="chat-feed-avatar">${initial}</div>
+    <div class="chat-feed-body">
+      <div class="chat-feed-name">${isMe ? 'Kamu' : name}</div>
+      <div class="${bubbleCls}">${content}</div>
+    </div>`;
+
+  feed.prepend(item);
+  while(feed.children.length > CHAT_MAX) feed.removeChild(feed.lastChild);
+}
+
+// ── Hook setGStat → activity log ──
+// Dipanggil setelah ui.js dimuat (game.js sudah define setGStat)
+window.addEventListener('load', ()=>{
+  // Patch setGStat untuk intercept event ke sidebar
+  const _origSetGStat = window.setGStat;
+  window.setGStat = function(m){
+    if(_origSetGStat) _origSetGStat(m);
+    if(!m) return;
+    // Parse pesan gstat jadi log entry
+    if(m.includes('mainkan')){
+      const parts = m.split(' mainkan ');
+      if(parts.length === 2) pushActivityLog('play', parts[0], parts[1]);
+    } else if(m.includes(' skip') && !m.includes('berhak')){
+      const who = m.replace(' skip','');
+      pushActivityLog('skip', who, '');
+    } else if(m.includes('💣')){
+      pushActivityLog('bomb', m.replace('💣 ','').split(':')[0], 'BOMB!');
+    } else if(m.includes('🎉') && m.includes('selesai')){
+      const nm = m.replace('🎉 ','').split(' selesai')[0];
+      const rank = m.match(/#(\d)/)?.[1]||'?';
+      pushActivityLog('finish', nm, rank);
+    } else if(m.includes('berhak main lagi')){
+      const nm = m.replace(' berhak main lagi!','');
+      pushActivityLog('round', nm, '');
+    }
+  };
+
+  // Patch showEmoteBubble → chat feed
+  const _origShowEmote = window.showEmoteBubble;
+  window.showEmoteBubble = function(name, emoji, text, isMe){
+    if(_origShowEmote) _origShowEmote(name, emoji, text, isMe);
+    pushChatFeed(name, emoji, text, isMe);
+  };
+});
+
 // ══ RENDER ══
 const sc=s=>(s===0||s===2)?'r':'b';
 const vd=v=>String(v);
