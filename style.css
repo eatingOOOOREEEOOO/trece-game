@@ -134,13 +134,9 @@ button,input{touch-action:manipulation;cursor:pointer;}
 #bgCanvas{position:absolute;inset:0;pointer-events:none;z-index:0;}
 .game-layer,#gameWrap{position:relative;z-index:1;display:flex;flex-direction:column;height:100%;overflow-x:hidden;overflow-y:hidden;}
 
-/* ══ OPPONENTS — FLOAT AROUND TABLE ══
-   Strategi: #oppBar jadi invisible overlay di dalam #center
-   (yang sudah position:relative). Tiap .opp diposisikan
-   absolute relatif ke #center, melayang di sekitar meja felt.
-   ══════════════════════════════════════════════════════════ */
+/* ══ OPPONENTS — FLOAT AROUND FELT ══ */
 
-/* Mobile: flex bar di atas (default) */
+/* ── MOBILE: flex bar horizontal di atas ── */
 #oppBar{
   flex:0 0 auto;
   display:flex;
@@ -152,116 +148,127 @@ button,input{touch-action:manipulation;cursor:pointer;}
   align-items:center;
 }
 
-/* Desktop ≥700px: overlay di atas #center */
+/* ── DESKTOP ≥700px ──
+   Teknik: #center sudah position:relative dan flex:1.
+   #oppBar diangkat keluar flow dengan position:absolute
+   RELATIF KE #center (bukan gameWrap) menggunakan
+   JS satu baris di ui.js, atau kita pakai trick CSS:
+   kita jadikan #gameWrap grid dengan dua area,
+   oppBar masuk ke "game" area yang sama dengan center,
+   lalu tiap .opp absolute di dalam oppBar.
+*/
 @media(min-width:700px){
+
+  /* gameWrap: grid — row1=center area (felt+oppBar overlay), row2=playerArea */
+  #gameWrap{
+    display:grid !important;
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr auto;
+    align-items:stretch;
+    /* Override flex-direction dari .game-layer */
+    flex-direction:unset;
+  }
+
+  /* oppBar: row 1, overlay di atas center (keduanya di row 1) */
   #oppBar{
-    /* Keluar dari flex flow #gameWrap, overlay di atas #center.
-       #center sudah position:relative — kita pakai trick:
-       oppBar absolute relative ke #gameWrap (position:relative juga) */
-    position:absolute;
-    /* cover seluruh area game KECUALI playerArea di bawah ~220px */
-    top:0; left:0; right:0;
-    bottom:220px;
+    grid-column:1 / 2;
+    grid-row:1 / 2;
+    position:relative;   /* agar .opp absolute bisa relatif ke sini */
     background:transparent;
     border:none;
     padding:0;
     pointer-events:none;
     z-index:15;
-    /* jangan ambil flex space */
-    flex:0 0 0;
-    /* display:block agar nth-child bisa absolute */
     display:block;
+    align-self:stretch;
+    justify-self:stretch;
+    min-height:0;
+    flex:unset;
   }
 
-  /* ── Posisi tiap lawan ──
-     nth-child(1) = lawan tepat di ATAS felt → top-center
-     nth-child(2) = lawan di KIRI felt      → left-middle
-     nth-child(3) = lawan di KANAN felt     → right-middle
-  */
-  .opp:nth-child(1){
+  /* center: juga row 1, di belakang oppBar */
+  #center{
+    grid-column:1 / 2;
+    grid-row:1 / 2;
+    z-index:1;
+    flex:unset;
+    align-self:stretch;
+    min-height:0;
+  }
+
+  /* playerArea: row 2 */
+  #playerArea{
+    grid-column:1 / 2;
+    grid-row:2 / 3;
+    min-height:0;
+  }
+
+  /* ── Posisi .opp melayang di sekitar oppBar ── */
+  .opp{
     position:absolute;
-    top:12px;
-    left:50%;
-    transform:translateX(-50%);
     pointer-events:auto;
+  }
+  .opp:nth-child(1){
+    /* Atas tengah */
+    top:14px; left:50%;
+    transform:translateX(-50%);
   }
   .opp:nth-child(2){
-    position:absolute;
-    left:12px;
-    top:50%;
+    /* Kiri tengah */
+    left:14px; top:50%;
     transform:translateY(-50%);
-    pointer-events:auto;
   }
   .opp:nth-child(3){
-    position:absolute;
-    right:12px;
-    top:50%;
+    /* Kanan tengah */
+    right:14px; top:50%;
     transform:translateY(-50%);
-    pointer-events:auto;
   }
 }
 
-/* ── Profile card — floating glass style ── */
+/* ── Profile card base ── */
 .opp{
-  display:flex;
+  display:inline-flex;
   flex-direction:row;
   align-items:center;
   gap:0;
-  /* Glass morphism: backdrop blur + subtle gradient */
-  background:linear-gradient(135deg, rgba(8,24,14,0.92) 0%, rgba(4,14,8,0.88) 100%);
-  backdrop-filter:blur(12px);
-  -webkit-backdrop-filter:blur(12px);
+  background:linear-gradient(135deg,rgba(8,24,14,0.93) 0%,rgba(4,12,8,0.9) 100%);
+  backdrop-filter:blur(14px);
+  -webkit-backdrop-filter:blur(14px);
   border:1px solid rgba(212,168,67,0.2);
   border-radius:14px;
   overflow:hidden;
-  min-width:0;
-  /* Floating shadow */
-  box-shadow:
-    0 8px 32px rgba(0,0,0,0.55),
-    0 2px 8px rgba(0,0,0,0.4),
-    inset 0 1px 0 rgba(255,255,255,0.04);
+  box-shadow:0 8px 32px rgba(0,0,0,0.55),0 2px 8px rgba(0,0,0,0.4),inset 0 1px 0 rgba(255,255,255,0.04);
   /* Redup saat bukan giliran */
   opacity:0.45;
   filter:brightness(0.6) saturate(0.7);
-  transition:
-    opacity 0.4s ease,
-    filter 0.4s ease,
-    border-color 0.4s ease,
-    box-shadow 0.4s ease,
-    transform 0.3s ease;
-  flex-shrink:0;
+  transition:opacity 0.4s ease,filter 0.4s ease,border-color 0.4s ease,box-shadow 0.4s ease,transform 0.3s ease;
   cursor:default;
+  flex-shrink:0;
+  /* Mobile: flex item normal */
+  flex:0 0 auto;
 }
-
-/* Hover efek ringan di desktop */
-@media(min-width:700px){
-  .opp:hover{
-    opacity:0.6;
-    filter:brightness(0.75) saturate(0.85);
-  }
-}
-
-/* ── AKTIF: terang, glow, sedikit naik ── */
+/* Aktif: terang + glow */
 .opp.my-go{
   opacity:1;
   filter:brightness(1) saturate(1);
   border-color:var(--neon);
-  box-shadow:
-    0 0 0 1px rgba(0,255,136,0.4),
-    0 0 20px rgba(0,255,136,0.3),
-    0 0 40px rgba(0,255,136,0.12),
-    0 8px 32px rgba(0,0,0,0.6),
-    inset 0 1px 0 rgba(0,255,136,0.08);
+  box-shadow:0 0 0 1px rgba(0,255,136,0.4),0 0 20px rgba(0,255,136,0.3),0 0 40px rgba(0,255,136,0.1),0 8px 32px rgba(0,0,0,0.6);
   transform:scale(1.04);
 }
-
-/* ── SELESAI: sangat redup + grayscale ── */
+/* Selesai */
 .opp.done{
-  opacity:0.22;
+  opacity:0.2;
   filter:brightness(0.4) grayscale(0.7);
-  border-color:rgba(212,168,67,0.07);
+  border-color:rgba(212,168,67,0.06);
   box-shadow:none;
-  transform:scale(0.97);
+  transform:scale(0.96);
+}
+
+/* Hover di desktop */
+@media(min-width:700px){
+  .opp:not(.my-go):not(.done):hover{
+    opacity:0.65;filter:brightness(0.78);
+  }
 }
 
 /* ── Info teks kiri ── */
@@ -272,46 +279,36 @@ button,input{touch-action:manipulation;cursor:pointer;}
 }
 .opp-nm{
   font-family:'JetBrains Mono',monospace;
-  font-size:10px;
-  color:var(--gold2);
+  font-size:10px;color:var(--gold2);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  max-width:108px;
-  line-height:1.25;
-  letter-spacing:0.3px;
+  max-width:110px;line-height:1.25;letter-spacing:0.3px;
 }
 .opp-chips{
   font-family:'JetBrains Mono',monospace;
-  font-size:8px;
-  color:rgba(212,168,67,0.5);
-  white-space:nowrap;
-  display:flex;align-items:center;gap:3px;
-  margin-top:1px;
+  font-size:8px;color:rgba(212,168,67,0.5);
+  white-space:nowrap;display:flex;align-items:center;gap:3px;margin-top:1px;
 }
 .opp-chips-ico{font-size:8px;}
 
-/* ── Jumlah kartu — kotak kanan ── */
+/* ── Jumlah kartu ── */
 .opp-ct{
   font-family:'Cinzel Decorative',serif;
-  font-size:22px;font-weight:700;
-  color:var(--gold);line-height:1;
+  font-size:22px;font-weight:700;color:var(--gold);line-height:1;
   background:rgba(0,0,0,0.35);
   border-left:1px solid rgba(212,168,67,0.12);
-  padding:9px 13px;
-  min-width:46px;
-  text-align:center;
+  padding:9px 13px;min-width:46px;text-align:center;
   text-shadow:0 0 16px rgba(212,168,67,0.5);
-  flex-shrink:0;
-  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;display:flex;align-items:center;justify-content:center;
 }
 
-/* ── Badge rank saat selesai ── */
+/* ── Badge rank ── */
 .opp-rank{
   font-size:13px;line-height:1;
   position:absolute;top:-7px;right:-5px;
   filter:drop-shadow(0 2px 4px rgba(0,0,0,0.8));
 }
 
-/* ── Mobile ukuran lebih compact ── */
+/* ── Mobile compact ── */
 @media(max-width:699px){
   .opp{border-radius:11px;}
   .opp-nm{font-size:9px;max-width:74px;}
@@ -319,21 +316,6 @@ button,input{touch-action:manipulation;cursor:pointer;}
   .opp-info{padding:6px 9px 6px 10px;}
   .opp-chips{font-size:7px;}
 }
-/* hide old cback system globally */
-.opp-backs{display:none;}
-.cback{display:none;}
-.cback{
-  width:15px;height:23px;
-  background:
-    linear-gradient(135deg,#2a6e44,#1a4a2e),
-    repeating-linear-gradient(45deg,transparent,transparent 3px,rgba(255,255,255,0.04) 3px,rgba(255,255,255,0.04) 4px);
-  border:1px solid rgba(212,168,67,0.55);border-radius:3px;flex-shrink:0;
-  box-shadow:0 1px 4px rgba(0,0,0,0.6),inset 0 0 4px rgba(0,255,136,0.05);
-}
-.cback::after{content:'✦';display:flex;align-items:center;justify-content:center;font-size:6px;color:rgba(212,168,67,0.3);height:100%;}
-
-/* Center */
-#center{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:4px 8px;overflow:hidden;position:relative;}
 
 /* Turn dots — hidden, replaced by opp card active state */
 #tdots{display:none!important;}
