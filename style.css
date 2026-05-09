@@ -134,9 +134,7 @@ button,input{touch-action:manipulation;cursor:pointer;}
 #bgCanvas{position:absolute;inset:0;pointer-events:none;z-index:0;}
 .game-layer,#gameWrap{position:relative;z-index:1;display:flex;flex-direction:column;height:100%;overflow-x:hidden;overflow-y:hidden;}
 
-/* ══ OPPONENTS ══ */
-
-/* Mobile: flex bar horizontal di atas */
+/* Opponents — 3 shown, fixed height */
 #oppBar{
   flex:0 0 auto;
   display:flex;
@@ -145,120 +143,56 @@ button,input{touch-action:manipulation;cursor:pointer;}
   background:rgba(0,0,0,0.18);
   border-bottom:1px solid rgba(212,168,67,0.07);
   justify-content:center;
-  align-items:center;
 }
-
-/* Desktop: setelah JS memindahkan #oppBar ke dalam #center,
-   oppBar menjadi absolute overlay di atas felt.
-   #center sudah position:relative — langsung bisa! */
-@media(min-width:700px){
-  #oppBar{
-    position:absolute;
-    inset:0;                   /* cover seluruh #center */
-    background:transparent;
-    border:none;
-    padding:0;
-    pointer-events:none;
-    z-index:10;
-    display:block;             /* bukan flex — child .opp pakai absolute */
-    flex:unset;
-  }
-  .opp:nth-child(1){           /* lawan atas tengah */
-    position:absolute;
-    top:16px; left:50%;
-    transform:translateX(-50%);
-    pointer-events:auto;
-  }
-  .opp:nth-child(2){           /* lawan kiri */
-    position:absolute;
-    left:16px; top:50%;
-    transform:translateY(-50%);
-    pointer-events:auto;
-  }
-  .opp:nth-child(3){           /* lawan kanan */
-    position:absolute;
-    right:16px; top:50%;
-    transform:translateY(-50%);
-    pointer-events:auto;
-  }
-}
-
-/* ── Profile card ── */
 .opp{
-  display:inline-flex;
-  flex-direction:row;
-  align-items:center;
-  background:linear-gradient(135deg,rgba(8,24,14,0.93) 0%,rgba(4,12,8,0.9) 100%);
-  backdrop-filter:blur(14px);
-  -webkit-backdrop-filter:blur(14px);
-  border:1px solid rgba(212,168,67,0.2);
-  border-radius:14px;
+  flex:1;min-width:0;max-width:160px;
+  background:rgba(0,0,0,0.35);
+  border:1px solid rgba(212,168,67,0.12);
+  border-radius:10px;
+  padding:6px 10px;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  gap:3px;
+  transition:border-color 0.3s,box-shadow 0.3s;
   overflow:hidden;
-  box-shadow:0 8px 32px rgba(0,0,0,0.55),0 2px 8px rgba(0,0,0,0.4),inset 0 1px 0 rgba(255,255,255,0.04);
-  opacity:0.45;
-  filter:brightness(0.6) saturate(0.7);
-  transition:opacity 0.4s,filter 0.4s,border-color 0.4s,box-shadow 0.4s,transform 0.3s;
-  cursor:default;
-  flex-shrink:0;
-  flex:0 0 auto;
 }
-.opp.my-go{
-  opacity:1; filter:brightness(1) saturate(1);
-  border-color:var(--neon);
-  box-shadow:0 0 0 1px rgba(0,255,136,0.4),0 0 24px rgba(0,255,136,0.3),0 8px 32px rgba(0,0,0,0.6);
-  transform:scale(1.05);
-}
-.opp.done{
-  opacity:0.2; filter:brightness(0.4) grayscale(0.7);
-  border-color:rgba(212,168,67,0.06);
-  box-shadow:none; transform:scale(0.96);
-}
-@media(min-width:700px){
-  .opp:not(.my-go):not(.done):hover{opacity:0.65;filter:brightness(0.78);}
-}
-
-.opp-info{
-  display:flex;flex-direction:column;gap:2px;
-  padding:8px 11px 8px 12px;
-  min-width:0;flex:1;
-}
+.opp.my-go{border-color:var(--neon);box-shadow:0 0 14px rgba(0,255,136,0.2);}
+.opp.done{opacity:0.45;}
 .opp-nm{
   font-family:'JetBrains Mono',monospace;
-  font-size:10px;color:var(--gold2);
+  font-size:9px;color:var(--gold2);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  max-width:110px;line-height:1.25;
+  max-width:100%;text-align:center;
 }
-.opp-chips{
-  font-family:'JetBrains Mono',monospace;
-  font-size:8px;color:rgba(212,168,67,0.5);
-  white-space:nowrap;display:flex;align-items:center;gap:3px;margin-top:1px;
-}
-.opp-chips-ico{font-size:8px;}
 .opp-ct{
   font-family:'Cinzel Decorative',serif;
-  font-size:22px;font-weight:700;color:var(--gold);line-height:1;
-  background:rgba(0,0,0,0.35);
-  border-left:1px solid rgba(212,168,67,0.12);
-  padding:9px 13px;min-width:46px;text-align:center;
-  text-shadow:0 0 16px rgba(212,168,67,0.5);
-  flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  font-size:20px;font-weight:700;
+  color:var(--gold);line-height:1;
+  text-shadow:0 0 12px rgba(212,168,67,0.4);
 }
-.opp-rank{
-  font-size:13px;line-height:1;
-  position:absolute;top:-7px;right:-5px;
-  filter:drop-shadow(0 2px 4px rgba(0,0,0,0.8));
+/* hide old cback system globally */
+.opp-backs{display:none;}
+.cback{display:none;}
+.cback{
+  width:15px;height:23px;
+  background:
+    linear-gradient(135deg,#2a6e44,#1a4a2e),
+    repeating-linear-gradient(45deg,transparent,transparent 3px,rgba(255,255,255,0.04) 3px,rgba(255,255,255,0.04) 4px);
+  border:1px solid rgba(212,168,67,0.55);border-radius:3px;flex-shrink:0;
+  box-shadow:0 1px 4px rgba(0,0,0,0.6),inset 0 0 4px rgba(0,255,136,0.05);
 }
-@media(max-width:699px){
-  .opp{border-radius:11px;}
-  .opp-nm{font-size:9px;max-width:74px;}
-  .opp-ct{font-size:18px;padding:7px 10px;min-width:34px;}
-  .opp-info{padding:6px 9px 6px 10px;}
-  .opp-chips{font-size:7px;}
-}
+.cback::after{content:'✦';display:flex;align-items:center;justify-content:center;font-size:6px;color:rgba(212,168,67,0.3);height:100%;}
 
-/* Turn dots — hidden, replaced by opp card active state */
-#tdots{display:none!important;}
-.tdot,.tdot-pip{display:none!important;}
+/* Center */
+#center{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:4px 8px;overflow:hidden;}
+
+/* Turn dots */
+#tdots{display:flex;gap:14px;flex-shrink:0;}
+.tdot{display:flex;align-items:center;gap:4px;font-size:10px;font-family:'JetBrains Mono',monospace;color:rgba(212,168,67,0.3);transition:color 0.3s;}
+.tdot.on{color:var(--neon);}.tdot.dn{color:var(--gold);}
+.tdot-pip{width:8px;height:8px;border-radius:50%;background:rgba(212,168,67,0.15);border:1px solid rgba(212,168,67,0.25);transition:all 0.3s;}
+.tdot.on .tdot-pip{background:var(--neon);border-color:var(--neon);box-shadow:0 0 8px var(--neon);}
+.tdot.dn .tdot-pip{background:var(--gold);border-color:var(--gold);}
 
 /* Felt — wider & taller */
 #felt{
@@ -576,10 +510,12 @@ button,input{touch-action:manipulation;cursor:pointer;}
     gap:6px;
   }
   .opp{
+    padding:5px 6px;
     border-radius:8px;
+    gap:2px;
   }
   .opp-nm{font-size:8px;}
-  .opp-ct{font-size:18px;padding:6px 8px;min-width:32px;}
+  .opp-ct{font-size:18px;}
 
   /* ── Hand wrap ── */
   #handWrap{
@@ -832,20 +768,9 @@ button,input{touch-action:manipulation;cursor:pointer;}
 .bet-player-row{display:flex;align-items:center;justify-content:space-between;gap:8px;
   background:rgba(0,0,0,0.25);border:1px solid rgba(212,168,67,0.15);
   border-radius:9px;padding:8px 12px;}
-.bet-pname{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--gold2);flex:1;text-align:left;font-weight:600;}
+.bet-pname{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--gold3);flex:1;text-align:left;}
 .bet-pchips{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--gold2);}
 .bet-pchips.low{color:var(--red);}
-/* Status label di baris player bet */
-.bet-pstatus{font-family:'JetBrains Mono',monospace;font-size:11px;padding:3px 9px;
-  border-radius:6px;font-weight:700;letter-spacing:0.5px;white-space:nowrap;}
-.bet-pstatus.me{background:rgba(0,200,100,0.25);color:#00ff88;
-  border:1px solid rgba(0,255,136,0.55);
-  text-shadow:0 0 10px rgba(0,255,136,0.7),0 1px 2px rgba(0,0,0,0.8);
-  font-weight:800;letter-spacing:0.8px;}
-.bet-pstatus.ready{background:rgba(212,168,67,0.15);color:var(--gold2);
-  border:1px solid rgba(212,168,67,0.35);}
-.bet-pstatus.wait{background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.3);
-  border:1px solid rgba(255,255,255,0.1);}
 .bet-amount-wrap{display:flex;align-items:center;gap:6px;margin-bottom:16px;}
 .bet-btn{width:30px;height:30px;border-radius:6px;border:1px solid rgba(212,168,67,0.3);
   background:rgba(0,0,0,0.3);color:var(--gold2);font-size:16px;cursor:pointer;
@@ -862,30 +787,6 @@ button,input{touch-action:manipulation;cursor:pointer;}
   font-size:11px;cursor:pointer;transition:background 0.12s;}
 .bet-preset:hover{background:rgba(212,168,67,0.1);border-color:rgba(212,168,67,0.4);}
 .bet-preset.active{background:rgba(212,168,67,0.15);border-color:var(--gold);color:var(--gold2);}
-/* Keterangan reward multiplier — lebih besar & terbaca */
-.bet-multiplier-info{
-  font-family:'JetBrains Mono',monospace;
-  font-size:12px;
-  color:rgba(255,255,255,0.82);
-  background:rgba(0,0,0,0.35);
-  border:1px solid rgba(212,168,67,0.25);
-  border-radius:8px;
-  padding:10px 14px;
-  margin-bottom:16px;
-  letter-spacing:0.4px;
-  line-height:1.8;
-  display:flex;flex-wrap:wrap;gap:4px 16px;justify-content:center;text-align:center;
-}
-/* Row player "Kamu" lebih menonjol */
-.bet-player-row.is-me{
-  background:rgba(0,200,100,0.12);
-  border-color:rgba(0,255,136,0.45);
-  box-shadow:0 0 0 1px rgba(0,255,136,0.2) inset;
-}
-.bet-player-row.is-me .bet-pname{
-  color:#a0ffd4;
-  text-shadow:0 1px 3px rgba(0,0,0,0.6);
-}
 
 /* Rekap chip di end modal */
 .chip-recap{
@@ -894,30 +795,14 @@ button,input{touch-action:manipulation;cursor:pointer;}
 }
 .chip-recap-title{font-size:8px;letter-spacing:3px;color:rgba(212,168,67,0.4);
   font-family:'JetBrains Mono',monospace;text-align:center;margin-bottom:8px;text-transform:uppercase;}
-/* Legend keterangan reward — terbaca jelas di mobile & PC */
-.chip-recap-legend{
-  display:flex;flex-wrap:wrap;justify-content:center;gap:6px 12px;
-  margin-bottom:10px;padding:8px 10px;
-  background:rgba(0,0,0,0.35);border:1px solid rgba(212,168,67,0.2);border-radius:8px;
-}
-.chip-recap-legend-item{
-  display:inline-flex;align-items:center;gap:4px;
-  font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;
-  white-space:nowrap;line-height:1.4;
-}
-.chip-recap-legend-item.pos{color:#00ff88;}
-.chip-recap-legend-item.neg{color:#e74c3c;}
 .chip-recap-row{display:flex;align-items:center;justify-content:space-between;
-  padding:5px 8px;border-radius:6px;margin-bottom:3px;gap:6px;}
-.chip-recap-row.me{background:rgba(0,255,136,0.08);border:1px solid rgba(0,255,136,0.25);}
-.chip-recap-name{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--gold3);flex:1;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.chip-recap-bet{font-size:10px;color:rgba(212,168,67,0.55);margin-left:4px;}
-.chip-recap-delta{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;flex-shrink:0;}
-.chip-recap-delta.pos{color:#00ff88;}
-.chip-recap-delta.neg{color:#e74c3c;}
-.chip-recap-total{font-family:'JetBrains Mono',monospace;font-size:11px;
-  color:rgba(212,168,67,0.65);flex-shrink:0;min-width:52px;text-align:right;}
+  padding:4px 6px;border-radius:6px;margin-bottom:3px;}
+.chip-recap-row.me{background:rgba(0,255,136,0.06);border:1px solid rgba(0,255,136,0.15);}
+.chip-recap-name{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--gold3);flex:1;}
+.chip-recap-delta{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;}
+.chip-recap-delta.pos{color:var(--neon);}
+.chip-recap-delta.neg{color:var(--red);}
+.chip-recap-total{font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(212,168,67,0.5);}
 
 /* Chip float animation saat menang/kalah */
 .chip-float{
