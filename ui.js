@@ -16,20 +16,18 @@ function pushActivityLog(type, who, detail){
   item.className = `act-item act-${type} fresh`;
 
   let text = '';
-  if(type === 'play')   text = `<span class="act-who">${who}</span> main ${detail}`;
-  else if(type === 'skip')  text = `<span class="act-who">${who}</span> skip`;
-  else if(type === 'bomb')  text = `<span class="act-who">💣 ${who}</span> ${detail}`;
-  else if(type === 'finish')text = `<span class="act-who">🎉 ${who}</span> selesai #${detail}`;
-  else if(type === 'round') text = `<span class="act-who">↩ ${who}</span> berhak main lagi`;
+  if(type === 'play')    text = `<span class="act-who">${who}</span> main ${detail}`;
+  else if(type === 'skip')   text = `<span class="act-who">${who}</span> skip`;
+  else if(type === 'bomb')   text = `<span class="act-who">💣 ${who}</span> ${detail}`;
+  else if(type === 'finish') text = `<span class="act-who">🎉 ${who}</span> selesai #${detail}`;
+  else if(type === 'round')  text = `<span class="act-who">↩ ${who}</span> berhak main lagi`;
   else text = `<span class="act-who">${who}</span> ${detail}`;
 
   item.innerHTML = text;
-  // Insert at top (column-reverse makes it appear at bottom visually)
-  log.prepend(item);
-  // Remove fresh class after animation
+  log.appendChild(item);
   setTimeout(()=>item.classList.remove('fresh'), 1800);
-  // Trim old entries
-  while(log.children.length > ACT_MAX) log.removeChild(log.lastChild);
+  // Trim oldest entries from top
+  while(log.children.length > ACT_MAX) log.removeChild(log.firstChild);
 }
 
 function pushChatFeed(name, emoji, text, isMe){
@@ -50,8 +48,8 @@ function pushChatFeed(name, emoji, text, isMe){
       <div class="${bubbleCls}">${content}</div>
     </div>`;
 
-  feed.prepend(item);
-  while(feed.children.length > CHAT_MAX) feed.removeChild(feed.lastChild);
+  feed.appendChild(item);
+  while(feed.children.length > CHAT_MAX) feed.removeChild(feed.firstChild);
 }
 
 // ── Hook setGStat → activity log ──
