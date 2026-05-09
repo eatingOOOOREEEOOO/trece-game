@@ -197,6 +197,14 @@ button,input{touch-action:manipulation;cursor:pointer;}
   max-width:100%;
   letter-spacing:0.02em;
 }
+.opp-chips{
+  font-family:'JetBrains Mono',monospace;
+  font-size:9px;
+  color:rgba(212,168,67,0.45);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  max-width:100%;
+  margin-top:1px;
+}
 /* Right section: card count */
 .opp-ct{
   flex:0 0 auto;
