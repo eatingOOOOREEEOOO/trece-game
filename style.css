@@ -768,9 +768,20 @@ button,input{touch-action:manipulation;cursor:pointer;}
 .bet-player-row{display:flex;align-items:center;justify-content:space-between;gap:8px;
   background:rgba(0,0,0,0.25);border:1px solid rgba(212,168,67,0.15);
   border-radius:9px;padding:8px 12px;}
-.bet-pname{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--gold3);flex:1;text-align:left;}
+.bet-pname{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--gold2);flex:1;text-align:left;font-weight:600;}
 .bet-pchips{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--gold2);}
 .bet-pchips.low{color:var(--red);}
+/* Status label di baris player bet */
+.bet-pstatus{font-family:'JetBrains Mono',monospace;font-size:11px;padding:3px 9px;
+  border-radius:6px;font-weight:700;letter-spacing:0.5px;white-space:nowrap;}
+.bet-pstatus.me{background:rgba(0,200,100,0.25);color:#00ff88;
+  border:1px solid rgba(0,255,136,0.55);
+  text-shadow:0 0 10px rgba(0,255,136,0.7),0 1px 2px rgba(0,0,0,0.8);
+  font-weight:800;letter-spacing:0.8px;}
+.bet-pstatus.ready{background:rgba(212,168,67,0.15);color:var(--gold2);
+  border:1px solid rgba(212,168,67,0.35);}
+.bet-pstatus.wait{background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.3);
+  border:1px solid rgba(255,255,255,0.1);}
 .bet-amount-wrap{display:flex;align-items:center;gap:6px;margin-bottom:16px;}
 .bet-btn{width:30px;height:30px;border-radius:6px;border:1px solid rgba(212,168,67,0.3);
   background:rgba(0,0,0,0.3);color:var(--gold2);font-size:16px;cursor:pointer;
@@ -787,6 +798,30 @@ button,input{touch-action:manipulation;cursor:pointer;}
   font-size:11px;cursor:pointer;transition:background 0.12s;}
 .bet-preset:hover{background:rgba(212,168,67,0.1);border-color:rgba(212,168,67,0.4);}
 .bet-preset.active{background:rgba(212,168,67,0.15);border-color:var(--gold);color:var(--gold2);}
+/* Keterangan reward multiplier — lebih besar & terbaca */
+.bet-multiplier-info{
+  font-family:'JetBrains Mono',monospace;
+  font-size:12px;
+  color:rgba(255,255,255,0.82);
+  background:rgba(0,0,0,0.35);
+  border:1px solid rgba(212,168,67,0.25);
+  border-radius:8px;
+  padding:10px 14px;
+  margin-bottom:16px;
+  letter-spacing:0.4px;
+  line-height:1.8;
+  display:flex;flex-wrap:wrap;gap:4px 16px;justify-content:center;text-align:center;
+}
+/* Row player "Kamu" lebih menonjol */
+.bet-player-row.is-me{
+  background:rgba(0,200,100,0.12);
+  border-color:rgba(0,255,136,0.45);
+  box-shadow:0 0 0 1px rgba(0,255,136,0.2) inset;
+}
+.bet-player-row.is-me .bet-pname{
+  color:#a0ffd4;
+  text-shadow:0 1px 3px rgba(0,0,0,0.6);
+}
 
 /* Rekap chip di end modal */
 .chip-recap{
@@ -795,14 +830,30 @@ button,input{touch-action:manipulation;cursor:pointer;}
 }
 .chip-recap-title{font-size:8px;letter-spacing:3px;color:rgba(212,168,67,0.4);
   font-family:'JetBrains Mono',monospace;text-align:center;margin-bottom:8px;text-transform:uppercase;}
+/* Legend keterangan reward — terbaca jelas di mobile & PC */
+.chip-recap-legend{
+  display:flex;flex-wrap:wrap;justify-content:center;gap:6px 12px;
+  margin-bottom:10px;padding:8px 10px;
+  background:rgba(0,0,0,0.35);border:1px solid rgba(212,168,67,0.2);border-radius:8px;
+}
+.chip-recap-legend-item{
+  display:inline-flex;align-items:center;gap:4px;
+  font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;
+  white-space:nowrap;line-height:1.4;
+}
+.chip-recap-legend-item.pos{color:#00ff88;}
+.chip-recap-legend-item.neg{color:#e74c3c;}
 .chip-recap-row{display:flex;align-items:center;justify-content:space-between;
-  padding:4px 6px;border-radius:6px;margin-bottom:3px;}
-.chip-recap-row.me{background:rgba(0,255,136,0.06);border:1px solid rgba(0,255,136,0.15);}
-.chip-recap-name{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--gold3);flex:1;}
-.chip-recap-delta{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;}
-.chip-recap-delta.pos{color:var(--neon);}
-.chip-recap-delta.neg{color:var(--red);}
-.chip-recap-total{font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(212,168,67,0.5);}
+  padding:5px 8px;border-radius:6px;margin-bottom:3px;gap:6px;}
+.chip-recap-row.me{background:rgba(0,255,136,0.08);border:1px solid rgba(0,255,136,0.25);}
+.chip-recap-name{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--gold3);flex:1;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.chip-recap-bet{font-size:10px;color:rgba(212,168,67,0.55);margin-left:4px;}
+.chip-recap-delta{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;flex-shrink:0;}
+.chip-recap-delta.pos{color:#00ff88;}
+.chip-recap-delta.neg{color:#e74c3c;}
+.chip-recap-total{font-family:'JetBrains Mono',monospace;font-size:11px;
+  color:rgba(212,168,67,0.65);flex-shrink:0;min-width:52px;text-align:right;}
 
 /* Chip float animation saat menang/kalah */
 .chip-float{
