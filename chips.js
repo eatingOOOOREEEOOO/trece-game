@@ -357,7 +357,13 @@ function buildChipRecap(finished, players, deltas, mySlot){
   }).join('');
   return `<div class="chip-recap">
     <div class="chip-recap-title">💰 Rekap Ronde</div>
-    <div class="chip-recap-legend">🥇+2x &nbsp;🥈+1x &nbsp;🥉−1x &nbsp;💀−2x taruhan sendiri</div>
+    <div class="chip-recap-legend">
+      <span class="chip-recap-legend-item pos">🥇 +2×</span>
+      <span class="chip-recap-legend-item pos">🥈 +1×</span>
+      <span class="chip-recap-legend-item neg">🥉 −1×</span>
+      <span class="chip-recap-legend-item neg">💀 −2×</span>
+      <span style="font-size:10px;color:rgba(255,255,255,0.35);font-family:'JetBrains Mono',monospace;width:100%;text-align:center;margin-top:2px;">(dari taruhan sendiri)</span>
+    </div>
     ${rows}
   </div>`;
 }
