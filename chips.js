@@ -144,8 +144,8 @@ function _renderBetPlayerList(realPlayers){
       : (hasSubmitted
           ? `<span class="bet-pstatus ready">✓ ${betAmt}</span>`
           : `<span class="bet-pstatus wait">…</span>`);
-    return `<div class="bet-player-row">
-      <span class="bet-pname">${p.name}${isMe?' (Kamu)':''}</span>
+    return `<div class="bet-player-row${isMe?' is-me':''}">
+      <span class="bet-pname">${p.name}</span>
       <span class="bet-pchips${isNeg?' low':''}">💰 ${c.toLocaleString()}</span>
       ${statusHtml}
     </div>`;
