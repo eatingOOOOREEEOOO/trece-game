@@ -61,16 +61,17 @@ button,input{touch-action:manipulation;cursor:pointer;}
 /* ── Activity Log ── */
 #activityLog{
   flex:1;overflow:hidden;
-  display:flex;flex-direction:column-reverse;
+  display:flex;flex-direction:column;
+  justify-content:flex-start;
   padding:8px 10px;
   gap:2px;
-  mask-image:linear-gradient(to bottom,transparent 0%,black 18%,black 100%);
-  -webkit-mask-image:linear-gradient(to bottom,transparent 0%,black 18%,black 100%);
+  mask-image:linear-gradient(to bottom,black 70%,transparent 100%);
+  -webkit-mask-image:linear-gradient(to bottom,black 70%,transparent 100%);
 }
 .act-item{
   font-family:'JetBrains Mono',monospace;
   font-size:9px;line-height:1.6;
-  color:rgba(255,255,255,0.28);
+  color:rgba(255,255,255,0.22);
   padding:4px 6px;
   border-radius:5px;
   border-left:2px solid transparent;
@@ -103,11 +104,12 @@ button,input{touch-action:manipulation;cursor:pointer;}
 /* ── Chat Feed ── */
 #chatFeed{
   flex:1;overflow:hidden;
-  display:flex;flex-direction:column-reverse;
+  display:flex;flex-direction:column;
+  justify-content:flex-start;
   padding:8px 10px;
   gap:4px;
-  mask-image:linear-gradient(to bottom,transparent 0%,black 18%,black 100%);
-  -webkit-mask-image:linear-gradient(to bottom,transparent 0%,black 18%,black 100%);
+  mask-image:linear-gradient(to bottom,black 70%,transparent 100%);
+  -webkit-mask-image:linear-gradient(to bottom,black 70%,transparent 100%);
 }
 .chat-feed-item{
   display:flex;align-items:flex-start;gap:5px;
