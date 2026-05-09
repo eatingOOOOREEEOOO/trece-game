@@ -134,9 +134,9 @@ button,input{touch-action:manipulation;cursor:pointer;}
 #bgCanvas{position:absolute;inset:0;pointer-events:none;z-index:0;}
 .game-layer,#gameWrap{position:relative;z-index:1;display:flex;flex-direction:column;height:100%;overflow-x:hidden;overflow-y:hidden;}
 
-/* ══ OPPONENTS — FLOAT AROUND FELT ══ */
+/* ══ OPPONENTS ══ */
 
-/* ── MOBILE: flex bar horizontal di atas ── */
+/* Mobile: flex bar horizontal di atas */
 #oppBar{
   flex:0 0 auto;
   display:flex;
@@ -148,89 +148,46 @@ button,input{touch-action:manipulation;cursor:pointer;}
   align-items:center;
 }
 
-/* ── DESKTOP ≥700px ──
-   Teknik: #center sudah position:relative dan flex:1.
-   #oppBar diangkat keluar flow dengan position:absolute
-   RELATIF KE #center (bukan gameWrap) menggunakan
-   JS satu baris di ui.js, atau kita pakai trick CSS:
-   kita jadikan #gameWrap grid dengan dua area,
-   oppBar masuk ke "game" area yang sama dengan center,
-   lalu tiap .opp absolute di dalam oppBar.
-*/
+/* Desktop: setelah JS memindahkan #oppBar ke dalam #center,
+   oppBar menjadi absolute overlay di atas felt.
+   #center sudah position:relative — langsung bisa! */
 @media(min-width:700px){
-
-  /* gameWrap: grid — row1=center area (felt+oppBar overlay), row2=playerArea */
-  #gameWrap{
-    display:grid !important;
-    grid-template-columns: 1fr;
-    grid-template-rows: 1fr auto;
-    align-items:stretch;
-    /* Override flex-direction dari .game-layer */
-    flex-direction:unset;
-  }
-
-  /* oppBar: row 1, overlay di atas center (keduanya di row 1) */
   #oppBar{
-    grid-column:1 / 2;
-    grid-row:1 / 2;
-    position:relative;   /* agar .opp absolute bisa relatif ke sini */
+    position:absolute;
+    inset:0;                   /* cover seluruh #center */
     background:transparent;
     border:none;
     padding:0;
     pointer-events:none;
-    z-index:15;
-    display:block;
-    align-self:stretch;
-    justify-self:stretch;
-    min-height:0;
+    z-index:10;
+    display:block;             /* bukan flex — child .opp pakai absolute */
     flex:unset;
   }
-
-  /* center: juga row 1, di belakang oppBar */
-  #center{
-    grid-column:1 / 2;
-    grid-row:1 / 2;
-    z-index:1;
-    flex:unset;
-    align-self:stretch;
-    min-height:0;
-  }
-
-  /* playerArea: row 2 */
-  #playerArea{
-    grid-column:1 / 2;
-    grid-row:2 / 3;
-    min-height:0;
-  }
-
-  /* ── Posisi .opp melayang di sekitar oppBar ── */
-  .opp{
+  .opp:nth-child(1){           /* lawan atas tengah */
     position:absolute;
+    top:16px; left:50%;
+    transform:translateX(-50%);
     pointer-events:auto;
   }
-  .opp:nth-child(1){
-    /* Atas tengah */
-    top:14px; left:50%;
-    transform:translateX(-50%);
-  }
-  .opp:nth-child(2){
-    /* Kiri tengah */
-    left:14px; top:50%;
+  .opp:nth-child(2){           /* lawan kiri */
+    position:absolute;
+    left:16px; top:50%;
     transform:translateY(-50%);
+    pointer-events:auto;
   }
-  .opp:nth-child(3){
-    /* Kanan tengah */
-    right:14px; top:50%;
+  .opp:nth-child(3){           /* lawan kanan */
+    position:absolute;
+    right:16px; top:50%;
     transform:translateY(-50%);
+    pointer-events:auto;
   }
 }
 
-/* ── Profile card base ── */
+/* ── Profile card ── */
 .opp{
   display:inline-flex;
   flex-direction:row;
   align-items:center;
-  gap:0;
   background:linear-gradient(135deg,rgba(8,24,14,0.93) 0%,rgba(4,12,8,0.9) 100%);
   backdrop-filter:blur(14px);
   -webkit-backdrop-filter:blur(14px);
@@ -238,40 +195,28 @@ button,input{touch-action:manipulation;cursor:pointer;}
   border-radius:14px;
   overflow:hidden;
   box-shadow:0 8px 32px rgba(0,0,0,0.55),0 2px 8px rgba(0,0,0,0.4),inset 0 1px 0 rgba(255,255,255,0.04);
-  /* Redup saat bukan giliran */
   opacity:0.45;
   filter:brightness(0.6) saturate(0.7);
-  transition:opacity 0.4s ease,filter 0.4s ease,border-color 0.4s ease,box-shadow 0.4s ease,transform 0.3s ease;
+  transition:opacity 0.4s,filter 0.4s,border-color 0.4s,box-shadow 0.4s,transform 0.3s;
   cursor:default;
   flex-shrink:0;
-  /* Mobile: flex item normal */
   flex:0 0 auto;
 }
-/* Aktif: terang + glow */
 .opp.my-go{
-  opacity:1;
-  filter:brightness(1) saturate(1);
+  opacity:1; filter:brightness(1) saturate(1);
   border-color:var(--neon);
-  box-shadow:0 0 0 1px rgba(0,255,136,0.4),0 0 20px rgba(0,255,136,0.3),0 0 40px rgba(0,255,136,0.1),0 8px 32px rgba(0,0,0,0.6);
-  transform:scale(1.04);
+  box-shadow:0 0 0 1px rgba(0,255,136,0.4),0 0 24px rgba(0,255,136,0.3),0 8px 32px rgba(0,0,0,0.6);
+  transform:scale(1.05);
 }
-/* Selesai */
 .opp.done{
-  opacity:0.2;
-  filter:brightness(0.4) grayscale(0.7);
+  opacity:0.2; filter:brightness(0.4) grayscale(0.7);
   border-color:rgba(212,168,67,0.06);
-  box-shadow:none;
-  transform:scale(0.96);
+  box-shadow:none; transform:scale(0.96);
 }
-
-/* Hover di desktop */
 @media(min-width:700px){
-  .opp:not(.my-go):not(.done):hover{
-    opacity:0.65;filter:brightness(0.78);
-  }
+  .opp:not(.my-go):not(.done):hover{opacity:0.65;filter:brightness(0.78);}
 }
 
-/* ── Info teks kiri ── */
 .opp-info{
   display:flex;flex-direction:column;gap:2px;
   padding:8px 11px 8px 12px;
@@ -281,7 +226,7 @@ button,input{touch-action:manipulation;cursor:pointer;}
   font-family:'JetBrains Mono',monospace;
   font-size:10px;color:var(--gold2);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  max-width:110px;line-height:1.25;letter-spacing:0.3px;
+  max-width:110px;line-height:1.25;
 }
 .opp-chips{
   font-family:'JetBrains Mono',monospace;
@@ -289,8 +234,6 @@ button,input{touch-action:manipulation;cursor:pointer;}
   white-space:nowrap;display:flex;align-items:center;gap:3px;margin-top:1px;
 }
 .opp-chips-ico{font-size:8px;}
-
-/* ── Jumlah kartu ── */
 .opp-ct{
   font-family:'Cinzel Decorative',serif;
   font-size:22px;font-weight:700;color:var(--gold);line-height:1;
@@ -300,15 +243,11 @@ button,input{touch-action:manipulation;cursor:pointer;}
   text-shadow:0 0 16px rgba(212,168,67,0.5);
   flex-shrink:0;display:flex;align-items:center;justify-content:center;
 }
-
-/* ── Badge rank ── */
 .opp-rank{
   font-size:13px;line-height:1;
   position:absolute;top:-7px;right:-5px;
   filter:drop-shadow(0 2px 4px rgba(0,0,0,0.8));
 }
-
-/* ── Mobile compact ── */
 @media(max-width:699px){
   .opp{border-radius:11px;}
   .opp-nm{font-size:9px;max-width:74px;}
