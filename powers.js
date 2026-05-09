@@ -340,23 +340,26 @@ function _usePower(id, targetSlot){
       break;
 
     case 'wilddraw':{
-      // Ambil 2 kartu acak dari "sisa dek" — simulasi: kartu acak dari nilai yang belum ada di tangan
-      const allVals = [3,4,5,6,7,8,9,10,11,12,13,1,2];
+      // Ambil 2 kartu acak dari "sisa dek"
+      // Pool: semua 52 kartu dikurangi kartu yang sudah dipegang SEMUA pemain
       const allSuits = [0,1,2,3];
-      const myHand = G.hands[ms];
-      const myIds = new Set(myHand.map(c=>`${c.val}_${c.suit}`));
+      // Gunakan VALUES dari cards.js agar nilai kartu valid (3..A,2)
+      const usedIds = new Set();
+      G.hands.forEach(hand=>hand.forEach(c=>usedIds.add(`${c.val}_${c.suit}`)));
       const pool = [];
-      allVals.forEach(v=>allSuits.forEach(s=>{
+      VALUES.forEach(v=>allSuits.forEach(s=>{
         const k=`${v}_${s}`;
-        if(!myIds.has(k)) pool.push({val:v,suit:s,id:`wild_${v}_${s}_${Date.now()}`});
+        if(!usedIds.has(k)) pool.push(mkCard(v,s));
       }));
+      const drawn = [];
       for(let i=0;i<2&&pool.length;i++){
         const idx=Math.floor(Math.random()*pool.length);
-        const card=pool.splice(idx,1)[0];
-        G.hands[ms].push(card);
+        drawn.push(pool.splice(idx,1)[0]);
+        G.hands[ms].push(drawn[drawn.length-1]);
       }
       renderGame();
-      showNotif('🃏 2 kartu baru ditambahkan ke tanganmu!',false);
+      const drawnNames = drawn.map(c=>`${c.val}${['♦','♣','♥','♠'][c.suit]}`).join(' & ');
+      showNotif(`🃏 Dapat: ${drawnNames} — 2 kartu baru di tanganmu!`,false);
       break;
     }
 
