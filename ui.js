@@ -684,3 +684,28 @@ document.getElementById('joinCode').addEventListener('input',function(){this.val
     }
   }catch(e){}
 })();
+
+// ══ DESKTOP LAYOUT: pindahkan #oppBar ke dalam #center ══
+// Ini memastikan oppBar bisa position:absolute relatif ke #center
+// yang sudah position:relative — jauh lebih reliable dari CSS tricks.
+(function initDesktopOppBarLayout(){
+  function moveOppBar(){
+    if(window.innerWidth < 700) return;
+    const center = document.getElementById('center');
+    const oppBar = document.getElementById('oppBar');
+    if(!center || !oppBar) return;
+    // Hanya pindahkan kalau belum di dalam center
+    if(oppBar.parentElement === center) return;
+    // Masukkan sebagai child pertama center
+    center.insertBefore(oppBar, center.firstChild);
+    oppBar.dataset.movedToCenter = '1';
+  }
+
+  // Jalankan saat DOM ready dan saat resize
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', moveOppBar);
+  } else {
+    moveOppBar();
+  }
+  window.addEventListener('resize', moveOppBar);
+})();
