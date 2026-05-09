@@ -153,27 +153,26 @@ function renderGame(){
 
   // ── Opponents (the 3 others) ──
   const others=[0,1,2,3].filter(i=>i!==ms);
-  const medals=['🥇','🥈','🥉','💀'];
   document.getElementById('oppBar').innerHTML=others.map(pidx=>{
     const p=G.players[pidx],hand=G.hands[pidx];
     const active=G.current===pidx,done=G.finished.includes(pidx);
     const finRank=G.finished.indexOf(pidx);
-    const rankBadge=done?`<span class="opp-rank">${medals[Math.min(finRank,3)]}</span>`:'';
-    const chipData=(typeof chipSession!=='undefined')&&chipSession[p.id];
-    const chipHtml=(!p.isBot&&chipData)
-      ?`<div class="opp-chips"><span class="opp-chips-ico">💰</span>${chipData.chips.toLocaleString()}</div>`
-      :'';
-    return `<div class="opp${active?' my-go':''}${done?' done':''}" style="position:relative;">
-      ${rankBadge}
-      <div class="opp-info">
-        <div class="opp-nm">${p.name}</div>
-        ${chipHtml}
-      </div>
+    const medals=['🥇','🥈','🥉','💀'];
+    const badge=done?medals[Math.min(finRank,3)]:(active?'▶':'');
+    return `<div class="opp${active?' my-go':''}${done?' done':''}">
+      <div class="opp-nm">${badge} ${p.name}</div>
       <div class="opp-ct">${hand.length}</div>
     </div>`;
   }).join('');
 
-  // ── Turn dots — hidden ──
+  // ── Turn dots (all 4) ──
+  document.getElementById('tdots').innerHTML=[0,1,2,3].map(i=>{
+    const a=G.current===i,d=G.finished.includes(i);
+    return `<div class="tdot${a?' on':''}${d?' dn':''}">
+      <div class="tdot-pip"></div>
+      <span>${G.players[i].name.split(' ')[0]}</span>
+    </div>`;
+  }).join('');
 
   // ── Felt (re-render if combo changed or stack changed) ──
   const cid=(G.currentCombo?G.currentCombo.cards.map(c=>c.id).join(','):'')+'|'+feltStackedCards.length;
@@ -683,29 +682,4 @@ document.getElementById('joinCode').addEventListener('input',function(){this.val
       document.getElementById('uname').value=saved;
     }
   }catch(e){}
-})();
-
-// ══ DESKTOP LAYOUT: pindahkan #oppBar ke dalam #center ══
-// Ini memastikan oppBar bisa position:absolute relatif ke #center
-// yang sudah position:relative — jauh lebih reliable dari CSS tricks.
-(function initDesktopOppBarLayout(){
-  function moveOppBar(){
-    if(window.innerWidth < 700) return;
-    const center = document.getElementById('center');
-    const oppBar = document.getElementById('oppBar');
-    if(!center || !oppBar) return;
-    // Hanya pindahkan kalau belum di dalam center
-    if(oppBar.parentElement === center) return;
-    // Masukkan sebagai child pertama center
-    center.insertBefore(oppBar, center.firstChild);
-    oppBar.dataset.movedToCenter = '1';
-  }
-
-  // Jalankan saat DOM ready dan saat resize
-  if(document.readyState === 'loading'){
-    document.addEventListener('DOMContentLoaded', moveOppBar);
-  } else {
-    moveOppBar();
-  }
-  window.addEventListener('resize', moveOppBar);
 })();
