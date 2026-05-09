@@ -158,21 +158,21 @@ function renderGame(){
     const active=G.current===pidx,done=G.finished.includes(pidx);
     const finRank=G.finished.indexOf(pidx);
     const medals=['🥇','🥈','🥉','💀'];
-    const badge=done?medals[Math.min(finRank,3)]:(active?'▶':'');
-    return `<div class="opp${active?' my-go':''}${done?' done':''}">
-      <div class="opp-nm">${badge} ${p.name}</div>
+    const finBadge=done?`<span class="opp-medal">${medals[Math.min(finRank,3)]}</span>`:'';
+    const dimCls=(!active&&!done)?' opp-dim':'';
+    const activeCls=active?' opp-active':'';
+    const doneCls=done?' done':'';
+    return `<div class="opp${activeCls}${dimCls}${doneCls}">
+      <div class="opp-left">
+        ${finBadge}
+        <div class="opp-nm">${p.name}</div>
+      </div>
       <div class="opp-ct">${hand.length}</div>
     </div>`;
   }).join('');
 
-  // ── Turn dots (all 4) ──
-  document.getElementById('tdots').innerHTML=[0,1,2,3].map(i=>{
-    const a=G.current===i,d=G.finished.includes(i);
-    return `<div class="tdot${a?' on':''}${d?' dn':''}">
-      <div class="tdot-pip"></div>
-      <span>${G.players[i].name.split(' ')[0]}</span>
-    </div>`;
-  }).join('');
+  // ── Turn dots — hidden (replaced by opp card brightness) ──
+  document.getElementById('tdots').innerHTML='';
 
   // ── Felt (re-render if combo changed or stack changed) ──
   const cid=(G.currentCombo?G.currentCombo.cards.map(c=>c.id).join(','):'')+'|'+feltStackedCards.length;
