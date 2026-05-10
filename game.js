@@ -77,12 +77,65 @@ function _drainPosQueue(){
 }
 
 function _showOnePosAnnounce(rank, playerName, isMe, onDone){
-  const medals=['🥇','🥈','🥉','💀'];
   const posLabels=['JUARA 1!','POSISI 2','POSISI 3','TERAKHIR'];
   const el=document.getElementById('posAnnounce');
+
+  const gradDiskOut=['linear-gradient(135deg,#ffe066,#d4a843,#7a5510)','linear-gradient(135deg,#e8e8f0,#a0a8b8,#505870)','linear-gradient(135deg,#f0a060,#c07030,#6a3610)','linear-gradient(135deg,#b06060,#703030,#300808)'];
+  const gradDiskIn=['linear-gradient(135deg,#fff3b0,#e8c060,#8a6218)','linear-gradient(135deg,#ffffff,#c0c8d8,#707890)','linear-gradient(135deg,#ffc090,#d08040,#7a4018)','linear-gradient(135deg,#e08888,#903838,#3a1010)'];
+  const gradRibA=['linear-gradient(135deg,#ffe066,#8a6010)','linear-gradient(135deg,#d0d8e8,#505870)','linear-gradient(135deg,#e09050,#6a3610)','linear-gradient(135deg,#b04040,#501010)'];
+  const gradRibB=['linear-gradient(135deg,#d4a020,#5a3c08)','linear-gradient(135deg,#9098a8,#303848)','linear-gradient(135deg,#a06030,#3a1808)','linear-gradient(135deg,#703020,#280808)'];
+  const numTxt=['1','2','3','&#9760;'];
+  const numColor=['rgba(100,60,0,0.9)','rgba(30,30,50,0.9)','rgba(60,25,5,0.9)','rgba(255,120,120,0.9)'];
+  const numSize=[13,13,13,14];
+  const strokeColor=['rgba(255,230,100,0.4)','rgba(220,225,240,0.35)','rgba(240,180,100,0.35)','rgba(255,100,100,0.2)'];
+  const diskStroke=['rgba(255,240,150,0.5)','rgba(255,255,255,0.4)','rgba(255,190,130,0.4)','rgba(255,130,130,0.3)'];
+
+  const r=rank;
+  const medalSVG=`<svg width="62" height="62" viewBox="0 0 62 62" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="pdo${r}" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="${gradDiskOut[r].match(/#[0-9a-fA-F]{3,6}/g)[0]}"/>
+        <stop offset="50%" stop-color="${gradDiskOut[r].match(/#[0-9a-fA-F]{3,6}/g)[1]}"/>
+        <stop offset="100%" stop-color="${gradDiskOut[r].match(/#[0-9a-fA-F]{3,6}/g)[2]}"/>
+      </linearGradient>
+      <linearGradient id="pdi${r}" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="${gradDiskIn[r].match(/#[0-9a-fA-F]{3,6}/g)[0]}"/>
+        <stop offset="50%" stop-color="${gradDiskIn[r].match(/#[0-9a-fA-F]{3,6}/g)[1]}"/>
+        <stop offset="100%" stop-color="${gradDiskIn[r].match(/#[0-9a-fA-F]{3,6}/g)[2]}"/>
+      </linearGradient>
+      <linearGradient id="pra${r}" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="${gradRibA[r].match(/#[0-9a-fA-F]{3,6}/g)[0]}"/>
+        <stop offset="100%" stop-color="${gradRibA[r].match(/#[0-9a-fA-F]{3,6}/g)[1]}"/>
+      </linearGradient>
+      <linearGradient id="prb${r}" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="${gradRibB[r].match(/#[0-9a-fA-F]{3,6}/g)[0]}"/>
+        <stop offset="100%" stop-color="${gradRibB[r].match(/#[0-9a-fA-F]{3,6}/g)[1]}"/>
+      </linearGradient>
+    </defs>
+    <polygon points="31,2 23,14 9,14 17,26 9,38 23,38 31,50 39,38 53,38 45,26 53,14 39,14"
+      fill="url(#pdo${r})" stroke="${strokeColor[r]}" stroke-width="0.8"/>
+    <circle cx="31" cy="26" r="12" fill="url(#pdi${r})" stroke="${diskStroke[r]}" stroke-width="1"/>
+    <text x="31" y="31" text-anchor="middle" dominant-baseline="central"
+      font-size="${numSize[r]}" font-weight="900" fill="${numColor[r]}" font-family="serif">${numTxt[r]}</text>
+    <rect x="23" y="48" width="7" height="12" rx="2" fill="url(#pra${r})"/>
+    <rect x="32" y="48" width="7" height="12" rx="2" fill="url(#prb${r})"/>
+  </svg>`;
+
+  const shimmer=rank===0?'<div class="pos-banner-shimmer"></div>':'';
+  const displayName=isMe?'KAMU':playerName;
+  const meTag=isMe?`<span style="font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--neon,#00ff88);letter-spacing:2px;margin-left:6px;">(Kamu)</span>`:'';
+
   const banner=document.createElement('div');
   banner.className=`pos-banner pos-${rank+1}`;
-  banner.innerHTML=`${medals[rank]} ${isMe?'KAMU':'<span style="font-size:0.7em">'+playerName+'</span>'}<br><span style="font-size:0.55em;opacity:0.8;letter-spacing:2px">${posLabels[rank]}</span>`;
+  banner.innerHTML=`
+    ${shimmer}
+    <div class="pos-banner-medal">${medalSVG}</div>
+    <div class="pos-banner-divider"></div>
+    <div class="pos-banner-text">
+      <div class="pos-banner-name">${displayName}${meTag}</div>
+      <div class="pos-banner-label">${posLabels[rank]}</div>
+    </div>`;
+
   el.innerHTML='';
   el.appendChild(banner);
   if(_posTimer)clearTimeout(_posTimer);
