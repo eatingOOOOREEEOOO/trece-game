@@ -27,11 +27,17 @@ function startTimer(onExpire){
   const wrap=document.getElementById('timerWrap');
   const txt=document.getElementById('timerText');
   const arc=document.getElementById('timerArc');
+  const btnNoTimer=document.getElementById('btnPlayNoTimer');
+
+  // Tampilkan arc wrapper, sembunyikan tombol MAIN biasa
   wrap.style.display='flex';
+  if(btnNoTimer)btnNoTimer.style.display='none';
+
   txt.textContent=TURN_SECONDS;
   wrap.className='';
-  // SVG arc: radius=22, circumference=2*PI*22≈138.23
-  const R=22, C=2*Math.PI*R;
+
+  // SVG arc: radius=40, circumference=2*PI*40≈251.33
+  const R=40, C=2*Math.PI*R;
   if(arc){arc.style.strokeDasharray=C;arc.style.strokeDashoffset=0;arc.style.stroke='var(--neon)';}
 
   timerInterval=setInterval(()=>{
@@ -52,7 +58,9 @@ function startTimer(onExpire){
 function clearTimer(){
   if(timerInterval){clearInterval(timerInterval);timerInterval=null;}
   const wrap=document.getElementById('timerWrap');
+  const btnNoTimer=document.getElementById('btnPlayNoTimer');
   if(wrap)wrap.style.display='none';
+  if(btnNoTimer)btnNoTimer.style.display='';
 }
 
 // ── Position Announce Queue ──
