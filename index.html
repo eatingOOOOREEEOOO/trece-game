@@ -92,20 +92,7 @@
             <div class="empty-msg" id="emptyMsg">Meja kosong — bebas memulai</div>
           </div>
         </div>
-        <!-- Circular arc timer — pojok kanan atas felt -->
-        <div id="timerWrap" style="display:none;">
-          <svg id="timerSvg" viewBox="0 0 54 54" xmlns="http://www.w3.org/2000/svg">
-            <!-- Track -->
-            <circle cx="27" cy="27" r="22" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="3.5"/>
-            <!-- Arc countdown -->
-            <circle id="timerArc" cx="27" cy="27" r="22" fill="none"
-              stroke="var(--neon)" stroke-width="3.5"
-              stroke-linecap="round"
-              transform="rotate(-90 27 27)"
-              style="transition:stroke-dashoffset 0.95s linear, stroke 0.4s;"/>
-          </svg>
-          <div id="timerText">30</div>
-        </div>
+
       </div>
       <div id="ghostRow"><span class="ghost-lbl">sebelumnya:</span></div>
       <div id="gstat"></div>
@@ -128,7 +115,21 @@
       <div id="handWrap"><div id="handInner"></div></div>
       <div id="actRow">
         <button class="abtn abtn-reorder" id="btnReorder" onclick="toggleReorderMode()" style="display:none;">⇄</button>
-        <button class="abtn abtn-play" id="btnPlay" onclick="playerPlay()" disabled>MAIN</button>
+        <!-- Timer arc melingkar di sekitar tombol MAIN -->
+        <div id="timerWrap" style="display:none;">
+          <svg id="timerSvg" viewBox="0 0 90 90" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="45" cy="45" r="40" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="3"/>
+            <circle id="timerArc" cx="45" cy="45" r="40" fill="none"
+              stroke="var(--neon)" stroke-width="3"
+              stroke-linecap="round"
+              transform="rotate(-90 45 45)"
+              style="transition:stroke-dashoffset 0.95s linear, stroke 0.4s;"/>
+          </svg>
+          <button class="abtn abtn-play" id="btnPlay" onclick="playerPlay()" disabled>MAIN</button>
+          <div id="timerText">30</div>
+        </div>
+        <!-- Tombol MAIN tanpa timer (disembunyikan saat timer aktif) -->
+        <button class="abtn abtn-play" id="btnPlayNoTimer" onclick="playerPlay()" disabled>MAIN</button>
         <button class="abtn abtn-skip" id="btnSkip" onclick="playerSkip()" disabled>SKIP</button>
       </div>
       <div id="arrowRow" style="display:none;">
