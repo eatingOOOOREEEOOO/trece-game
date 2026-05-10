@@ -115,8 +115,9 @@ function _showOnePosAnnounce(rank, playerName, isMe, onDone){
     <polygon points="31,2 23,14 9,14 17,26 9,38 23,38 31,50 39,38 53,38 45,26 53,14 39,14"
       fill="url(#pdo${r})" stroke="${strokeColor[r]}" stroke-width="0.8"/>
     <circle cx="31" cy="26" r="12" fill="url(#pdi${r})" stroke="${diskStroke[r]}" stroke-width="1"/>
-    <text x="31" y="31" text-anchor="middle" dominant-baseline="central"
-      font-size="${numSize[r]}" font-weight="900" fill="${numColor[r]}" font-family="serif">${numTxt[r]}</text>
+    <text x="31" y="26" text-anchor="middle"
+      font-size="${numSize[r]}" font-weight="900" fill="${numColor[r]}" font-family="serif"
+      dy="${numSize[r]*0.36}px">${numTxt[r]}</text>
     <rect x="23" y="48" width="7" height="12" rx="2" fill="url(#pra${r})"/>
     <rect x="32" y="48" width="7" height="12" rx="2" fill="url(#prb${r})"/>
   </svg>`;
