@@ -856,7 +856,7 @@ button,input{touch-action:manipulation;cursor:pointer;}
   #feltCards .card .cs{font-size:9px;}
   #feltCards .card .cc{font-size:18px;}
   .empty-msg{font-size:12px;}
-  #comboBadge{font-size:9px;padding:3px 11px;top:-13px;}
+  #comboBadge{font-size:9px;padding:3px 11px;top:-22px;}
 
   /* timer wrap ikut ukuran tombol — tidak perlu override khusus */
 
@@ -872,9 +872,17 @@ button,input{touch-action:manipulation;cursor:pointer;}
 
   /* ── ACTION BUTTONS ── */
   #actRow{gap:5px;width:100%;}
-  .abtn{padding:9px 0;font-size:10px;border-radius:8px;flex:1;}
-  .abtn-reorder{flex:0 0 36px!important;padding:9px 0!important;font-size:15px!important;text-align:center;}
-  .abtn-reorder.active{flex:0 0 50px!important;font-size:8px!important;padding:9px 4px!important;}
+  /* Base mobile button: reset flex dulu */
+  .abtn{padding:12px 0;font-size:11px;border-radius:8px;flex:1;}
+  /* Tombol MAIN — lebih besar & dominan */
+  .abtn-play{flex:2.2!important;font-size:13px!important;padding:13px 0!important;letter-spacing:2px!important;}
+  /* Tombol SKIP — lebih kecil supaya tidak salah pencet */
+  .abtn-skip{flex:1!important;font-size:10px!important;padding:12px 0!important;}
+  /* timerWrap ikuti flex MAIN juga */
+  #timerWrap{flex:2.2!important;display:flex!important;}
+  #timerWrap .abtn-play{flex:1!important;font-size:13px!important;padding:13px 0!important;}
+  .abtn-reorder{flex:0 0 38px!important;padding:12px 0!important;font-size:15px!important;text-align:center;}
+  .abtn-reorder.active{flex:0 0 50px!important;font-size:8px!important;padding:12px 4px!important;}
   #arrowRow{gap:5px;padding:0 2px;}
   .abtn-arrow{padding:7px 0;flex:0 0 48px;font-size:16px;}
   .arrow-hint{font-size:8px;flex:1;text-align:center;}
