@@ -305,7 +305,7 @@ function renderGame(){
 
   // ── Buttons ──
   const gameOver=G.phase==='end';
-  document.getElementById('btnPlay').disabled=true;
+  (() => { const _b=document.getElementById('btnPlay'),_bn=document.getElementById('btnPlayNoTimer'); if(_b)_b.disabled=true; if(_bn)_bn.disabled=true; })();
   const canSkip=!gameOver&&isMyTurn&&(!!G.currentCombo)&&!isBidPhase;
   document.getElementById('btnSkip').disabled=!canSkip;
 
@@ -363,9 +363,17 @@ function toggleCard(idx){
   updateComboHint();
 }
 
+// Helper: set disabled state on kedua tombol MAIN (arc + normal)
+function setBtnPlayDisabled(val){
+  const b1=document.getElementById('btnPlay');
+  const b2=document.getElementById('btnPlayNoTimer');
+  if(b1)b1.disabled=val;
+  if(b2)b2.disabled=val;
+}
+
 function updateComboHint(){
   const hint=document.getElementById('comboHint');
-  const btnPlay=document.getElementById('btnPlay');
+  const btnPlay={set disabled(v){setBtnPlayDisabled(v);},get disabled(){return document.getElementById('btnPlay')?.disabled;}};
 
   // ── BID PHASE hint ──
   if(G.phase==='bid'){
