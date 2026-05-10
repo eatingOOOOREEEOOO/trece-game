@@ -25,20 +25,23 @@ function startTimer(onExpire){
   clearTimer();
   timerSecondsLeft=TURN_SECONDS;
   const wrap=document.getElementById('timerWrap');
-  const bar=document.getElementById('timerBar');
   const txt=document.getElementById('timerText');
-  wrap.style.display='block';
-  bar.style.width='100%';
-  bar.className='';
+  const arc=document.getElementById('timerArc');
+  wrap.style.display='flex';
   txt.textContent=TURN_SECONDS;
+  wrap.className='';
+  // SVG arc: radius=22, circumference=2*PI*22≈138.23
+  const R=22, C=2*Math.PI*R;
+  if(arc){arc.style.strokeDasharray=C;arc.style.strokeDashoffset=0;arc.style.stroke='var(--neon)';}
 
   timerInterval=setInterval(()=>{
     timerSecondsLeft--;
-    const pct=Math.max(0,(timerSecondsLeft/TURN_SECONDS)*100);
-    bar.style.width=pct+'%';
+    const pct=Math.max(0,(timerSecondsLeft/TURN_SECONDS));
+    const offset=C*(1-pct);
+    if(arc)arc.style.strokeDashoffset=offset;
     txt.textContent=timerSecondsLeft;
-    if(timerSecondsLeft===10){bar.className='warn';SFX.timerWarn();}
-    if(timerSecondsLeft<=5&&timerSecondsLeft>0){bar.className='danger';SFX.timerTick();}
+    if(timerSecondsLeft===10){wrap.className='warn';if(arc)arc.style.stroke='#ffaa00';SFX.timerWarn();}
+    if(timerSecondsLeft<=5&&timerSecondsLeft>0){wrap.className='danger';if(arc)arc.style.stroke='#ff2244';SFX.timerTick();}
     if(timerSecondsLeft<=0){
       clearTimer();
       onExpire();
