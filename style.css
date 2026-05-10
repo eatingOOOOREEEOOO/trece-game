@@ -872,15 +872,16 @@ button,input{touch-action:manipulation;cursor:pointer;}
 
   /* ── ACTION BUTTONS ── */
   #actRow{gap:5px;width:100%;}
-  /* Base mobile button: reset flex dulu */
-  .abtn{padding:12px 0;font-size:11px;border-radius:8px;flex:1;}
-  /* Tombol MAIN — lebih besar & dominan */
-  .abtn-play{flex:2.2!important;font-size:13px!important;padding:13px 0!important;letter-spacing:2px!important;}
-  /* Tombol SKIP — lebih kecil supaya tidak salah pencet */
+  /* Base semua tombol */
+  .abtn{padding:12px 0;font-size:11px;border-radius:8px;flex:1;min-height:46px;}
+  /* Tombol MAIN: 2x lebih lebar dari SKIP */
+  .abtn-play{flex:2!important;font-size:13px!important;padding:13px 0!important;letter-spacing:1px!important;}
+  /* timerWrap ikut flex MAIN — display-nya tetap dikontrol oleh JS */
+  #timerWrap{flex:2!important;}
+  #timerWrap .abtn-play{flex:1!important;width:100%!important;}
+  /* Tombol SKIP lebih sempit */
   .abtn-skip{flex:1!important;font-size:10px!important;padding:12px 0!important;}
-  /* timerWrap ikuti flex MAIN juga */
-  #timerWrap{flex:2.2!important;display:flex!important;}
-  #timerWrap .abtn-play{flex:1!important;font-size:13px!important;padding:13px 0!important;}
+  /* Tombol reorder */
   .abtn-reorder{flex:0 0 38px!important;padding:12px 0!important;font-size:15px!important;text-align:center;}
   .abtn-reorder.active{flex:0 0 50px!important;font-size:8px!important;padding:12px 4px!important;}
   #arrowRow{gap:5px;padding:0 2px;}
