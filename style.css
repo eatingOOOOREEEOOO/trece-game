@@ -402,39 +402,49 @@ button,input{touch-action:manipulation;cursor:pointer;}
 .empty-msg{color:rgba(255,255,255,0.5);font-style:italic;font-size:14px;font-family:'Outfit',sans-serif;text-shadow:0 1px 4px rgba(0,0,0,0.8);}
 #feltCards{position:relative;width:100%;height:200px;display:flex;align-items:center;justify-content:center;overflow:visible;}
 
-/* ══ CIRCULAR ARC TIMER ══ */
+/* ══ CIRCULAR ARC TIMER — melingkari tombol MAIN ══ */
 #timerWrap{
-  position:absolute;
-  top:-20px; right:6px;
-  width:54px; height:54px;
+  position:relative;
+  width:90px; height:90px;
   display:none;
   align-items:center; justify-content:center;
-  z-index:20;
-  filter:drop-shadow(0 0 8px rgba(0,255,136,0.4));
+  flex-shrink:0;
+  /* glow sesuai state */
+  filter:drop-shadow(0 0 8px rgba(0,255,136,0.35));
   transition:filter 0.4s;
 }
-#timerWrap.warn{filter:drop-shadow(0 0 10px rgba(255,170,0,0.6));}
+#timerWrap.warn{filter:drop-shadow(0 0 10px rgba(255,170,0,0.55));}
 #timerWrap.danger{
-  filter:drop-shadow(0 0 14px rgba(255,34,68,0.8));
+  filter:drop-shadow(0 0 16px rgba(255,34,68,0.85));
   animation:timerDangerPulse 0.5s ease-in-out infinite alternate;
 }
 @keyframes timerDangerPulse{
   from{filter:drop-shadow(0 0 10px rgba(255,34,68,0.6));}
-  to{filter:drop-shadow(0 0 20px rgba(255,34,68,1));}
+  to{filter:drop-shadow(0 0 22px rgba(255,34,68,1));}
 }
 #timerSvg{
   position:absolute;inset:0;width:100%;height:100%;
-}
-#timerText{
-  position:relative;z-index:1;
-  font-family:'JetBrains Mono',monospace;
-  font-size:14px;font-weight:700;
-  color:var(--neon);
-  text-align:center;line-height:1;
   pointer-events:none;
+}
+/* Angka countdown — di bawah tombol MAIN, di dalam wrapper */
+#timerText{
+  position:absolute;
+  bottom:4px; left:50%; transform:translateX(-50%);
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px; font-weight:700;
+  color:var(--neon); letter-spacing:1px;
+  pointer-events:none; line-height:1;
 }
 #timerWrap.warn #timerText{color:#ffaa00;}
 #timerWrap.danger #timerText{color:#ff2244;}
+
+/* Tombol MAIN di dalam arc — sama persis dengan .abtn-play */
+#timerWrap #btnPlay{
+  position:relative; z-index:1;
+  width:62px; height:36px;
+  padding:0;
+  font-size:11px;
+}
 
 /* Ghost */
 #ghostRow{display:none!important;}
@@ -828,9 +838,10 @@ button,input{touch-action:manipulation;cursor:pointer;}
   .empty-msg{font-size:12px;}
   #comboBadge{font-size:9px;padding:3px 11px;top:-13px;}
 
-  /* ── Timer circular — tetap di pojok kanan atas ── */
-  #timerWrap{top:-18px;right:4px;width:46px;height:46px;}
-  #timerText{font-size:12px;}
+  /* ── Timer circular di sekitar MAIN ── */
+  #timerWrap{width:80px;height:80px;}
+  #timerWrap #btnPlay{width:56px;height:34px;font-size:10px;}
+  #timerText{font-size:9px;bottom:3px;}
 
   /* ── Status text ── */
   #gstat{font-size:9px;min-height:12px;}
