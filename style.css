@@ -378,7 +378,22 @@ button,input{touch-action:manipulation;cursor:pointer;}
 .cback::after{content:'✦';display:flex;align-items:center;justify-content:center;font-size:6px;color:rgba(212,168,67,0.3);height:100%;}
 
 /* Center */
-#center{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:6px;padding:4px 8px 12px;overflow:hidden;}
+#center{
+  /* Absolute — tidak ikut flex, selalu di tengah area antara oppBar dan playerArea */
+  position:absolute;
+  left:0;right:0;
+  /* oppBar ~70px dari atas, playerArea ~180px dari bawah — felt ditaruh di tengahnya */
+  top:70px;
+  bottom:180px;
+  display:flex;flex-direction:column;align-items:center;
+  justify-content:center;
+  gap:6px;padding:4px 8px;
+  overflow:hidden;
+  pointer-events:none; /* biarkan klik lewat ke elemen lain */
+  z-index:2;
+}
+/* Elemen di dalam center yang perlu pointer events */
+#center > *{pointer-events:auto;}
 
 /* Turn dots — hidden, replaced by opp brightness system */
 #tdots{display:none;}
@@ -810,6 +825,8 @@ button,input{touch-action:manipulation;cursor:pointer;}
 
   /* ── Center area ── */
   #center{
+    top:60px;
+    bottom:165px;
     gap:4px;
     padding:4px 12px;
     justify-content:center;
