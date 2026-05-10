@@ -25,41 +25,20 @@ function startTimer(onExpire){
   clearTimer();
   timerSecondsLeft=TURN_SECONDS;
   const wrap=document.getElementById('timerWrap');
-  const arc=document.getElementById('timerArc');
-  const svg=document.getElementById('timerSvg');
   const btnNoTimer=document.getElementById('btnPlayNoTimer');
 
   wrap.style.display='flex';
   if(btnNoTimer)btnNoTimer.style.display='none';
   wrap.className='';
-
-  // Ukur tombol MAIN di dalam wrap setelah ditampilkan
-  const btn=document.getElementById('btnPlay');
-  const W=btn.offsetWidth||80;
-  const H=btn.offsetHeight||36;
-  const PAD=4; // jarak outline dari tepi tombol
-  const TW=W+PAD*2, TH=H+PAD*2;
-
-  // Sesuaikan SVG dan rect
-  svg.setAttribute('viewBox',`0 0 ${TW} ${TH}`);
-  svg.style.width=TW+'px';
-  svg.style.height=TH+'px';
-  arc.setAttribute('width',TW-3);
-  arc.setAttribute('height',TH-3);
-
-  // Perimeter persegi rounded (rx=8)
-  const rx=8;
-  const P=2*((TW-3-2*rx)+(TH-3-2*rx))+2*Math.PI*rx;
-  arc.style.strokeDasharray=P;
-  arc.style.strokeDashoffset=0;
-  arc.style.stroke='var(--neon)';
+  // Set CSS variable untuk progress (1 = penuh, 0 = habis)
+  wrap.style.setProperty('--tp','1');
 
   timerInterval=setInterval(()=>{
     timerSecondsLeft--;
     const pct=Math.max(0,timerSecondsLeft/TURN_SECONDS);
-    arc.style.strokeDashoffset=P*(1-pct);
-    if(timerSecondsLeft===10){wrap.className='warn';arc.style.stroke='#ffaa00';SFX.timerWarn();}
-    if(timerSecondsLeft<=5&&timerSecondsLeft>0){wrap.className='danger';arc.style.stroke='#ff2244';SFX.timerTick();}
+    wrap.style.setProperty('--tp', pct.toFixed(4));
+    if(timerSecondsLeft===10){wrap.className='warn';SFX.timerWarn();}
+    if(timerSecondsLeft<=5&&timerSecondsLeft>0){wrap.className='danger';SFX.timerTick();}
     if(timerSecondsLeft<=0){clearTimer();onExpire();}
   },1000);
 }
@@ -68,7 +47,7 @@ function clearTimer(){
   if(timerInterval){clearInterval(timerInterval);timerInterval=null;}
   const wrap=document.getElementById('timerWrap');
   const btnNoTimer=document.getElementById('btnPlayNoTimer');
-  if(wrap)wrap.style.display='none';
+  if(wrap){wrap.style.display='none';wrap.style.removeProperty('--tp');}
   if(btnNoTimer)btnNoTimer.style.display='';
 }
 
