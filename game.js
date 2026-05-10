@@ -27,8 +27,9 @@ function startTimer(onExpire){
   const wrap=document.getElementById('timerWrap');
   const btnNoTimer=document.getElementById('btnPlayNoTimer');
 
+  // Sembunyikan btnPlayNoTimer — pastikan tidak muncul bersamaan dengan timerWrap
+  if(btnNoTimer){btnNoTimer.style.display='none';}
   wrap.style.display='flex';
-  if(btnNoTimer)btnNoTimer.style.display='none';
   wrap.className='';
   // Set CSS variable untuk progress (1 = penuh, 0 = habis)
   wrap.style.setProperty('--tp','1');
@@ -47,8 +48,9 @@ function clearTimer(){
   if(timerInterval){clearInterval(timerInterval);timerInterval=null;}
   const wrap=document.getElementById('timerWrap');
   const btnNoTimer=document.getElementById('btnPlayNoTimer');
+  // Sembunyikan timerWrap, tampilkan btnPlayNoTimer
   if(wrap){wrap.style.display='none';wrap.style.removeProperty('--tp');}
-  if(btnNoTimer)btnNoTimer.style.display='';
+  if(btnNoTimer){btnNoTimer.style.display='';}
 }
 
 // ── Position Announce Queue ──
