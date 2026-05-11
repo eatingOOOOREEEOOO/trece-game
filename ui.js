@@ -529,37 +529,160 @@ function hostInitPlayAgain(){
 // ══ BACKGROUND CANVAS ══
 function startBgCanvas(){
   const canvas=document.getElementById('bgCanvas');
+  if(!canvas)return;
   const ctx=canvas.getContext('2d');
-  let W,H;
-  function resize(){W=canvas.width=window.innerWidth;H=canvas.height=window.innerHeight;}
-  resize();
-  window.addEventListener('resize',resize);
+  let W,H,t=0;
+  const isMobile=window.innerWidth<=600;
 
-  const pts=Array.from({length:35},()=>({
-    x:Math.random()*1200,y:Math.random()*900,
-    vx:(Math.random()-.5)*.3,vy:(Math.random()-.5)*.15,
-    sz:Math.random()*1.8+.4,op:Math.random()*.35+.08,
-    col:Math.random()<.5?'0,255,136':'212,168,67',
+  function resize(){
+    W=canvas.width=window.innerWidth;
+    H=canvas.height=window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize',()=>{resize();isMob=window.innerWidth<=600;});
+
+  // ── 1. BOKEH LIGHTS — lingkaran cahaya besar, blur, melayang sangat lambat ──
+  // Warna emas + hijau kasino, cocok dengan background foto
+  const bokeh=Array.from({length:isMobile?6:10},(_,i)=>({
+    x:Math.random()*1.2-.1, // fraksi layar (bisa sedikit keluar)
+    y:Math.random()*1.2-.1,
+    r:Math.random()*(isMobile?120:200)+80,
+    vx:(Math.random()-.5)*0.00012,
+    vy:(Math.random()-.5)*0.00008,
+    op:Math.random()*0.045+0.018,
+    ph:Math.random()*Math.PI*2,
+    spd:Math.random()*0.0008+0.0004,
+    // Palet: emas, hijau kasino, ungu meja, putih
+    col:['212,168,67','0,200,100','160,100,220','255,240,180','80,200,120'][i%5]
+  }));
+
+  // ── 2. SUIT SYMBOLS — simbol kartu melayang naik, lebih visible dari sebelumnya ──
+  const SUITS_ARR=['♦','♥','♣','♠'];
+  const suits=Array.from({length:isMobile?8:16},(_,i)=>({
+    sym:SUITS_ARR[i%4],
+    x:Math.random(),       // fraksi layar
+    y:Math.random()*1.2,
+    vx:(Math.random()-.5)*0.00015,
+    vy:-(Math.random()*0.00025+0.00012), // selalu naik perlahan
+    sz:Math.random()*(isMobile?22:32)+12,
+    op:Math.random()*0.10+0.04,
+    rot:Math.random()*360,
+    vrot:(Math.random()-.5)*0.15,
+    isRed:i%4===0||i%4===1,
     ph:Math.random()*Math.PI*2
   }));
-  const syms=[
-    ...Array(4).fill(null).map((_,i)=>({sym:'♦♣♥♠'[i],x:Math.random()*1400,y:Math.random()*900,vx:(Math.random()-.5)*.18,vy:-.1-Math.random()*.12,sz:Math.random()*16+7,op:Math.random()*.055+.015,isRed:i===0||i===2,rot:Math.random()*360,vrot:(Math.random()-.5)*.25}))
+
+  // ── 3. SPARKLES — bintik berkilau kecil, seperti debu emas ──
+  const sparks=Array.from({length:isMobile?18:30},()=>({
+    x:Math.random(),
+    y:Math.random(),
+    vx:(Math.random()-.5)*0.0002,
+    vy:-(Math.random()*0.0003+0.00005),
+    sz:Math.random()*2.2+0.6,
+    op:Math.random()*0.5+0.1,
+    ph:Math.random()*Math.PI*2,
+    spd:Math.random()*0.025+0.012,
+    col:Math.random()<0.6?'212,168,67':'200,255,220'
+  }));
+
+  // ── 4. AMBIENT SPOTLIGHT — cahaya meja bergerak sangat lambat (efek paling halus) ──
+  // Simulasikan sorotan lampu kasino yang "bernafas"
+  const spots=[
+    {cx:0.5,cy:0.38,rx:0.28,ry:0.18,col:'0,180,80',baseOp:0.04,ph:0,spd:0.0007},
+    {cx:0.5,cy:0.38,rx:0.42,ry:0.28,col:'100,60,200',baseOp:0.022,ph:Math.PI,spd:0.0005}
   ];
 
+  // ── 5. VIGNETTE PULSE — tepi bergelap berdenyut sangat halus ──
+  let vigPh=0;
+
   function draw(){
+    t++;
     ctx.clearRect(0,0,W,H);
-    pts.forEach(p=>{
-      p.x=(p.x+p.vx+W)%W;p.y=(p.y+p.vy+H)%H;p.ph+=.018;
-      ctx.beginPath();ctx.arc(p.x,p.y,p.sz,0,Math.PI*2);
-      ctx.fillStyle=`rgba(${p.col},${p.op*(0.7+.3*Math.sin(p.ph))})`;ctx.fill();
+
+    // === LAYER 1: AMBIENT SPOTLIGHTS ===
+    spots.forEach(s=>{
+      s.ph+=s.spd;
+      const pulse=0.7+0.3*Math.sin(s.ph);
+      const op=s.baseOp*pulse;
+      const gx=s.cx*W, gy=s.cy*H;
+      const rx=s.rx*W, ry=s.ry*H;
+      // Elips gradient untuk meja
+      ctx.save();
+      ctx.scale(1, ry/rx);
+      const g=ctx.createRadialGradient(gx,gy*(rx/ry),0,gx,gy*(rx/ry),rx);
+      g.addColorStop(0,`rgba(${s.col},${op})`);
+      g.addColorStop(0.5,`rgba(${s.col},${op*0.4})`);
+      g.addColorStop(1,`rgba(${s.col},0)`);
+      ctx.fillStyle=g;
+      ctx.fillRect(0,0,W,H*(rx/ry));
+      ctx.restore();
     });
-    syms.forEach(s=>{
-      s.x=(s.x+s.vx+W)%W;s.y=(s.y+s.vy+H)%H;s.rot+=s.vrot;
-      ctx.save();ctx.translate(s.x,s.y);ctx.rotate(s.rot*Math.PI/180);
+
+    // === LAYER 2: BOKEH LIGHTS ===
+    bokeh.forEach(b=>{
+      b.x=(b.x+b.vx+1.2)%1.2-.1;
+      b.y=(b.y+b.vy+1.2)%1.2-.1;
+      b.ph+=b.spd;
+      const pulse=0.6+0.4*Math.sin(b.ph);
+      const op=b.op*pulse;
+      const bx=b.x*W, by=b.y*H;
+      const g=ctx.createRadialGradient(bx,by,0,bx,by,b.r);
+      g.addColorStop(0,`rgba(${b.col},${op})`);
+      g.addColorStop(0.45,`rgba(${b.col},${op*0.35})`);
+      g.addColorStop(1,`rgba(${b.col},0)`);
+      ctx.fillStyle=g;
+      ctx.beginPath();ctx.arc(bx,by,b.r,0,Math.PI*2);ctx.fill();
+    });
+
+    // === LAYER 3: SUIT SYMBOLS ===
+    suits.forEach(s=>{
+      s.x=(s.x+s.vx+1)%1;
+      s.y+=s.vy;
+      if(s.y<-0.15){s.y=1.1;s.x=Math.random();}
+      s.rot+=s.vrot;
+      s.ph+=0.012;
+      const pulse=0.75+0.25*Math.sin(s.ph);
+      const op=s.op*pulse;
+      ctx.save();
+      ctx.translate(s.x*W,s.y*H);
+      ctx.rotate(s.rot*Math.PI/180);
       ctx.font=`${s.sz}px serif`;
-      ctx.fillStyle=s.isRed?`rgba(224,48,64,${s.op})`:`rgba(180,200,255,${s.op*.6})`;
-      ctx.fillText(s.sym,-s.sz/2,-s.sz/4);ctx.restore();
+      ctx.textAlign='center';
+      ctx.textBaseline='middle';
+      if(s.isRed){
+        ctx.fillStyle=`rgba(220,60,80,${op})`;
+      }else{
+        ctx.fillStyle=`rgba(180,200,255,${op})`;
+      }
+      ctx.fillText(s.sym,0,0);
+      ctx.restore();
     });
+
+    // === LAYER 4: SPARKLES ===
+    sparks.forEach(p=>{
+      p.x=(p.x+p.vx+1)%1;
+      p.y+=p.vy;
+      if(p.y<-0.02){p.y=1.02;p.x=Math.random();}
+      p.ph+=p.spd;
+      const twinkle=Math.pow(Math.max(0,Math.sin(p.ph)),2); // berkedip tajam
+      const op=p.op*twinkle;
+      if(op<0.01)return;
+      ctx.beginPath();
+      ctx.arc(p.x*W,p.y*H,p.sz,0,Math.PI*2);
+      ctx.fillStyle=`rgba(${p.col},${op})`;
+      ctx.fill();
+    });
+
+    // === LAYER 5: VIGNETTE PULSE (sangat halus) ===
+    vigPh+=0.004;
+    const vigOp=0.18+0.06*Math.sin(vigPh);
+    const vg=ctx.createRadialGradient(W/2,H/2,H*0.2,W/2,H/2,Math.max(W,H)*0.82);
+    vg.addColorStop(0,'rgba(0,0,0,0)');
+    vg.addColorStop(0.6,'rgba(0,0,0,0)');
+    vg.addColorStop(1,`rgba(0,0,0,${vigOp})`);
+    ctx.fillStyle=vg;
+    ctx.fillRect(0,0,W,H);
+
     requestAnimationFrame(draw);
   }
   draw();
