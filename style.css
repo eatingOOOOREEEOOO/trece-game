@@ -377,19 +377,19 @@ button,input{touch-action:manipulation;cursor:pointer;}
 }
 .cback::after{content:'✦';display:flex;align-items:center;justify-content:center;font-size:6px;color:rgba(212,168,67,0.3);height:100%;}
 
-/* Center */
+/* Center — flex child, mengisi ruang antara oppBar dan playerArea secara otomatis */
 #center{
-  /* Absolute — tidak ikut flex, selalu di tengah area antara oppBar dan playerArea */
-  position:absolute;
-  left:0;right:0;
-  /* oppBar ~70px dari atas, playerArea ~180px dari bawah — felt ditaruh di tengahnya */
-  top:70px;
-  bottom:180px;
+  /* Ikut flex gameWrap — bukan absolute — agar otomatis menyesuaikan tinggi tersisa */
+  position:relative;
+  flex:1 1 0;
+  min-height:0;
+  left:unset;right:unset;top:unset;bottom:unset;
+  width:100%;
   display:flex;flex-direction:column;align-items:center;
   justify-content:center;
   gap:6px;padding:4px 8px;
   overflow:hidden;
-  pointer-events:none; /* biarkan klik lewat ke elemen lain */
+  pointer-events:none;
   z-index:2;
 }
 /* Elemen di dalam center yang perlu pointer events */
@@ -405,7 +405,12 @@ button,input{touch-action:manipulation;cursor:pointer;}
 
 /* Felt — fully transparent, cards float on background image */
 #felt{
-  position:relative;width:min(820px,99vw);min-height:200px;max-height:240px;
+  position:relative;
+  /* Lebar mengikuti background oval table: max 820px, tapi tidak melebihi 99vw */
+  width:min(820px,99vw);
+  /* Tinggi responsif: clamp antara 140px (layar kecil) hingga 240px (layar besar) */
+  height:clamp(140px, 22vh, 240px);
+  min-height:unset;max-height:unset;
   background:transparent;
   border:none;border-radius:20px;
   box-shadow:none;
@@ -415,7 +420,12 @@ button,input{touch-action:manipulation;cursor:pointer;}
 #felt::after{display:none;}
 #feltLbl{display:none;}
 .empty-msg{color:rgba(255,255,255,0.5);font-style:italic;font-size:14px;font-family:'Outfit',sans-serif;text-shadow:0 1px 4px rgba(0,0,0,0.8);}
-#feltCards{position:relative;width:100%;height:200px;display:flex;align-items:center;justify-content:center;overflow:visible;}
+#feltCards{
+  position:relative;width:100%;
+  /* Tinggi ikuti #felt via 100% */
+  height:100%;
+  display:flex;align-items:center;justify-content:center;overflow:visible;
+}
 
 /* ══ TIMER — border persegi rounded mengitari tombol MAIN ══ */
 #timerWrap{
@@ -825,8 +835,9 @@ button,input{touch-action:manipulation;cursor:pointer;}
 
   /* ── Center area ── */
   #center{
-    top:60px;
-    bottom:165px;
+    /* top/bottom tidak perlu — flex:1 sudah handle */
+    top:unset;
+    bottom:unset;
     gap:4px;
     padding:4px 12px;
     justify-content:center;
@@ -837,8 +848,10 @@ button,input{touch-action:manipulation;cursor:pointer;}
 
   /* ── Felt: transparent, kartu langsung di atas background ── */
   #felt{
-    min-height:130px;
-    max-height:148px;
+    /* Responsif: clamp 115px–150px sesuai tinggi viewport */
+    height:clamp(115px, 18vh, 150px);
+    min-height:unset;
+    max-height:unset;
     border-radius:0;
     width:100%;
     background:transparent;
@@ -846,7 +859,7 @@ button,input{touch-action:manipulation;cursor:pointer;}
     box-shadow:none;
     overflow:visible;
   }
-  #feltCards{height:130px;overflow:visible;}
+  #feltCards{height:100%;overflow:visible;}
   .felt-stack-card .card,
   #feltCards .card{
     width:44px!important;
@@ -971,8 +984,8 @@ button,input{touch-action:manipulation;cursor:pointer;}
     margin-left:-8px!important;
     margin-right:6px!important;
   }
-  #felt{min-height:115px;max-height:130px;}
-  #feltCards{height:115px;}
+  #felt{height:clamp(100px,16vh,125px);min-height:unset;max-height:unset;}
+  #feltCards{height:100%;}
   #oppBar{flex:0 0 auto;padding:5px 6px 4px;}
 }
 
@@ -1581,3 +1594,51 @@ button,input{touch-action:manipulation;cursor:pointer;}
 .card.blacked .cv::after{content:'?';position:absolute;left:0;right:0;text-align:center;}
 .card-val-hidden{opacity:0!important;}
 .card.blacked .card-img-wrap{filter:brightness(0.15) saturate(0) hue-rotate(260deg)!important;}
+
+/* ═══════════════════════════════════════════════════
+   RESPONSIVE CENTER TABLE — patch agar felt + badge
+   + gstat selalu berada di tengah oval background
+   di semua ukuran layar & orientasi
+   ═══════════════════════════════════════════════════ */
+
+/* Pastikan spacer flex:1 di HTML tidak membuat center kehilangan ruang */
+#gameWrap > div[style*="flex:1"] {
+  display: none !important; /* spacer lama tidak diperlukan — #center sudah flex:1 */
+}
+
+/* Tablet landscape & layar menengah (601–900px) */
+@media (min-width: 601px) and (max-width: 900px) {
+  #center {
+    gap: 5px;
+    padding: 4px 16px;
+  }
+  #felt {
+    height: clamp(150px, 20vh, 220px);
+    width: min(720px, 98vw);
+  }
+  #feltCards { height: 100%; }
+  #comboBadge { font-size: 10px; padding: 3px 12px; top: -16px; }
+}
+
+/* Layar lebar (> 900px desktop) */
+@media (min-width: 901px) {
+  #felt {
+    height: clamp(190px, 22vh, 240px);
+  }
+  #feltCards { height: 100%; }
+}
+
+/* Landscape phone — tinggi layar sangat pendek */
+@media (max-height: 500px) and (orientation: landscape) {
+  #center {
+    gap: 2px;
+    padding: 2px 8px;
+  }
+  #felt {
+    height: clamp(90px, 40vh, 140px);
+    width: min(600px, 96vw);
+  }
+  #feltCards { height: 100%; }
+  #comboBadge { font-size: 9px; padding: 2px 10px; top: -18px; }
+  #gstat { font-size: 9px; min-height: 12px; }
+}
