@@ -585,38 +585,13 @@ function startBgCanvas(){
     col:Math.random()<0.6?'212,168,67':'200,255,220'
   }));
 
-  // ── 4. AMBIENT SPOTLIGHT — cahaya meja bergerak sangat lambat (efek paling halus) ──
-  // Simulasikan sorotan lampu kasino yang "bernafas"
-  const spots=[
-    {cx:0.5,cy:0.38,rx:0.28,ry:0.18,col:'0,180,80',baseOp:0.04,ph:0,spd:0.0007},
-    {cx:0.5,cy:0.38,rx:0.42,ry:0.28,col:'100,60,200',baseOp:0.022,ph:Math.PI,spd:0.0005}
-  ];
 
-  // ── 5. VIGNETTE PULSE — tepi bergelap berdenyut sangat halus ──
-  let vigPh=0;
 
   function draw(){
     t++;
     ctx.clearRect(0,0,W,H);
 
-    // === LAYER 1: AMBIENT SPOTLIGHTS ===
-    spots.forEach(s=>{
-      s.ph+=s.spd;
-      const pulse=0.7+0.3*Math.sin(s.ph);
-      const op=s.baseOp*pulse;
-      const gx=s.cx*W, gy=s.cy*H;
-      const rx=s.rx*W, ry=s.ry*H;
-      // Elips gradient untuk meja
-      ctx.save();
-      ctx.scale(1, ry/rx);
-      const g=ctx.createRadialGradient(gx,gy*(rx/ry),0,gx,gy*(rx/ry),rx);
-      g.addColorStop(0,`rgba(${s.col},${op})`);
-      g.addColorStop(0.5,`rgba(${s.col},${op*0.4})`);
-      g.addColorStop(1,`rgba(${s.col},0)`);
-      ctx.fillStyle=g;
-      ctx.fillRect(0,0,W,H*(rx/ry));
-      ctx.restore();
-    });
+
 
     // === LAYER 2: BOKEH LIGHTS ===
     bokeh.forEach(b=>{
@@ -673,15 +648,7 @@ function startBgCanvas(){
       ctx.fill();
     });
 
-    // === LAYER 5: VIGNETTE PULSE (sangat halus) ===
-    vigPh+=0.004;
-    const vigOp=0.18+0.06*Math.sin(vigPh);
-    const vg=ctx.createRadialGradient(W/2,H/2,H*0.2,W/2,H/2,Math.max(W,H)*0.82);
-    vg.addColorStop(0,'rgba(0,0,0,0)');
-    vg.addColorStop(0.6,'rgba(0,0,0,0)');
-    vg.addColorStop(1,`rgba(0,0,0,${vigOp})`);
-    ctx.fillStyle=vg;
-    ctx.fillRect(0,0,W,H);
+
 
     requestAnimationFrame(draw);
   }
