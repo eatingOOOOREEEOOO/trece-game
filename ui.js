@@ -541,21 +541,6 @@ function startBgCanvas(){
   resize();
   window.addEventListener('resize',()=>{resize();isMob=window.innerWidth<=600;});
 
-  // ── 1. BOKEH LIGHTS — lingkaran cahaya besar, blur, melayang sangat lambat ──
-  // Warna emas + hijau kasino, cocok dengan background foto
-  const bokeh=Array.from({length:isMobile?6:10},(_,i)=>({
-    x:Math.random()*1.2-.1, // fraksi layar (bisa sedikit keluar)
-    y:Math.random()*1.2-.1,
-    r:Math.random()*(isMobile?120:200)+80,
-    vx:(Math.random()-.5)*0.00012,
-    vy:(Math.random()-.5)*0.00008,
-    op:Math.random()*0.045+0.018,
-    ph:Math.random()*Math.PI*2,
-    spd:Math.random()*0.0008+0.0004,
-    // Palet: emas, hijau kasino, ungu meja, putih
-    col:['212,168,67','0,200,100','160,100,220','255,240,180','80,200,120'][i%5]
-  }));
-
   // ── 2. SUIT SYMBOLS — simbol kartu melayang naik, lebih visible dari sebelumnya ──
   const SUITS_ARR=['♦','♥','♣','♠'];
   const suits=Array.from({length:isMobile?8:16},(_,i)=>({
@@ -592,22 +577,6 @@ function startBgCanvas(){
     ctx.clearRect(0,0,W,H);
 
 
-
-    // === LAYER 2: BOKEH LIGHTS ===
-    bokeh.forEach(b=>{
-      b.x=(b.x+b.vx+1.2)%1.2-.1;
-      b.y=(b.y+b.vy+1.2)%1.2-.1;
-      b.ph+=b.spd;
-      const pulse=0.6+0.4*Math.sin(b.ph);
-      const op=b.op*pulse;
-      const bx=b.x*W, by=b.y*H;
-      const g=ctx.createRadialGradient(bx,by,0,bx,by,b.r);
-      g.addColorStop(0,`rgba(${b.col},${op})`);
-      g.addColorStop(0.45,`rgba(${b.col},${op*0.35})`);
-      g.addColorStop(1,`rgba(${b.col},0)`);
-      ctx.fillStyle=g;
-      ctx.beginPath();ctx.arc(bx,by,b.r,0,Math.PI*2);ctx.fill();
-    });
 
     // === LAYER 3: SUIT SYMBOLS ===
     suits.forEach(s=>{
