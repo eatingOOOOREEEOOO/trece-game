@@ -267,7 +267,14 @@ button,input{touch-action:manipulation;cursor:pointer;}
   background-repeat:no-repeat;
 }
 #game.show{display:flex;}
-#bgCanvas{display:none;} /* hide canvas — background handled by CSS */
+#bgCanvas{
+  display:block;
+  position:absolute;
+  inset:0;
+  width:100%;height:100%;
+  z-index:0;
+  pointer-events:none;
+}
 .game-layer,#gameWrap{position:relative;z-index:1;display:flex;flex-direction:column;height:100%;overflow-x:hidden;overflow-y:hidden;}
 
 /* Smartphone background override */
