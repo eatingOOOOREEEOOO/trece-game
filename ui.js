@@ -98,10 +98,9 @@ function mkCardHTML(c,idx,selectable,selected,dimmed=false){
   if(c.isJoker){
     const selCls=selected?'sel':'';
     const nhCls=(!selectable||dimmed)?'nh':'';
-    const isTouch='ontouchstart' in window;
     const click=(selectable&&!dimmed)?`onclick="toggleCard(${idx})"` :'';
     const zStyle=selected?`style="z-index:${50+idx}"`:`style="z-index:${idx+1}"`;
-    const dragAttrs=isTouch?'':`draggable="true" ondragstart="handleCardDragStart(event,${idx})" ondragover="handleCardDragOver(event,${idx})" ondragend="handleCardDragEnd(event)" ondrop="handleCardDrop(event,${idx})"`;
+    const dragAttrs=`draggable="true" ondragstart="handleCardDragStart(event,${idx})" ondragover="handleCardDragOver(event,${idx})" ondragend="handleCardDragEnd(event)" ondrop="handleCardDrop(event,${idx})"`;
     return `<div class="card b ${selCls} ${nhCls}" ${click} ${zStyle} ${dragAttrs} data-idx="${idx}" title="Joker">
       <div class="ct"><span class="cv" style="color:#cc44ff">★</span><span class="cs" style="color:#cc44ff">J</span></div>
       <span class="cc" style="color:#cc44ff;font-size:22px;">✨</span>
@@ -112,13 +111,11 @@ function mkCardHTML(c,idx,selectable,selected,dimmed=false){
   const selCls=selected?'sel':'';
   const nhCls=(!selectable||dimmed)?'nh':'';
   const dimStyle=dimmed?'opacity:0.35;filter:grayscale(0.6);':'';
-  const isTouch='ontouchstart' in window;
-  // Fix: always attach onclick on both touch & desktop — touch devices need it for card selection
   const click=(selectable&&!dimmed)?`onclick="toggleCard(${idx})"` :'';
   const zStyle=selected?`style="z-index:${50+idx};${dimStyle}"`:`style="z-index:${idx+1};${dimStyle}"`;
   const imgKey=`${c.val}_${c.suit}`;
   const imgSrc=CARD_IMAGES[imgKey]||'';
-  // Blackout: sembunyikan nilai kartu LAWAN — pengguna blackout (blackoutCasterSlot) tetap bisa melihat kartunya sendiri
+  // Blackout: sembunyikan nilai kartu LAWAN
   const _blackoutOn = (typeof activePowers!=='undefined') && activePowers && activePowers.blackout;
   const _isCaster = _blackoutOn && G && activePowers.blackoutCasterSlot === G.mySlot;
   const isBlacked = _blackoutOn && !_isCaster;
@@ -126,8 +123,7 @@ function mkCardHTML(c,idx,selectable,selected,dimmed=false){
     ? `<div class="card-img-wrap"><img src="${imgSrc}" alt="${v}${sym}"></div>` : '';
   const hasCls = (imgSrc && !isBlacked) ? ' has-img' : '';
   const displayV = isBlacked ? '?' : v;
-  // Drag-to-reorder hanya di desktop; touch device pakai tap-to-select
-  const dragAttrs=isTouch?'':`draggable="true"
+  const dragAttrs=`draggable="true"
     ondragstart="handleCardDragStart(event,${idx})"
     ondragover="handleCardDragOver(event,${idx})"
     ondragend="handleCardDragEnd(event)"
@@ -259,7 +255,7 @@ function renderGame(){
         <div class="opp-nm">${p.name}</div>
         ${chipsHtml}
       </div>
-      <div class="opp-ct">${hand.length}</div>
+      <div class="opp-ct">${hand.length} kartu</div>
     </div>`;
   }).join('');
 
@@ -358,8 +354,17 @@ function toggleCard(idx){
 
   const i=G.selected.indexOf(idx);
   if(i>=0){G.selected.splice(i,1);SFX.cardDeselect();}else{G.selected.push(idx);SFX.cardSelect();}
-  document.getElementById('handInner').innerHTML=
-    hand.map((c,i)=>mkCardHTML(c,i,true,G.selected.includes(i))).join('');
+
+  // Tidak re-render seluruh innerHTML — cukup toggle class .sel
+  // Ini menghilangkan flicker/refresh setiap klik kartu
+  const inner=document.getElementById('handInner');
+  if(inner){
+    inner.querySelectorAll('.card[data-idx]').forEach(el=>{
+      const eIdx=parseInt(el.getAttribute('data-idx'),10);
+      el.classList.toggle('sel', G.selected.includes(eIdx));
+    });
+    applyFanLayout();
+  }
   updateComboHint();
 }
 
@@ -650,9 +655,27 @@ function _renderReorderHand(){
   const ms=G.mySlot;
   const hand=G.hands[ms]||[];
   const hint=document.getElementById('comboHint');
+  const inner=document.getElementById('handInner');
   if(_reorderMode){
-    document.getElementById('handInner').innerHTML=
+    // Reset fan positioning untuk reorder mode
+    if(inner){
+      inner.style.display='flex';
+      inner.style.position='relative';
+      inner.style.width='100%';
+      inner.style.height='';
+      inner.style.gap='4px';
+      inner.style.justifyContent='center';
+      inner.style.flexWrap='nowrap';
+    }
+    inner.innerHTML=
       hand.map((c,i)=>_mkReorderCardHTML(c,i,i===_reorderSel)).join('');
+    // Hapus inline style absolute dari kartu reorder
+    Array.from(inner.querySelectorAll('.card')).forEach(el=>{
+      el.style.position='';
+      el.style.left='';
+      el.style.marginLeft='';
+      el.style.transform='';
+    });
     if(hint){
       if(_reorderSel<0){hint.textContent='Tap kartu untuk angkat — tap lagi untuk tukar';hint.style.color='rgba(212,168,67,0.6)';}
       else{hint.textContent='Tap kartu lain untuk tukar, atau pakai ◀ ▶';hint.style.color='var(--neon2)';}
@@ -832,6 +855,104 @@ function handleCardDragEnd(e){
 })();
 
 document.getElementById('joinCode').addEventListener('input',function(){this.value=this.value.toUpperCase();});
+
+// ══════════════════════════════════════════════════════════
+// FAN ARC LAYOUT — kartu tangan melengkung seperti DUO
+// Dipanggil setelah setiap render #handInner
+// ══════════════════════════════════════════════════════════
+function applyFanLayout(){
+  const inner = document.getElementById('handInner');
+  if(!inner) return;
+  if(_reorderMode) return;
+
+  const cards = Array.from(inner.querySelectorAll('.card'));
+  const n = cards.length;
+  if(n === 0) return;
+
+  const isMobile = window.innerWidth <= 768;
+
+  // Card dimensions — cocok dengan CSS
+  const cardW = isMobile ? 64 : 80;
+  const cardH = isMobile ? 96 : 120;
+
+  // Layout DUO-style:
+  // - Kartu besar, tertumpuk horizontal dengan overlap besar (hanya bagian atas kartu terlihat)
+  // - Fan sudut kecil saja (-15° sampai +15°)
+  // - Arc sangat lembut
+  const maxAngle  = isMobile ? Math.min(n * 2.5, 22) : Math.min(n * 2, 18);
+  const arcLift   = isMobile ? 12 : 14;   // tinggi arc (parabola)
+  const hoverLift = isMobile ? 14 : 18;   // lift saat hover — gentle, bukan agresif
+  const selLift   = isMobile ? 28 : 36;   // lift saat dipilih
+  // Overlap besar: kartu berdekatan, yang tampak hanya ujung atas
+  const overlap   = isMobile ? 42 : 52;
+
+  const totalW = (n - 1) * overlap;
+  inner.style.width = Math.max(totalW + cardW, cardW) + 'px';
+
+  // Tinggi container: hanya tampilkan ~40% atas kartu (sisanya tersembunyi di bawah)
+  // Ini mirip DUO — kartu besar tapi hanya bagian atas yang muncul
+  const visibleTop = isMobile ? Math.round(cardH * 0.48) : Math.round(cardH * 0.45);
+  inner.style.height = (visibleTop + selLift + 10) + 'px';
+
+  cards.forEach((el, i) => {
+    const mid  = (n - 1) / 2;
+    const frac = n > 1 ? (i - mid) / mid : 0;  // -1 ... 0 ... +1
+
+    // Rotasi kecil: kartu kiri sedikit miring kiri, kanan miring kanan
+    const rot = frac * maxAngle;
+
+    // Posisi X: rata horizontal dengan overlap
+    const tx = (i - mid) * overlap;
+
+    // Arc sangat lembut: kartu tengah sedikit lebih tinggi
+    const ty = arcLift * (frac * frac) - arcLift;
+
+    // Z-index: kartu kanan di atas kartu kiri (seperti dipegang)
+    const baseZ = i + 1;
+
+    const isSel = el.classList.contains('sel');
+
+    if(isSel){
+      // Kartu terpilih: tetap di posisi X & arc, naik lebih tinggi, rotasi lurus
+      el.style.transform = `translateX(${tx}px) translateY(${ty - selLift}px) rotate(0deg) scale(1.05)`;
+      el.style.zIndex = String(80 + i);
+    } else {
+      el.style.transform = `translateX(${tx}px) translateY(${ty}px) rotate(${rot}deg)`;
+      el.style.zIndex = String(baseZ);
+    }
+
+    // CSS vars untuk hover (dipakai oleh :hover rule di CSS)
+    el.style.setProperty('--fan-tx', `${tx}px`);
+    el.style.setProperty('--fan-ty', `${ty}px`);
+    el.style.setProperty('--fan-rot', `${rot}deg`);
+    el.style.setProperty('--fan-lift', `${hoverLift}px`);
+    el.style.setProperty('--fan-sel-lift', `${selLift}px`);
+    el.style.setProperty('--fan-z', String(baseZ));
+
+    el.style.position = 'absolute';
+    el.style.left = '50%';
+    el.style.marginLeft = `-${Math.floor(cardW / 2)}px`;
+    el.style.bottom = '0';
+    el.style.top = 'auto';
+    el.style.marginTop = '';
+  });
+
+  inner.style.position = 'relative';
+  inner.style.display  = 'block';
+}
+
+// Re-apply fan setelah setiap render (MutationObserver)
+(function(){
+  const inner = document.getElementById('handInner');
+  if(!inner) return;
+  const obs = new MutationObserver(() => {
+    // Tunda sedikit agar browser selesai paint terlebih dulu
+    requestAnimationFrame(applyFanLayout);
+  });
+  obs.observe(inner, { childList: true, subtree: false });
+  // Apply sekali saat halaman load
+  applyFanLayout();
+})();
 
 // ══ LOAD SAVED USERNAME ══
 (function(){
