@@ -98,11 +98,9 @@ function mkCardHTML(c,idx,selectable,selected,dimmed=false){
   if(c.isJoker){
     const selCls=selected?'sel':'';
     const nhCls=(!selectable||dimmed)?'nh':'';
-    const isTouch='ontouchstart' in window;
     const click=(selectable&&!dimmed)?`onclick="toggleCard(${idx})"` :'';
     const zStyle=selected?`style="z-index:${50+idx}"`:`style="z-index:${idx+1}"`;
-    const dragAttrs=isTouch?'':`draggable="true" ondragstart="handleCardDragStart(event,${idx})" ondragover="handleCardDragOver(event,${idx})" ondragend="handleCardDragEnd(event)" ondrop="handleCardDrop(event,${idx})"`;
-    return `<div class="card b ${selCls} ${nhCls}" ${click} ${zStyle} ${dragAttrs} data-idx="${idx}" title="Joker">
+    return `<div class="card b ${selCls} ${nhCls}" ${click} ${zStyle} data-idx="${idx}" title="Joker">
       <div class="ct"><span class="cv" style="color:#cc44ff">★</span><span class="cs" style="color:#cc44ff">J</span></div>
       <span class="cc" style="color:#cc44ff;font-size:22px;">✨</span>
       <div class="cb2"><span class="cv" style="color:#cc44ff">★</span><span class="cs" style="color:#cc44ff">J</span></div>
@@ -112,7 +110,6 @@ function mkCardHTML(c,idx,selectable,selected,dimmed=false){
   const selCls=selected?'sel':'';
   const nhCls=(!selectable||dimmed)?'nh':'';
   const dimStyle=dimmed?'opacity:0.35;filter:grayscale(0.6);':'';
-  const isTouch='ontouchstart' in window;
   // Fix: always attach onclick on both touch & desktop — touch devices need it for card selection
   const click=(selectable&&!dimmed)?`onclick="toggleCard(${idx})"` :'';
   const zStyle=selected?`style="z-index:${50+idx};${dimStyle}"`:`style="z-index:${idx+1};${dimStyle}"`;
@@ -126,14 +123,7 @@ function mkCardHTML(c,idx,selectable,selected,dimmed=false){
     ? `<div class="card-img-wrap"><img src="${imgSrc}" alt="${v}${sym}"></div>` : '';
   const hasCls = (imgSrc && !isBlacked) ? ' has-img' : '';
   const displayV = isBlacked ? '?' : v;
-  // Drag-to-reorder hanya di desktop; touch device pakai tap-to-select
-  const dragAttrs=isTouch?'':`draggable="true"
-    ondragstart="handleCardDragStart(event,${idx})"
-    ondragover="handleCardDragOver(event,${idx})"
-    ondragend="handleCardDragEnd(event)"
-    ondrop="handleCardDrop(event,${idx})"`;
   return `<div class="card ${col} ${selCls} ${nhCls}${hasCls}" ${click} ${zStyle}
-    ${dragAttrs}
     data-idx="${idx}"
     title="${isBlacked?sym:v+sym}">
     ${imgHtml}
@@ -259,7 +249,7 @@ function renderGame(){
         <div class="opp-nm">${p.name}</div>
         ${chipsHtml}
       </div>
-      <div class="opp-ct">${hand.length}</div>
+      <div class="opp-ct">${hand.length} kartu</div>
     </div>`;
   }).join('');
 
@@ -650,9 +640,27 @@ function _renderReorderHand(){
   const ms=G.mySlot;
   const hand=G.hands[ms]||[];
   const hint=document.getElementById('comboHint');
+  const inner=document.getElementById('handInner');
   if(_reorderMode){
-    document.getElementById('handInner').innerHTML=
+    // Reset fan positioning untuk reorder mode
+    if(inner){
+      inner.style.display='flex';
+      inner.style.position='relative';
+      inner.style.width='100%';
+      inner.style.height='';
+      inner.style.gap='4px';
+      inner.style.justifyContent='center';
+      inner.style.flexWrap='nowrap';
+    }
+    inner.innerHTML=
       hand.map((c,i)=>_mkReorderCardHTML(c,i,i===_reorderSel)).join('');
+    // Hapus inline style absolute dari kartu reorder
+    Array.from(inner.querySelectorAll('.card')).forEach(el=>{
+      el.style.position='';
+      el.style.left='';
+      el.style.marginLeft='';
+      el.style.transform='';
+    });
     if(hint){
       if(_reorderSel<0){hint.textContent='Tap kartu untuk angkat — tap lagi untuk tukar';hint.style.color='rgba(212,168,67,0.6)';}
       else{hint.textContent='Tap kartu lain untuk tukar, atau pakai ◀ ▶';hint.style.color='var(--neon2)';}
@@ -832,6 +840,97 @@ function handleCardDragEnd(e){
 })();
 
 document.getElementById('joinCode').addEventListener('input',function(){this.value=this.value.toUpperCase();});
+
+// ══════════════════════════════════════════════════════════
+// FAN ARC LAYOUT — kartu tangan melengkung seperti DUO
+// Dipanggil setelah setiap render #handInner
+// ══════════════════════════════════════════════════════════
+function applyFanLayout(){
+  const inner = document.getElementById('handInner');
+  if(!inner) return;
+
+  // Jangan apply fan di reorder mode
+  if(_reorderMode) return;
+
+  const cards = Array.from(inner.querySelectorAll('.card'));
+  const n = cards.length;
+  if(n === 0) return;
+
+  // Deteksi mobile
+  const isMobile = window.innerWidth <= 768;
+
+  // Card dimensions — harus cocok dengan CSS
+  const cardW = isMobile ? 58 : 72;
+  const cardH = isMobile ? 86 : 104;
+
+  // Parameter fan — sesuaikan untuk feel DUO
+  const maxSpread  = isMobile ? Math.min(n * 8, 60)  : Math.min(n * 6, 55);
+  const liftBase   = isMobile ? 30 : 36;    // seberapa tinggi arc melengkung
+  const hoverLift  = isMobile ? 20 : 26;    // lift saat hover
+  const selLift    = isMobile ? 38 : 44;    // lift saat kartu dipilih
+  const overlap    = isMobile ? 38 : 48;    // jarak horizontal antar kartu (px)
+
+  // Lebar total fan agar bisa di-center
+  const totalW = (n - 1) * overlap;
+  inner.style.width = Math.max(totalW + cardW, cardW) + 'px';
+
+  cards.forEach((el, i) => {
+    const mid   = (n - 1) / 2;
+    const frac  = n > 1 ? (i - mid) / mid : 0;  // -1 ... 0 ... +1
+    const rot   = frac * (maxSpread / 2);
+
+    // Posisi X: spread horizontal dengan overlap
+    const tx = (i - mid) * overlap;
+
+    // Posisi Y: kartu tengah paling tinggi (translateY negatif = naik)
+    const ty = liftBase * (frac * frac) - liftBase;
+
+    // Z-index: kartu tengah di atas, kartu tepi di bawah
+    const baseZ = Math.round(50 - Math.abs(frac) * 30);
+
+    const isSel = el.classList.contains('sel');
+
+    if(isSel){
+      // Kartu terpilih: TETAP di posisi fan, hanya angkat lebih tinggi & kurangi rotasi
+      el.style.transform = `translateX(${tx}px) translateY(${ty - selLift}px) rotate(0deg) scale(1.1)`;
+      el.style.zIndex = '80';
+    } else {
+      el.style.transform = `translateX(${tx}px) translateY(${ty}px) rotate(${rot}deg)`;
+      el.style.zIndex = String(baseZ);
+    }
+
+    // Simpan CSS vars untuk hover (CSS menggunakannya)
+    el.style.setProperty('--fan-tx', `${tx}px`);
+    el.style.setProperty('--fan-ty', `${ty}px`);
+    el.style.setProperty('--fan-rot', `${rot}deg`);
+    el.style.setProperty('--fan-lift', `${hoverLift}px`);
+    el.style.setProperty('--fan-sel-lift', `${selLift}px`);
+
+    // Pastikan posisi absolute agar bisa overlap bebas
+    el.style.position = 'absolute';
+    el.style.left = '50%';
+    el.style.marginLeft = `-${Math.floor(cardW/2)}px`;
+    el.style.marginTop = '0';
+  });
+
+  // Parent harus relative & punya tinggi cukup untuk fan
+  inner.style.position = 'relative';
+  inner.style.display  = 'block';
+  inner.style.height   = (cardH + liftBase + selLift + 10) + 'px';
+}
+
+// Re-apply fan setelah setiap render (MutationObserver)
+(function(){
+  const inner = document.getElementById('handInner');
+  if(!inner) return;
+  const obs = new MutationObserver(() => {
+    // Tunda sedikit agar browser selesai paint terlebih dulu
+    requestAnimationFrame(applyFanLayout);
+  });
+  obs.observe(inner, { childList: true, subtree: false });
+  // Apply sekali saat halaman load
+  applyFanLayout();
+})();
 
 // ══ LOAD SAVED USERNAME ══
 (function(){
