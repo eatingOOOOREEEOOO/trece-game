@@ -650,9 +650,27 @@ function _renderReorderHand(){
   const ms=G.mySlot;
   const hand=G.hands[ms]||[];
   const hint=document.getElementById('comboHint');
+  const inner=document.getElementById('handInner');
   if(_reorderMode){
-    document.getElementById('handInner').innerHTML=
+    // Reset fan positioning untuk reorder mode
+    if(inner){
+      inner.style.display='flex';
+      inner.style.position='relative';
+      inner.style.width='100%';
+      inner.style.height='';
+      inner.style.gap='4px';
+      inner.style.justifyContent='center';
+      inner.style.flexWrap='nowrap';
+    }
+    inner.innerHTML=
       hand.map((c,i)=>_mkReorderCardHTML(c,i,i===_reorderSel)).join('');
+    // Hapus inline style absolute dari kartu reorder
+    Array.from(inner.querySelectorAll('.card')).forEach(el=>{
+      el.style.position='';
+      el.style.left='';
+      el.style.marginLeft='';
+      el.style.transform='';
+    });
     if(hint){
       if(_reorderSel<0){hint.textContent='Tap kartu untuk angkat — tap lagi untuk tukar';hint.style.color='rgba(212,168,67,0.6)';}
       else{hint.textContent='Tap kartu lain untuk tukar, atau pakai ◀ ▶';hint.style.color='var(--neon2)';}
@@ -832,6 +850,97 @@ function handleCardDragEnd(e){
 })();
 
 document.getElementById('joinCode').addEventListener('input',function(){this.value=this.value.toUpperCase();});
+
+// ══════════════════════════════════════════════════════════
+// FAN ARC LAYOUT — kartu tangan melengkung seperti DUO
+// Dipanggil setelah setiap render #handInner
+// ══════════════════════════════════════════════════════════
+function applyFanLayout(){
+  const inner = document.getElementById('handInner');
+  if(!inner) return;
+
+  // Jangan apply fan di reorder mode
+  if(_reorderMode) return;
+
+  const cards = Array.from(inner.querySelectorAll('.card'));
+  const n = cards.length;
+  if(n === 0) return;
+
+  // Deteksi mobile
+  const isMobile = window.innerWidth <= 768;
+
+  // Parameter fan — sesuaikan untuk feel DUO
+  // maxSpread: total sudut (derajat) seluruh fan
+  // liftScale: seberapa kartu naik dari arc (px) — kartu tengah paling tinggi
+  const maxSpread  = isMobile ? Math.min(n * 7, 52)  : Math.min(n * 5.5, 50);
+  const liftBase   = isMobile ? 28 : 32;    // seberapa tinggi arc melengkung
+  const hoverLift  = isMobile ? 22 : 28;    // lift saat kartu di-hover/selected
+  const overlap    = isMobile ? 34 : 42;    // jarak horizontal antar kartu (px)
+
+  // Lebar total fan agar bisa di-center
+  const totalW = (n - 1) * overlap;
+  inner.style.width = Math.max(totalW + (isMobile ? 46 : 60), 60) + 'px';
+
+  cards.forEach((el, i) => {
+    // Sudut rotasi: kartu kiri negatif, kartu kanan positif
+    // Kartu tengah = 0 derajat
+    const mid   = (n - 1) / 2;
+    const frac  = n > 1 ? (i - mid) / mid : 0;  // -1 ... 0 ... +1
+    const rot   = frac * (maxSpread / 2);
+
+    // Posisi X: spread horizontal dengan overlap
+    const tx = (i - mid) * overlap;
+
+    // Posisi Y: kartu tengah paling tinggi (translateY negatif = naik)
+    // Parabola: -liftBase * (1 - frac²)
+    const ty = liftBase * (frac * frac) - liftBase;
+
+    // Z-index: kartu tengah di atas
+    const baseZ = Math.round(50 - Math.abs(frac) * 30);
+
+    const isSel = el.classList.contains('sel');
+
+    if(isSel){
+      // Kartu terpilih: angkat lebih tinggi, scale up, hilangkan rotasi
+      el.style.transform = `translateX(${tx}px) translateY(${ty - hoverLift}px) rotate(0deg) scale(1.12)`;
+      el.style.zIndex = '80';
+    } else {
+      el.style.transform = `translateX(${tx}px) translateY(${ty}px) rotate(${rot}deg)`;
+      el.style.zIndex = String(baseZ);
+    }
+
+    // Simpan transform base untuk hover via CSS var
+    el.style.setProperty('--fan-tx', `${tx}px`);
+    el.style.setProperty('--fan-ty', `${ty}px`);
+    el.style.setProperty('--fan-rot', `${rot}deg`);
+    el.style.setProperty('--fan-lift', `${hoverLift}px`);
+
+    // Pastikan posisi absolute agar bisa overlap bebas
+    el.style.position = 'absolute';
+    el.style.left = '50%';
+    el.style.marginLeft = `-${isMobile ? 23 : 30}px`; // setengah lebar kartu
+    el.style.marginTop = '0';
+  });
+
+  // Parent harus relative & punya tinggi cukup untuk fan
+  inner.style.position = 'relative';
+  inner.style.display  = 'block';
+  const cardH = isMobile ? 70 : 88;
+  inner.style.height   = (cardH + liftBase + hoverLift + 8) + 'px';
+}
+
+// Re-apply fan setelah setiap render (MutationObserver)
+(function(){
+  const inner = document.getElementById('handInner');
+  if(!inner) return;
+  const obs = new MutationObserver(() => {
+    // Tunda sedikit agar browser selesai paint terlebih dulu
+    requestAnimationFrame(applyFanLayout);
+  });
+  obs.observe(inner, { childList: true, subtree: false });
+  // Apply sekali saat halaman load
+  applyFanLayout();
+})();
 
 // ══ LOAD SAVED USERNAME ══
 (function(){
