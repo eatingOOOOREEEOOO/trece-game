@@ -517,24 +517,34 @@ button,input{touch-action:manipulation;cursor:pointer;}
   min-height: 124px;
 }
 
-/* ── MOBILE COMPACT: kurangi jarak atas-bawah kartu di smartphone ── */
+/* ══ MOBILE COMPACT ≤600px — hilangkan celah kosong antara chipBar dan kartu ══ */
 @media (max-width: 600px) {
   #playerArea {
-    gap: 2px;
-    padding: 2px 0 6px;
-    min-height: 190px;
+    gap: 0;
+    padding: 2px 0 4px;
+    min-height: 0;
+  }
+  /* powerBar yang tidak aktif jangan makan ruang vertikal sama sekali */
+  #powerBar:not(.show) {
+    display: none !important;
+  }
+  #powerBar.show {
+    padding: 2px 12px;
   }
   #comboHint {
-    min-height: 12px;
-    font-size: 9px;
+    min-height: 0;
+    line-height: 1.2;
+    margin: 0;
   }
   #chipBar {
-    margin-bottom: 0;
+    margin: 0;
+    padding: 0;
   }
+  /* Kurangi padding atas: 20px cukup untuk efek kartu terangkat saat diseleksi */
   #handWrap {
-    /* Kurangi padding atas: cukup 18px untuk ruang angkat kartu */
-    padding: 18px 12px 4px;
-    min-height: 110px;
+    padding-top: 20px;
+    padding-bottom: 2px;
+    min-height: 108px;
   }
   #actRow {
     margin-top: 0;
@@ -1736,4 +1746,42 @@ button,input{touch-action:manipulation;cursor:pointer;}
   #feltCards { height: 100%; }
   #comboBadge { font-size: 9px; padding: 2px 10px; top: -18px; }
   #gstat { font-size: 9px; min-height: 12px; }
+}
+
+/* ══ SMARTPHONE PORTRAIT ≤600px — kompres #center agar kartu lebih dekat ke chipBar ══ */
+@media (max-width: 600px) {
+  /* Batasi tinggi area meja — jangan biarkan flex:1 menelan ruang berlebih */
+  #center {
+    flex: 0 0 auto;
+    gap: 4px;
+    padding: 2px 4px;
+  }
+  /* Perkecil felt agar meja tidak makan terlalu banyak ruang vertikal */
+  #felt {
+    height: clamp(120px, 28vw, 180px);
+  }
+  #feltCards { height: 100%; }
+  #gstat { min-height: 12px; }
+
+  /* Kompres playerArea */
+  #playerArea {
+    gap: 0;
+    padding: 2px 0 4px;
+    min-height: 0;
+  }
+  /* powerBar hidden tidak boleh makan ruang */
+  #powerBar:not(.show) { display: none !important; }
+  #powerBar.show { padding: 2px 12px; }
+
+  #comboHint { min-height: 0; margin: 0; }
+  #chipBar    { margin: 0; padding: 0; }
+
+  /* Kurangi padding atas handWrap — kartu diangkat 22px, 22px cukup */
+  #handWrap {
+    padding-top: 22px;
+    padding-bottom: 2px;
+    min-height: 108px;
+  }
+  #actRow  { margin-top: 0; }
+  #myplate { margin-top: 0; }
 }
