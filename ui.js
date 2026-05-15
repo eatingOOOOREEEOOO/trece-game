@@ -316,17 +316,17 @@ function renderGame(){
   if(gameOver&&_reorderMode){
     _reorderMode=false;_reorderSel=-1;
     const arrowRow=document.getElementById('arrowRow');
-    if(arrowRow){arrowRow.style.visibility='hidden';arrowRow.style.height='0';arrowRow.style.overflow='hidden';arrowRow.style.margin='0';}
+    if(arrowRow)arrowRow.style.display='none';
     if(btnReorder){btnReorder.textContent='⇄';btnReorder.classList.remove('active');}
   }
   // Sync arrowRow visibility
   const arrowRow=document.getElementById('arrowRow');
-  if(arrowRow){if(_reorderMode){arrowRow.style.visibility='visible';arrowRow.style.height='';arrowRow.style.overflow='';arrowRow.style.margin='';}else{arrowRow.style.visibility='hidden';arrowRow.style.height='0';arrowRow.style.overflow='hidden';arrowRow.style.margin='0';}}
+  if(arrowRow)arrowRow.style.display=_reorderMode?'flex':'none';
 
   if(!gameOver&&(isMyTurn||canSelectBid))updateComboHint();
   else{
-    document.getElementById('comboHint').textContent='';
-    document.getElementById('comboHint').style.color='rgba(212,168,67,0.35)';
+    document.getElementById('comboHint').textContent='menunggu giliran...';
+    document.getElementById('comboHint').style.color='rgba(212,168,67,0.18)';
   }
 }
 
@@ -641,7 +641,7 @@ function _syncReorderUI(){
     if(_reorderMode){btn.textContent='✓ SELESAI';btn.classList.add('active');}
     else{btn.textContent='⇄';btn.classList.remove('active');}
   }
-  if(arrowRow){if(_reorderMode){arrowRow.style.visibility='visible';arrowRow.style.height='';arrowRow.style.overflow='';arrowRow.style.margin='';}else{arrowRow.style.visibility='hidden';arrowRow.style.height='0';arrowRow.style.overflow='hidden';arrowRow.style.margin='0';}}
+  if(arrowRow)arrowRow.style.display=_reorderMode?'flex':'none';
   _renderReorderHand();
 }
 
