@@ -855,6 +855,7 @@ button,input{touch-action:manipulation;cursor:pointer;}
     gap:4px;
     padding:4px 12px;
     justify-content:center;
+    align-items:center;
   }
   #tdots{gap:8px;}
   .tdot{font-size:9px;gap:3px;}
@@ -862,8 +863,8 @@ button,input{touch-action:manipulation;cursor:pointer;}
 
   /* ── Felt: transparent, kartu langsung di atas background ── */
   #felt{
-    /* Responsif: clamp 115px–150px sesuai tinggi viewport */
-    height:clamp(115px, 18vh, 150px);
+    /* Responsif: clamp 115px–155px sesuai tinggi viewport */
+    height:clamp(115px, 19vh, 155px);
     min-height:unset;
     max-height:unset;
     border-radius:0;
@@ -872,8 +873,21 @@ button,input{touch-action:manipulation;cursor:pointer;}
     border:none;
     box-shadow:none;
     overflow:visible;
+    /* Pastikan isi felt flex-center */
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-direction:column;
+    gap:4px;
   }
-  #feltCards{height:100%;overflow:visible;}
+  #feltCards{
+    height:auto;
+    overflow:visible;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex:0 0 auto;
+  }
   .felt-stack-card .card,
   #feltCards .card{
     width:44px!important;
@@ -885,10 +899,13 @@ button,input{touch-action:manipulation;cursor:pointer;}
   .empty-msg{font-size:12px;}
   #comboBadge{font-size:9px;padding:3px 11px;top:-22px;}
 
-  /* timer wrap ikut ukuran tombol — tidak perlu override khusus */
-
-  /* ── Status text ── */
-  #gstat{font-size:9px;min-height:12px;}
+  /* gstat — teks "Giliran KAMU!" ikut di dalam felt, terpusat */
+  #gstat{
+    font-size:9px;
+    min-height:12px;
+    text-align:center;
+    width:100%;
+  }
 
   /* ── Ghost row ── */
   #ghostRow{padding:0 4px;}
@@ -898,21 +915,37 @@ button,input{touch-action:manipulation;cursor:pointer;}
   #comboHint{font-size:9px;min-height:12px;}
 
   /* ── ACTION BUTTONS ── */
-  #actRow{gap:5px;width:100%;}
-  /* Base semua tombol */
-  .abtn{padding:12px 0;font-size:11px;border-radius:8px;flex:1;min-height:46px;}
+  #actRow{gap:6px;width:100%;}
+  /* Base semua tombol — ukuran lebih proporsional, tidak terlalu besar */
+  .abtn{padding:9px 0;font-size:11px;border-radius:8px;flex:1;min-height:38px;max-height:42px;}
   /* Tombol MAIN: 2x lebih lebar dari SKIP */
-  .abtn-play{flex:2!important;font-size:13px!important;padding:13px 0!important;letter-spacing:1px!important;}
+  .abtn-play{flex:2!important;font-size:12px!important;padding:9px 0!important;letter-spacing:1px!important;}
   /* timerWrap ikut flex MAIN — display-nya tetap dikontrol oleh JS */
   #timerWrap{flex:2!important;}
   #timerWrap .abtn-play{flex:1!important;width:100%!important;}
   /* Tombol SKIP lebih sempit */
-  .abtn-skip{flex:1!important;font-size:10px!important;padding:12px 0!important;}
-  /* Tombol reorder */
-  .abtn-reorder{flex:0 0 38px!important;padding:12px 0!important;font-size:15px!important;text-align:center;}
-  .abtn-reorder.active{flex:0 0 50px!important;font-size:8px!important;padding:12px 4px!important;}
+  .abtn-skip{flex:1!important;font-size:10px!important;padding:9px 0!important;}
+  /* Tombol reorder — fix: icon centered, ukuran proporsional */
+  .abtn-reorder{
+    flex:0 0 36px!important;
+    padding:9px 0!important;
+    font-size:16px!important;
+    text-align:center!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    line-height:1!important;
+  }
+  .abtn-reorder.active{
+    flex:0 0 36px!important;
+    font-size:8px!important;
+    padding:4px 2px!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+  }
   #arrowRow{gap:5px;padding:0 2px;}
-  .abtn-arrow{padding:7px 0;flex:0 0 48px;font-size:16px;}
+  .abtn-arrow{padding:7px 0;flex:0 0 44px;font-size:16px;}
   .arrow-hint{font-size:8px;flex:1;text-align:center;}
   #handInner .card.reorder-lifted{
     transform:translateY(-26px) scale(1.1)!important;
@@ -1266,13 +1299,33 @@ button,input{touch-action:manipulation;cursor:pointer;}
 
 /* ══ EMOTE SYSTEM ══ */
 #emoteBtn{
-  position:fixed;right:12px;bottom:140px;z-index:50;
+  position:fixed;right:12px;bottom:260px;z-index:50;
   width:42px;height:42px;border-radius:50%;border:1px solid rgba(212,168,67,0.35);
   background:rgba(6,13,16,0.88);color:var(--gold2);font-size:20px;
   cursor:pointer;display:none;align-items:center;justify-content:center;
   box-shadow:0 2px 12px rgba(0,0,0,0.6);
   transition:transform 0.15s,background 0.15s;
   -webkit-tap-highlight-color:transparent;
+}
+/* Mobile: emote button di pojok kiri atas area player — jauh dari kartu */
+@media (max-width: 600px) {
+  #emoteBtn{
+    right:auto;
+    left:10px;
+    bottom:auto;
+    top:auto;
+    /* Posisi relatif: di atas tombol aksi, kiri bawah layar */
+    position:fixed;
+    /* Letakkan di bawah felt, sejajar dengan comboHint — tidak bentrok dengan kartu */
+    bottom:230px;
+    left:10px;
+    width:36px;height:36px;font-size:17px;
+  }
+  #emotePicker{
+    right:auto;
+    left:10px;
+    bottom:272px;
+  }
 }
 #emoteBtn:hover{background:rgba(14,40,26,0.95);transform:scale(1.1);}
 #emoteBtn.game-open{display:flex;}
