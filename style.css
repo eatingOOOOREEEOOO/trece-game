@@ -516,43 +516,6 @@ button,input{touch-action:manipulation;cursor:pointer;}
   /* KUNCI: slot kartu tetap ada walau tangan kosong — kartu 88px + padding 36px */
   min-height: 124px;
 }
-
-/* ══ MOBILE COMPACT ≤600px — hilangkan celah kosong antara chipBar dan kartu ══ */
-@media (max-width: 600px) {
-  #playerArea {
-    gap: 0;
-    padding: 2px 0 4px;
-    min-height: 0;
-  }
-  /* powerBar yang tidak aktif jangan makan ruang vertikal sama sekali */
-  #powerBar:not(.show) {
-    display: none !important;
-  }
-  #powerBar.show {
-    padding: 2px 12px;
-  }
-  #comboHint {
-    min-height: 0;
-    line-height: 1.2;
-    margin: 0;
-  }
-  #chipBar {
-    margin: 0;
-    padding: 0;
-  }
-  /* Kurangi padding atas: 20px cukup untuk efek kartu terangkat saat diseleksi */
-  #handWrap {
-    padding-top: 20px;
-    padding-bottom: 2px;
-    min-height: 108px;
-  }
-  #actRow {
-    margin-top: 0;
-  }
-  #myplate {
-    margin-top: 0;
-  }
-}
 #handWrap::-webkit-scrollbar{height:3px;}
 #handWrap::-webkit-scrollbar-thumb{background:rgba(212,168,67,0.12);border-radius:2px;}
 #handInner{
@@ -878,10 +841,10 @@ button,input{touch-action:manipulation;cursor:pointer;}
   #handWrap{
     overflow:visible!important;
     overflow-x:visible!important;
-    padding:32px 12px 6px;
+    padding:18px 12px 4px;
     width:100%;
-    /* Slot kartu tetap ada walau kosong: kartu 65px + padding 38px */
-    min-height:103px;
+    /* Slot kartu tetap ada walau kosong: kartu 65px + padding 18px */
+    min-height:83px;
   }
 
   /* ── Center area ── */
@@ -948,8 +911,8 @@ button,input{touch-action:manipulation;cursor:pointer;}
   #ghostRow{padding:0 4px;}
 
   /* ── Player area: compact, padding kiri kanan ── */
-  #playerArea{gap:3px;padding:3px 12px 8px;min-height:165px;}
-  #comboHint{font-size:9px;min-height:12px;}
+  #playerArea{gap:0px;padding:2px 12px 4px;min-height:0;}
+  #comboHint{font-size:9px;min-height:0;}
 
   /* ── ACTION BUTTONS ── */
   #actRow{gap:6px;width:100%;}
@@ -1746,42 +1709,4 @@ button,input{touch-action:manipulation;cursor:pointer;}
   #feltCards { height: 100%; }
   #comboBadge { font-size: 9px; padding: 2px 10px; top: -18px; }
   #gstat { font-size: 9px; min-height: 12px; }
-}
-
-/* ══ SMARTPHONE PORTRAIT ≤600px — kompres #center agar kartu lebih dekat ke chipBar ══ */
-@media (max-width: 600px) {
-  /* Batasi tinggi area meja — jangan biarkan flex:1 menelan ruang berlebih */
-  #center {
-    flex: 0 0 auto;
-    gap: 4px;
-    padding: 2px 4px;
-  }
-  /* Perkecil felt agar meja tidak makan terlalu banyak ruang vertikal */
-  #felt {
-    height: clamp(120px, 28vw, 180px);
-  }
-  #feltCards { height: 100%; }
-  #gstat { min-height: 12px; }
-
-  /* Kompres playerArea */
-  #playerArea {
-    gap: 0;
-    padding: 2px 0 4px;
-    min-height: 0;
-  }
-  /* powerBar hidden tidak boleh makan ruang */
-  #powerBar:not(.show) { display: none !important; }
-  #powerBar.show { padding: 2px 12px; }
-
-  #comboHint { min-height: 0; margin: 0; }
-  #chipBar    { margin: 0; padding: 0; }
-
-  /* Kurangi padding atas handWrap — kartu diangkat 22px, 22px cukup */
-  #handWrap {
-    padding-top: 22px;
-    padding-bottom: 2px;
-    min-height: 108px;
-  }
-  #actRow  { margin-top: 0; }
-  #myplate { margin-top: 0; }
 }
