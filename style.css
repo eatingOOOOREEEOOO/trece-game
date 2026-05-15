@@ -841,21 +841,23 @@ button,input{touch-action:manipulation;cursor:pointer;}
   #handWrap{
     overflow:visible!important;
     overflow-x:visible!important;
-    padding:18px 12px 4px;
+    padding:20px 12px 4px;
     width:100%;
-    /* Slot kartu tetap ada walau kosong: kartu 65px + padding 18px */
-    min-height:83px;
+    /* Slot kartu tetap ada walau kosong: kartu 65px + padding 20px */
+    min-height:85px;
   }
 
   /* ── Center area ── */
   #center{
-    /* top/bottom tidak perlu — flex:1 sudah handle */
     top:unset;
     bottom:unset;
     gap:4px;
     padding:4px 12px;
     justify-content:center;
     align-items:center;
+    /* Batasi tinggi agar tidak menelan ruang — sisakan ruang untuk playerArea */
+    flex: 1 1 0;
+    max-height: 52vh;
   }
   #tdots{gap:8px;}
   .tdot{font-size:9px;gap:3px;}
@@ -863,8 +865,8 @@ button,input{touch-action:manipulation;cursor:pointer;}
 
   /* ── Felt: transparent, kartu langsung di atas background ── */
   #felt{
-    /* Responsif: clamp 115px–155px sesuai tinggi viewport */
-    height:clamp(115px, 19vh, 155px);
+    /* Responsif: lebih kecil agar center tidak mendominasi */
+    height:clamp(105px, 16vh, 145px);
     min-height:unset;
     max-height:unset;
     border-radius:0;
@@ -911,7 +913,7 @@ button,input{touch-action:manipulation;cursor:pointer;}
   #ghostRow{padding:0 4px;}
 
   /* ── Player area: compact, padding kiri kanan ── */
-  #playerArea{gap:0px;padding:2px 12px 4px;min-height:0;}
+  #playerArea{gap:1px;padding:2px 12px 4px;min-height:0;}
   #comboHint{font-size:9px;min-height:0;}
 
   /* ── ACTION BUTTONS ── */
