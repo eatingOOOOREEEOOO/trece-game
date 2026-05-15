@@ -111,7 +111,7 @@ function mkCardHTML(c,idx,selectable,selected,dimmed=false){
   const col=sc(c.suit),sym=SUITS[c.suit],v=vd(c.val);
   const selCls=selected?'sel':'';
   const nhCls=(!selectable||dimmed)?'nh':'';
-  const dimStyle=dimmed?'opacity:0.35;filter:grayscale(0.6);':'';
+  const dimStyle=dimmed?'opacity:0.55;filter:brightness(0.3) saturate(0.2);':'';
   const isTouch='ontouchstart' in window;
   // Fix: always attach onclick on both touch & desktop — touch devices need it for card selection
   const click=(selectable&&!dimmed)?`onclick="toggleCard(${idx})"` :'';
