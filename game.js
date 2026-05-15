@@ -28,7 +28,7 @@ function startTimer(onExpire){
   const btnNoTimer=document.getElementById('btnPlayNoTimer');
 
   // Sembunyikan btnPlayNoTimer — pastikan tidak muncul bersamaan dengan timerWrap
-  if(btnNoTimer){btnNoTimer.style.display='none';}
+  if(btnNoTimer){btnNoTimer.style.visibility='hidden';btnNoTimer.style.position='absolute';}
   wrap.style.display='flex';
   wrap.className='';
   // Set CSS variable untuk progress (1 = penuh, 0 = habis)
@@ -50,7 +50,7 @@ function clearTimer(){
   const btnNoTimer=document.getElementById('btnPlayNoTimer');
   // Sembunyikan timerWrap, tampilkan btnPlayNoTimer
   if(wrap){wrap.style.display='none';wrap.style.removeProperty('--tp');}
-  if(btnNoTimer){btnNoTimer.style.display='';}
+  if(btnNoTimer){btnNoTimer.style.visibility='';btnNoTimer.style.position='';}
 }
 
 // ── Position Announce Queue ──
