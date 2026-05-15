@@ -516,6 +516,33 @@ button,input{touch-action:manipulation;cursor:pointer;}
   /* KUNCI: slot kartu tetap ada walau tangan kosong — kartu 88px + padding 36px */
   min-height: 124px;
 }
+
+/* ── MOBILE COMPACT: kurangi jarak atas-bawah kartu di smartphone ── */
+@media (max-width: 600px) {
+  #playerArea {
+    gap: 2px;
+    padding: 2px 0 6px;
+    min-height: 190px;
+  }
+  #comboHint {
+    min-height: 12px;
+    font-size: 9px;
+  }
+  #chipBar {
+    margin-bottom: 0;
+  }
+  #handWrap {
+    /* Kurangi padding atas: cukup 18px untuk ruang angkat kartu */
+    padding: 18px 12px 4px;
+    min-height: 110px;
+  }
+  #actRow {
+    margin-top: 0;
+  }
+  #myplate {
+    margin-top: 0;
+  }
+}
 #handWrap::-webkit-scrollbar{height:3px;}
 #handWrap::-webkit-scrollbar-thumb{background:rgba(212,168,67,0.12);border-radius:2px;}
 #handInner{
