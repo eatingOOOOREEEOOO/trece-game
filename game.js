@@ -18,12 +18,20 @@ let _prevRoundPlayerIds  = [];
 
 // ══ TURN TIMER ══
 const TURN_SECONDS=30;
-let timerInterval=null;
+let timerRafId=null;       // requestAnimationFrame handle
+let timerStartTime=null;   // performance.now() saat timer mulai
+let timerExpired=false;    // flag agar onExpire hanya dipanggil sekali
+// timerSecondsLeft masih dipakai oleh kode luar (SFX warning), update tiap detik
 let timerSecondsLeft=0;
+let _timerLastWholeSec=TURN_SECONDS; // untuk deteksi transisi detik (warn/danger/tick)
 
 function startTimer(onExpire){
   clearTimer();
+  timerExpired=false;
+  _timerLastWholeSec=TURN_SECONDS;
   timerSecondsLeft=TURN_SECONDS;
+  timerStartTime=performance.now();
+
   const wrap=document.getElementById('timerWrap');
   const btnNoTimer=document.getElementById('btnPlayNoTimer');
 
@@ -34,18 +42,41 @@ function startTimer(onExpire){
   // Set CSS variable untuk progress (1 = penuh, 0 = habis)
   wrap.style.setProperty('--tp','1');
 
-  timerInterval=setInterval(()=>{
-    timerSecondsLeft--;
-    const pct=Math.max(0,timerSecondsLeft/TURN_SECONDS);
-    wrap.style.setProperty('--tp', pct.toFixed(4));
-    if(timerSecondsLeft===10){wrap.className='warn';SFX.timerWarn();}
-    if(timerSecondsLeft<=5&&timerSecondsLeft>0){wrap.className='danger';SFX.timerTick();}
-    if(timerSecondsLeft<=0){clearTimer();onExpire();}
-  },1000);
+  function tick(now){
+    if(timerExpired)return;
+    const elapsed=(now-timerStartTime)/1000; // detik sebagai float
+    const remaining=Math.max(0, TURN_SECONDS-elapsed);
+    const pct=remaining/TURN_SECONDS;
+
+    // Update CSS var setiap frame — smooth!
+    wrap.style.setProperty('--tp', pct.toFixed(6));
+
+    // Deteksi transisi detik (hanya satu kali per detik) untuk SFX & class
+    const wholeSec=Math.ceil(remaining);
+    if(wholeSec!==_timerLastWholeSec){
+      _timerLastWholeSec=wholeSec;
+      timerSecondsLeft=wholeSec;
+      if(wholeSec===10){wrap.className='warn';SFX.timerWarn();}
+      if(wholeSec<=5&&wholeSec>0){wrap.className='danger';SFX.timerTick();}
+    }
+
+    if(remaining<=0){
+      timerExpired=true;
+      wrap.style.setProperty('--tp','0');
+      clearTimer();
+      onExpire();
+      return;
+    }
+
+    timerRafId=requestAnimationFrame(tick);
+  }
+
+  timerRafId=requestAnimationFrame(tick);
 }
 
 function clearTimer(){
-  if(timerInterval){clearInterval(timerInterval);timerInterval=null;}
+  if(timerRafId){cancelAnimationFrame(timerRafId);timerRafId=null;}
+  timerStartTime=null;
   const wrap=document.getElementById('timerWrap');
   const btnNoTimer=document.getElementById('btnPlayNoTimer');
   // Sembunyikan timerWrap, tampilkan btnPlayNoTimer
