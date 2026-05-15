@@ -28,7 +28,7 @@ function startTimer(onExpire){
   const btnNoTimer=document.getElementById('btnPlayNoTimer');
 
   // Sembunyikan btnPlayNoTimer — pastikan tidak muncul bersamaan dengan timerWrap
-  if(btnNoTimer){btnNoTimer.style.visibility='hidden';btnNoTimer.style.position='absolute';}
+  if(btnNoTimer){btnNoTimer.style.display='none';}
   wrap.style.display='flex';
   wrap.className='';
   // Set CSS variable untuk progress (1 = penuh, 0 = habis)
@@ -50,7 +50,7 @@ function clearTimer(){
   const btnNoTimer=document.getElementById('btnPlayNoTimer');
   // Sembunyikan timerWrap, tampilkan btnPlayNoTimer
   if(wrap){wrap.style.display='none';wrap.style.removeProperty('--tp');}
-  if(btnNoTimer){btnNoTimer.style.visibility='';btnNoTimer.style.position='';}
+  if(btnNoTimer){btnNoTimer.style.display='';}
 }
 
 // ── Position Announce Queue ──
@@ -310,6 +310,108 @@ function showFirstPlayerPopup(name,isMe,cardStr,onDone){
 
 // Sequential reveal: show each rank-3 card one by one (suit low→high),
 // then a final "X mulai!" popup. Each step waits for the previous to finish.
+
+/* ══════════════════════════════════════════════════════════
+   CHIP STACKS — animasi tumpukan chip muncul di tepi felt
+   Dipanggil setelah semua bid selesai, sebelum reveal sequence
+   ══════════════════════════════════════════════════════════ */
+function showChipStacks(players, playerBetsMap, currentBetFallback) {
+  const container = document.getElementById('chipStacks');
+  if (!container) return;
+
+  // Clear existing
+  container.innerHTML = '';
+
+  // 4 posisi di tepi dalam oval felt, satu per player slot
+  // Format: { left, bottom } dalam persen relatif #felt
+  // Disesuaikan agar tidak menutupi kartu di tengah
+  const positions = [
+    { left: '8%',  bottom: '18%' },   // slot 0 — kiri bawah
+    { left: '50%', bottom: '6%'  },   // slot 1 — bawah tengah
+    { left: '82%', bottom: '18%' },   // slot 2 — kanan bawah
+    { left: '50%', top:    '8%'  },   // slot 3 — atas tengah
+  ];
+
+  // Tentukan tier chip berdasarkan amount
+  function getTier(amount) {
+    if (amount >= 1000) return 5;
+    if (amount >= 500)  return 4;
+    if (amount >= 200)  return 3;
+    if (amount >= 100)  return 2;
+    return 1;
+  }
+
+  // Jumlah keping: min 2, max 8, proporsional ke amount
+  function getCoinCount(amount) {
+    if (amount <= 0) return 0;
+    if (amount <= 50)   return 2;
+    if (amount <= 100)  return 3;
+    if (amount <= 200)  return 4;
+    if (amount <= 500)  return 5;
+    if (amount <= 1000) return 6;
+    return 8;
+  }
+
+  players.forEach((player, slotIdx) => {
+    if (!player) return;
+    const bet = (playerBetsMap && playerBetsMap[player.id]) || currentBetFallback || 100;
+    if (bet <= 0) return;
+
+    const pos = positions[slotIdx];
+    if (!pos) return;
+
+    const spot = document.createElement('div');
+    spot.className = 'chip-spot';
+    Object.assign(spot.style, {
+      position: 'absolute',
+      left:   pos.left   || 'auto',
+      right:  pos.right  || 'auto',
+      bottom: pos.bottom || 'auto',
+      top:    pos.top    || 'auto',
+      transform: pos.left === '50%' ? 'translateX(-50%)' : 'none',
+    });
+
+    const tier = getTier(bet);
+    const count = getCoinCount(bet);
+
+    // Buat keping chip
+    for (let i = 0; i < count; i++) {
+      const coin = document.createElement('div');
+      coin.className = `chip-coin tier-${tier}`;
+      spot.appendChild(coin);
+    }
+
+    // Label
+    const label = document.createElement('div');
+    label.className = 'chip-spot-label';
+    const betStr = bet >= 1000 ? (bet/1000).toFixed(bet%1000===0?0:1)+'k' : String(bet);
+    label.textContent = player.name.slice(0,8) + ' · ' + betStr;
+    spot.appendChild(label);
+
+    container.appendChild(spot);
+
+    // Animasi: tiap keping jatuh dengan delay bertingkat
+    const coins = spot.querySelectorAll('.chip-coin');
+    coins.forEach((coin, idx) => {
+      setTimeout(() => {
+        coin.classList.add('dropping');
+      }, idx * 90 + 60); // delay per keping
+    });
+  });
+}
+
+function hideChipStacks() {
+  const container = document.getElementById('chipStacks');
+  if (!container) return;
+  // Fade out semua spots
+  const spots = container.querySelectorAll('.chip-spot');
+  spots.forEach(s => {
+    s.style.transition = 'opacity 0.4s ease';
+    s.style.opacity = '0';
+  });
+  setTimeout(() => { container.innerHTML = ''; }, 450);
+}
+
 function showThreeRevealSequence(allThrees,startName,isMe,onDone){
   const el=document.getElementById('posAnnounce');
   const SUIT_SYM=['♦','♣','♥','♠'];
@@ -656,9 +758,13 @@ function finishBidPhase(){
   const nm=G.players[startP].name;
   allThrees.sort((a,b)=>a.suit-b.suit);
   renderGame();
-  showThreeRevealSequence(allThrees,nm,isMe,()=>{
-    proceedTurn();
-  });
+  showChipStacks(G.players, typeof playerBets!=='undefined'?playerBets:{}, typeof currentBet!=='undefined'?currentBet:100);
+  setTimeout(()=>{
+    showThreeRevealSequence(allThrees,nm,isMe,()=>{
+      hideChipStacks();
+      proceedTurn();
+    });
+  }, 400);
 }
 
 function doBotTurn(pidx){
@@ -948,10 +1054,15 @@ function receiveState(state){
     const isMe=startP===ms;
     const nm=G.players[startP].name;
     clearTimer();
-    showThreeRevealSequence(allThrees,nm,isMe,()=>{
-      _bidTransitionShown=false;
-      proceedTurn();
-    });
+    // Tampilkan chip stacks sebelum reveal
+    showChipStacks(G.players, typeof playerBets!=='undefined'?playerBets:{}, typeof currentBet!=='undefined'?currentBet:100);
+    setTimeout(()=>{
+      showThreeRevealSequence(allThrees,nm,isMe,()=>{
+        hideChipStacks();
+        _bidTransitionShown=false;
+        proceedTurn();
+      });
+    }, 400); // jeda kecil agar chip sempat muncul dulu
   }else{
     proceedTurn();
   }
