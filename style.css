@@ -1,6 +1,8 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;900&family=JetBrains+Mono:wght@400;700&display=swap');
 
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+/* Global font reset — catch all unset elements */
+*{font-family:'Outfit',sans-serif;}
 html,body{height:100%;overflow:hidden;background:#060d10;
   -webkit-tap-highlight-color:transparent;
   -webkit-touch-callout:none;
@@ -818,7 +820,7 @@ button,input{touch-action:manipulation;cursor:pointer;}
   position:relative;z-index:1;
 }
 .pos-banner-name{
-  font-family:'Cinzel Decorative',serif;font-size:clamp(15px,3.5vw,22px);
+  font-family:'Outfit',sans-serif;font-size:clamp(15px,3.5vw,22px);
   font-weight:900;letter-spacing:2px;line-height:1.1;white-space:nowrap;
 }
 .pos-banner-label{
