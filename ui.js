@@ -469,7 +469,7 @@ function showEndModal(){
     <li class="ritem" style="animation-delay:${rank*0.08}s">
       <div class="rcircle" style="background:${clrs[rank]}18;color:${clrs[rank]};border:1px solid ${clrs[rank]}44">${medals[rank]}</div>
       <span style="color:${pidx===ms?'var(--neon)':'var(--gold3)'};flex:1">${G.players[pidx].name}${pidx===ms?' (Kamu)':''}</span>
-      <span style="font-size:9px;font-family:'JetBrains Mono';color:rgba(212,168,67,0.4)">${rank===0?'MENANG':rank===3?'KALAH':'#'+(rank+1)}</span>
+      <span style="font-size:9px;font-family:'JetBrains Mono',monospace;color:rgba(212,168,67,0.4)">${rank===0?'MENANG':rank===3?'KALAH':'#'+(rank+1)}</span>
     </li>`).join('');
 
   const chipRecapHtml = buildChipRecap(G.finished, G.players, deltas, ms);
@@ -483,7 +483,7 @@ function showEndModal(){
     <div class="modal-t">${G.finished[0]===ms?'🎉 MENANG!':'GAME SELESAI'}</div>
     <ul class="rlist">${items}</ul>
     ${chipRecapHtml}
-    <button class="btn btn-gold" style="font-family:'Cinzel Decorative';font-size:12px;" onclick="${mainLagiAction}">MAIN LAGI</button>
+    <button class="btn btn-gold" style="font-family:'Outfit',sans-serif;font-size:13px;letter-spacing:2px;" onclick="${mainLagiAction}">MAIN LAGI</button>
   </div></div>`;
 }
 
@@ -590,7 +590,7 @@ function startBgCanvas(){
       ctx.save();
       ctx.translate(s.x*W,s.y*H);
       ctx.rotate(s.rot*Math.PI/180);
-      ctx.font=`${s.sz}px serif`;
+      ctx.font=`${s.sz}px 'Outfit', sans-serif`;
       ctx.textAlign='center';
       ctx.textBaseline='middle';
       if(s.isRed){
