@@ -148,7 +148,7 @@ function _showOnePosAnnounce(rank, playerName, isMe, onDone){
       fill="url(#pdo${r})" stroke="${strokeColor[r]}" stroke-width="0.8"/>
     <circle cx="31" cy="26" r="12" fill="url(#pdi${r})" stroke="${diskStroke[r]}" stroke-width="1"/>
     <text x="31" y="26" text-anchor="middle"
-      font-size="${numSize[r]}" font-weight="900" fill="${numColor[r]}" font-family="serif"
+      font-size="${numSize[r]}" font-weight="900" fill="${numColor[r]}" font-family="Outfit, sans-serif"
       dy="${numSize[r]*0.36}px">${numTxt[r]}</text>
     <rect x="23" y="48" width="7" height="12" rx="2" fill="url(#pra${r})"/>
     <rect x="32" y="48" width="7" height="12" rx="2" fill="url(#prb${r})"/>
@@ -359,7 +359,7 @@ function showThreeRevealSequence(allThrees,startName,isMe,onDone){
       html:[
         '<div style="font-size:9px;letter-spacing:3px;color:rgba(0,255,136,0.4);margin-bottom:10px">KARTU 3 DITEMUKAN ('+(idx+1)+'/'+allThrees.length+')</div>',
         '<div style="font-size:36px;margin-bottom:8px">',
-          '<span style="font-family:serif;color:'+col+';text-shadow:0 0 18px '+col+'88">3'+sym+'</span>',
+          '<span style="font-family:\'Outfit\',sans-serif;font-weight:900;color:'+col+';text-shadow:0 0 18px '+col+'88">3'+sym+'</span>',
         '</div>',
         '<div style="font-size:13px;color:#f0c85a;font-weight:700;margin-bottom:4px">'+ownerName+'</div>',
         isLast
