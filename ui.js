@@ -541,30 +541,30 @@ function startBgCanvas(){
   resize();
   window.addEventListener('resize',()=>{resize();isMob=window.innerWidth<=600;});
 
-  // ── 2. SUIT SYMBOLS — simbol kartu melayang naik, subtle di background ──
+  // ── 2. SUIT SYMBOLS — hanya di desktop, mobile dimatikan ──
   const SUITS_ARR=['♦','♥','♣','♠'];
-  const suits=Array.from({length:isMobile?4:12},(_,i)=>({
+  const suits=isMobile?[]:Array.from({length:12},(_,i)=>({
     sym:SUITS_ARR[i%4],
-    x:Math.random(),       // fraksi layar
+    x:Math.random(),
     y:Math.random()*1.2,
     vx:(Math.random()-.5)*0.00015,
-    vy:-(Math.random()*0.00025+0.00012), // selalu naik perlahan
-    sz:Math.random()*(isMobile?14:28)+8,
-    op:Math.random()*0.04+0.02,          // opacity sangat rendah di mobile
+    vy:-(Math.random()*0.00025+0.00012),
+    sz:Math.random()*32+12,
+    op:Math.random()*0.10+0.04,
     rot:Math.random()*360,
     vrot:(Math.random()-.5)*0.15,
     isRed:i%4===0||i%4===1,
     ph:Math.random()*Math.PI*2
   }));
 
-  // ── 3. SPARKLES — bintik berkilau kecil, seperti debu emas ──
-  const sparks=Array.from({length:isMobile?10:25},()=>({
+  // ── 3. SPARKLES — hanya di desktop, mobile dimatikan ──
+  const sparks=isMobile?[]:Array.from({length:25},()=>({
     x:Math.random(),
     y:Math.random(),
     vx:(Math.random()-.5)*0.0002,
     vy:-(Math.random()*0.0003+0.00005),
-    sz:Math.random()*1.5+0.4,
-    op:Math.random()*(isMobile?0.2:0.5)+0.05,
+    sz:Math.random()*2.2+0.6,
+    op:Math.random()*0.5+0.1,
     ph:Math.random()*Math.PI*2,
     spd:Math.random()*0.025+0.012,
     col:Math.random()<0.6?'212,168,67':'200,255,220'
